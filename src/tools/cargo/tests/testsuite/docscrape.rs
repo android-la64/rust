@@ -11,6 +11,7 @@ fn basic() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -25,7 +26,7 @@ fn basic() {
 [CHECKING] foo v0.0.1 ([CWD])
 [SCRAPING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -83,6 +84,7 @@ fn main() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
         "#,
         )
@@ -136,6 +138,7 @@ fn avoid_build_script_cycle() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 links = "foo"
 
@@ -155,6 +158,7 @@ fn avoid_build_script_cycle() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 links = "bar"
             "#,
@@ -177,6 +181,7 @@ fn complex_reverse_dependencies() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dev-dependencies]
@@ -195,6 +200,7 @@ fn complex_reverse_dependencies() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -214,6 +220,7 @@ fn complex_reverse_dependencies() {
                 [package]
                 name = "b"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -234,6 +241,7 @@ fn crate_with_dash() {
                 [package]
                 name = "da-sh"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -258,6 +266,7 @@ fn configure_target() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -305,6 +314,7 @@ fn configure_profile_issue_10500() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [profile.dev]
@@ -379,6 +389,7 @@ fn cache() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -393,7 +404,7 @@ fn cache() {
 [CHECKING] foo v0.0.1 ([CWD])
 [SCRAPING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -403,7 +414,7 @@ fn cache() {
         .masquerade_as_nightly_cargo(&["rustdoc-scrape-examples"])
         .with_stderr(
             "\
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -419,6 +430,7 @@ fn no_fail_bad_lib() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -446,7 +458,7 @@ warning: failed to scan example \"ex2\" in package `foo` for example code usage
     If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
 warning: `foo` (example \"ex2\") generated 1 warning
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
     )
@@ -463,6 +475,7 @@ fn fail_bad_build_script() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -493,6 +506,7 @@ fn no_fail_bad_example() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -512,7 +526,7 @@ warning: failed to scan example \"ex1\" in package `foo` for example code usage
     If an example should not be scanned, then consider adding `doc-scrape-examples = false` to its `[[example]]` definition in Cargo.toml
 warning: `foo` (example \"ex1\") generated 1 warning
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -537,7 +551,7 @@ error: expected one of `!` or `::`, found `NOT`
   |      ^^^ expected one of `!` or `::`
 
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -560,6 +574,7 @@ fn no_scrape_with_dev_deps() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [dev-dependencies]
@@ -574,6 +589,7 @@ fn no_scrape_with_dev_deps() {
             [package]
             name = "a"
             version = "0.0.1"
+            edition = "2015"
             authors = []
         "#,
         )
@@ -590,7 +606,7 @@ warning: Rustdoc did not scrape the following examples because they require dev-
     If you want Rustdoc to scrape these examples, then add `doc-scrape-examples = true`
     to the [[example]] target configuration of at least one example.
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -606,7 +622,7 @@ warning: Rustdoc did not scrape the following examples because they require dev-
 [DOCUMENTING] a v0.0.1 ([CWD]/a)
 [SCRAPING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/ex/index.html
 ",
         )
@@ -622,6 +638,7 @@ fn use_dev_deps_if_explicitly_enabled() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [[example]]
@@ -640,6 +657,7 @@ fn use_dev_deps_if_explicitly_enabled() {
             [package]
             name = "a"
             version = "0.0.1"
+            edition = "2015"
             authors = []
         "#,
         )
@@ -655,7 +673,7 @@ fn use_dev_deps_if_explicitly_enabled() {
 [CHECKING] a v0.0.1 ([CWD]/a)
 [SCRAPING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -673,6 +691,7 @@ fn only_scrape_documented_targets() {
             [package]
             name = "bar"
             version = "0.0.1"
+            edition = "2015"
             authors = []            
 
             [lib]
@@ -694,6 +713,7 @@ fn only_scrape_documented_targets() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []      
         "#,
         )

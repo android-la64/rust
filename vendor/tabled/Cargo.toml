@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.61.0"
 name = "tabled"
-version = "0.13.0"
+version = "0.15.0"
 authors = ["Maxim Zhiburt <zhiburt@gmail.com>"]
 description = "An easy to use library for pretty print tables of Rust `struct`s and `enum`s."
 homepage = "https://github.com/zhiburt/tabled"
@@ -48,7 +48,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 [[example]]
 name = "color"
 required-features = [
-    "color",
+    "ansi",
     "derive",
 ]
 
@@ -60,7 +60,7 @@ required-features = ["derive"]
 name = "colored_padding"
 path = "examples/colored_padding.rs"
 required-features = [
-    "color",
+    "ansi",
     "derive",
 ]
 
@@ -186,7 +186,7 @@ name = "hyperlink"
 path = "examples/hyperlink.rs"
 required-features = [
     "derive",
-    "color",
+    "ansi",
 ]
 
 [[example]]
@@ -318,6 +318,32 @@ name = "chess"
 path = "examples/chess.rs"
 required-features = ["std"]
 
+[[example]]
+name = "target_content"
+path = "examples/target_content.rs"
+required-features = [
+    "std",
+    "derive",
+]
+
+[[example]]
+name = "style_modern_rounded"
+path = "examples/style_modern_rounded.rs"
+required-features = ["std"]
+
+[[example]]
+name = "reverse"
+path = "examples/reverse.rs"
+required-features = ["std"]
+
+[[example]]
+name = "theme"
+path = "examples/theme.rs"
+required-features = [
+    "derive",
+    "std",
+]
+
 [dependencies.ansi-str]
 version = "0.8"
 optional = true
@@ -327,11 +353,11 @@ version = "0.2"
 optional = true
 
 [dependencies.papergrid]
-version = "0.10"
+version = "0.11"
 default-features = false
 
 [dependencies.tabled_derive]
-version = "0.6"
+version = "0.7"
 optional = true
 
 [dependencies.unicode-width]
@@ -341,8 +367,8 @@ version = "0.1"
 version = "3.5"
 
 [features]
-color = [
-    "papergrid/color",
+ansi = [
+    "papergrid/ansi",
     "ansi-str",
     "ansitok",
     "std",

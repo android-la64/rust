@@ -15,7 +15,7 @@ fn simple() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("hello")
@@ -90,7 +90,7 @@ fn quiet_arg_and_verbose_arg() {
 fn quiet_arg_and_verbose_config() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [term]
                 verbose = true
@@ -106,7 +106,7 @@ fn quiet_arg_and_verbose_config() {
 fn verbose_arg_and_quiet_config() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [term]
                 quiet = true
@@ -120,7 +120,7 @@ fn verbose_arg_and_quiet_config() {
             "\
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("hello")
@@ -131,7 +131,7 @@ fn verbose_arg_and_quiet_config() {
 fn quiet_config_alone() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [term]
                 quiet = true
@@ -147,7 +147,7 @@ fn quiet_config_alone() {
 fn verbose_config_alone() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [term]
                 verbose = true
@@ -161,7 +161,7 @@ fn verbose_config_alone() {
             "\
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("hello")
@@ -172,7 +172,7 @@ fn verbose_config_alone() {
 fn quiet_config_and_verbose_config() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [term]
                 verbose = true
@@ -240,7 +240,7 @@ fn exit_code() {
     let mut output = String::from(
         "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target[..]`
 ",
     );
@@ -262,7 +262,7 @@ fn exit_code_verbose() {
         "\
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target[..]`
 ",
     );
@@ -336,7 +336,7 @@ fn specify_name() {
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..] src/lib.rs [..]`
 [RUNNING] `rustc [..] src/bin/a.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/a[EXE]`",
         )
         .with_stdout("hello a.rs")
@@ -347,7 +347,7 @@ fn specify_name() {
             "\
 [COMPILING] foo v0.0.1 ([..])
 [RUNNING] `rustc [..] src/bin/b.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/b[EXE]`",
         )
         .with_stdout("hello b.rs")
@@ -363,6 +363,7 @@ fn specify_default_run() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 default-run = "a"
             "#,
@@ -386,6 +387,7 @@ fn bogus_default_run() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 default-run = "b"
             "#,
@@ -421,7 +423,7 @@ fn run_example() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/examples/a[EXE]`",
         )
         .with_stdout("example")
@@ -437,6 +439,7 @@ fn run_library_example() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [[example]]
                 name = "bar"
@@ -462,6 +465,7 @@ fn run_bin_example() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 [[example]]
                 name = "bar"
                 crate_type = ["bin"]
@@ -475,7 +479,7 @@ fn run_bin_example() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/examples/bar[EXE]`",
         )
         .with_stdout("example")
@@ -558,7 +562,7 @@ fn run_example_autodiscover_2015_with_autoexamples_enabled() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/examples/a[EXE]`",
         )
         .with_stdout("example")
@@ -588,7 +592,7 @@ fn run_example_autodiscover_2018() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/examples/a[EXE]`",
         )
         .with_stdout("example")
@@ -604,6 +608,7 @@ fn autobins_disables() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             autobins = false
             "#,
         )
@@ -728,7 +733,7 @@ fn one_bin_multiple_examples() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/main[EXE]`",
         )
         .with_stdout("hello main.rs")
@@ -746,6 +751,7 @@ fn example_with_release_flag() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -787,7 +793,7 @@ fn example_with_release_flag() {
         .with_stderr(
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
-[RUNNING] `rustc --crate-name bar bar/src/bar.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/bar.rs [..]--crate-type lib \
         --emit=[..]link \
         -C opt-level=3[..]\
         -C metadata=[..] \
@@ -795,7 +801,7 @@ fn example_with_release_flag() {
         -C strip=debuginfo \
         -L dependency=[CWD]/target/release/deps`
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name a examples/a.rs [..]--crate-type bin \
+[RUNNING] `rustc --crate-name a --edition=2015 examples/a.rs [..]--crate-type bin \
         --emit=[..]link \
         -C opt-level=3[..]\
         -C metadata=[..] \
@@ -803,7 +809,7 @@ fn example_with_release_flag() {
         -C strip=debuginfo \
         -L dependency=[CWD]/target/release/deps \
          --extern bar=[CWD]/target/release/deps/libbar-[..].rlib`
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 [RUNNING] `target/release/examples/a[EXE]`
 ",
         )
@@ -818,21 +824,21 @@ fast2",
         .with_stderr(
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
-[RUNNING] `rustc --crate-name bar bar/src/bar.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/bar.rs [..]--crate-type lib \
         --emit=[..]link[..]\
         -C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [CWD]/target/debug/deps \
         -L dependency=[CWD]/target/debug/deps`
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name a examples/a.rs [..]--crate-type bin \
+[RUNNING] `rustc --crate-name a --edition=2015 examples/a.rs [..]--crate-type bin \
         --emit=[..]link[..]\
         -C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [CWD]/target/debug/examples \
         -L dependency=[CWD]/target/debug/deps \
          --extern bar=[CWD]/target/debug/deps/libbar-[..].rlib`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/examples/a[EXE]`
 ",
         )
@@ -853,6 +859,7 @@ fn run_dylib_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -891,6 +898,7 @@ fn run_with_bin_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar]
                 path = "bar"
@@ -903,6 +911,7 @@ fn run_with_bin_dep() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -917,7 +926,7 @@ fn run_with_bin_dep() {
             "\
 [WARNING] foo v0.0.1 ([CWD]) ignoring invalid dependency `bar` which is missing a lib target
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("hello")
@@ -933,6 +942,7 @@ fn run_with_bin_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar1]
                 path = "bar1"
@@ -947,6 +957,7 @@ fn run_with_bin_deps() {
                 [package]
                 name = "bar1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -960,6 +971,7 @@ fn run_with_bin_deps() {
                 [package]
                 name = "bar2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -975,7 +987,7 @@ fn run_with_bin_deps() {
 [WARNING] foo v0.0.1 ([CWD]) ignoring invalid dependency `bar1` which is missing a lib target
 [WARNING] foo v0.0.1 ([CWD]) ignoring invalid dependency `bar2` which is missing a lib target
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("hello")
@@ -998,6 +1010,7 @@ fn run_with_bin_dep_in_workspace() {
                 [package]
                 name = "foo1"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar1]
                 path = "bar1"
@@ -1010,6 +1023,7 @@ fn run_with_bin_dep_in_workspace() {
                 [package]
                 name = "bar1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -1026,6 +1040,7 @@ fn run_with_bin_dep_in_workspace() {
                 [package]
                 name = "foo2"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar2]
                 path = "bar2"
@@ -1038,6 +1053,7 @@ fn run_with_bin_dep_in_workspace() {
                 [package]
                 name = "bar2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -1065,7 +1081,7 @@ available binaries: bar1, bar2, foo1, foo2",
 [WARNING] foo1 v0.0.1 ([CWD]/foo1) ignoring invalid dependency `bar1` which is missing a lib target
 [WARNING] foo2 v0.0.1 ([CWD]/foo2) ignoring invalid dependency `bar2` which is missing a lib target
 [COMPILING] foo1 v0.0.1 ([CWD]/foo1)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo1[EXE]`",
         )
         .with_stdout("hello")
@@ -1087,7 +1103,7 @@ fn release_works() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 [RUNNING] `target/release/foo[EXE]`
 ",
         )
@@ -1110,7 +1126,7 @@ fn release_short_works() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 [RUNNING] `target/release/foo[EXE]`
 ",
         )
@@ -1127,6 +1143,7 @@ fn run_bin_different_name() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -1171,7 +1188,7 @@ fn run_from_executable_folder() {
     p.cargo("run")
         .cwd(cwd)
         .with_stderr(
-            "[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n\
+            "[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n\
              [RUNNING] `./foo[EXE]`",
         )
         .with_stdout("hello")
@@ -1197,6 +1214,7 @@ fn run_with_library_paths() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1256,6 +1274,7 @@ fn library_paths_sorted_alphabetically() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1319,6 +1338,7 @@ fn run_multiple_packages() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1448,6 +1468,7 @@ fn default_run_workspace() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 default-run = "a"
             "#,
         )
@@ -1471,7 +1492,7 @@ fn print_env_verbose() {
             "\
 [COMPILING] a v0.0.1 ([CWD])
 [RUNNING] `[..]CARGO_MANIFEST_DIR=[CWD][..] rustc --crate-name a[..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]CARGO_MANIFEST_DIR=[CWD][..] target/debug/a[EXE]`",
         )
         .run();
@@ -1492,6 +1513,7 @@ fn run_link_system_path_macos() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             [lib]
             crate-type = ["cdylib"]
             "#,
@@ -1567,4 +1589,52 @@ fn run_link_system_path_macos() {
     // a value set.
     p2.cargo("run").env(VAR, &libdir).run();
     p2.cargo("test").env(VAR, &libdir).run();
+}
+
+#[cargo_test]
+fn run_binary_with_same_name_as_dependency() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2015"
+                authors = []
+
+                [dependencies]
+                foo = { path = "foo" }
+            "#,
+        )
+        .file(
+            "src/main.rs",
+            r#"
+                fn main() {}
+            "#,
+        )
+        .file(
+            "foo/Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [lib]
+                name = "foo"
+                path = "foo.rs"
+            "#,
+        )
+        .file("foo/foo.rs", "")
+        .build();
+    p.cargo("run").run();
+    p.cargo("check -p foo@0.5.0").run();
+    p.cargo("run -p foo@0.5.0").run();
+    p.cargo("run -p foo@0.5").run();
+    p.cargo("run -p foo@0.4")
+        .with_status(101)
+        .with_stderr("[ERROR] package(s) `foo@0.4` not found in workspace `[..]`")
+        .run();
 }

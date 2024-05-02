@@ -1,4 +1,5 @@
-use crate::core_arch::{simd::*, simd_llvm::*, x86::*};
+use crate::core_arch::{simd::*, x86::*};
+use crate::intrinsics::simd::*;
 
 #[cfg(test)]
 use stdarch_test::assert_instr;
@@ -8,6 +9,7 @@ use stdarch_test::assert_instr;
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_permutex2var_epi8&expand=4262)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm512_permutex2var_epi8(a: __m512i, idx: __m512i, b: __m512i) -> __m512i {
     transmute(vpermi2b(a.as_i8x64(), idx.as_i8x64(), b.as_i8x64()))
@@ -18,6 +20,7 @@ pub unsafe fn _mm512_permutex2var_epi8(a: __m512i, idx: __m512i, b: __m512i) -> 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_permutex2var_epi8&expand=4259)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermt2b))]
 pub unsafe fn _mm512_mask_permutex2var_epi8(
     a: __m512i,
@@ -34,6 +37,7 @@ pub unsafe fn _mm512_mask_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_permutex2var_epi8&expand=4261)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm512_maskz_permutex2var_epi8(
     k: __mmask64,
@@ -51,6 +55,7 @@ pub unsafe fn _mm512_maskz_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask2_permutex2var_epi8&expand=4260)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermi2b))]
 pub unsafe fn _mm512_mask2_permutex2var_epi8(
     a: __m512i,
@@ -67,6 +72,7 @@ pub unsafe fn _mm512_mask2_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_permutex2var_epi8&expand=4258)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm256_permutex2var_epi8(a: __m256i, idx: __m256i, b: __m256i) -> __m256i {
     transmute(vpermi2b256(a.as_i8x32(), idx.as_i8x32(), b.as_i8x32()))
@@ -77,6 +83,7 @@ pub unsafe fn _mm256_permutex2var_epi8(a: __m256i, idx: __m256i, b: __m256i) -> 
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_permutex2var_epi8&expand=4255)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermt2b))]
 pub unsafe fn _mm256_mask_permutex2var_epi8(
     a: __m256i,
@@ -93,6 +100,7 @@ pub unsafe fn _mm256_mask_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_permutex2var_epi8&expand=4257)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm256_maskz_permutex2var_epi8(
     k: __mmask32,
@@ -110,6 +118,7 @@ pub unsafe fn _mm256_maskz_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask2_permutex2var_epi8&expand=4256)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermi2b))]
 pub unsafe fn _mm256_mask2_permutex2var_epi8(
     a: __m256i,
@@ -126,6 +135,7 @@ pub unsafe fn _mm256_mask2_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_permutex2var_epi8&expand=4254)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm_permutex2var_epi8(a: __m128i, idx: __m128i, b: __m128i) -> __m128i {
     transmute(vpermi2b128(a.as_i8x16(), idx.as_i8x16(), b.as_i8x16()))
@@ -136,6 +146,7 @@ pub unsafe fn _mm_permutex2var_epi8(a: __m128i, idx: __m128i, b: __m128i) -> __m
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_permutex2var_epi8&expand=4251)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermt2b))]
 pub unsafe fn _mm_mask_permutex2var_epi8(
     a: __m128i,
@@ -152,6 +163,7 @@ pub unsafe fn _mm_mask_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_permutex2var_epi8&expand=4253)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vperm))] //should be vpermi2b
 pub unsafe fn _mm_maskz_permutex2var_epi8(
     k: __mmask16,
@@ -169,6 +181,7 @@ pub unsafe fn _mm_maskz_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask2_permutex2var_epi8&expand=4252)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermi2b))]
 pub unsafe fn _mm_mask2_permutex2var_epi8(
     a: __m128i,
@@ -185,6 +198,7 @@ pub unsafe fn _mm_mask2_permutex2var_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_permutexvar_epi8&expand=4316)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm512_permutexvar_epi8(idx: __m512i, a: __m512i) -> __m512i {
     transmute(vpermb(a.as_i8x64(), idx.as_i8x64()))
@@ -195,6 +209,7 @@ pub unsafe fn _mm512_permutexvar_epi8(idx: __m512i, a: __m512i) -> __m512i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_permutexvar_epi8&expand=4314)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm512_mask_permutexvar_epi8(
     src: __m512i,
@@ -211,6 +226,7 @@ pub unsafe fn _mm512_mask_permutexvar_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_permutexvar_epi8&expand=4315)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm512_maskz_permutexvar_epi8(k: __mmask64, idx: __m512i, a: __m512i) -> __m512i {
     let permute = _mm512_permutexvar_epi8(idx, a).as_i8x64();
@@ -223,6 +239,7 @@ pub unsafe fn _mm512_maskz_permutexvar_epi8(k: __mmask64, idx: __m512i, a: __m51
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_permutexvar_epi8&expand=4313)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm256_permutexvar_epi8(idx: __m256i, a: __m256i) -> __m256i {
     transmute(vpermb256(a.as_i8x32(), idx.as_i8x32()))
@@ -233,6 +250,7 @@ pub unsafe fn _mm256_permutexvar_epi8(idx: __m256i, a: __m256i) -> __m256i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_permutexvar_epi8&expand=4311)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm256_mask_permutexvar_epi8(
     src: __m256i,
@@ -249,6 +267,7 @@ pub unsafe fn _mm256_mask_permutexvar_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_permutexvar_epi8&expand=4312)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm256_maskz_permutexvar_epi8(k: __mmask32, idx: __m256i, a: __m256i) -> __m256i {
     let permute = _mm256_permutexvar_epi8(idx, a).as_i8x32();
@@ -261,6 +280,7 @@ pub unsafe fn _mm256_maskz_permutexvar_epi8(k: __mmask32, idx: __m256i, a: __m25
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_permutexvar_epi8&expand=4310)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm_permutexvar_epi8(idx: __m128i, a: __m128i) -> __m128i {
     transmute(vpermb128(a.as_i8x16(), idx.as_i8x16()))
@@ -271,6 +291,7 @@ pub unsafe fn _mm_permutexvar_epi8(idx: __m128i, a: __m128i) -> __m128i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_permutexvar_epi8&expand=4308)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm_mask_permutexvar_epi8(
     src: __m128i,
@@ -287,6 +308,7 @@ pub unsafe fn _mm_mask_permutexvar_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_permutexvar_epi8&expand=4309)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpermb))]
 pub unsafe fn _mm_maskz_permutexvar_epi8(k: __mmask16, idx: __m128i, a: __m128i) -> __m128i {
     let permute = _mm_permutexvar_epi8(idx, a).as_i8x16();
@@ -299,6 +321,7 @@ pub unsafe fn _mm_maskz_permutexvar_epi8(k: __mmask16, idx: __m128i, a: __m128i)
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_multishift_epi64_epi8&expand=4026)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm512_multishift_epi64_epi8(a: __m512i, b: __m512i) -> __m512i {
     transmute(vpmultishiftqb(a.as_i8x64(), b.as_i8x64()))
@@ -309,6 +332,7 @@ pub unsafe fn _mm512_multishift_epi64_epi8(a: __m512i, b: __m512i) -> __m512i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_multishift_epi64_epi8&expand=4024)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm512_mask_multishift_epi64_epi8(
     src: __m512i,
@@ -325,6 +349,7 @@ pub unsafe fn _mm512_mask_multishift_epi64_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_multishift_epi64_epi8&expand=4025)
 #[inline]
 #[target_feature(enable = "avx512vbmi")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm512_maskz_multishift_epi64_epi8(k: __mmask64, a: __m512i, b: __m512i) -> __m512i {
     let multishift = _mm512_multishift_epi64_epi8(a, b).as_i8x64();
@@ -337,6 +362,7 @@ pub unsafe fn _mm512_maskz_multishift_epi64_epi8(k: __mmask64, a: __m512i, b: __
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_multishift_epi64_epi8&expand=4023)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm256_multishift_epi64_epi8(a: __m256i, b: __m256i) -> __m256i {
     transmute(vpmultishiftqb256(a.as_i8x32(), b.as_i8x32()))
@@ -347,6 +373,7 @@ pub unsafe fn _mm256_multishift_epi64_epi8(a: __m256i, b: __m256i) -> __m256i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_multishift_epi64_epi8&expand=4021)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm256_mask_multishift_epi64_epi8(
     src: __m256i,
@@ -363,6 +390,7 @@ pub unsafe fn _mm256_mask_multishift_epi64_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_multishift_epi64_epi8&expand=4022)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm256_maskz_multishift_epi64_epi8(k: __mmask32, a: __m256i, b: __m256i) -> __m256i {
     let multishift = _mm256_multishift_epi64_epi8(a, b).as_i8x32();
@@ -375,6 +403,7 @@ pub unsafe fn _mm256_maskz_multishift_epi64_epi8(k: __mmask32, a: __m256i, b: __
 /// [Intel's documentation](https://software.intel.com/sites/landingpage/IntrinsicsGuide/IntrinsicsGuide/#text=_mm_multishift_epi64_epi8&expand=4020)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm_multishift_epi64_epi8(a: __m128i, b: __m128i) -> __m128i {
     transmute(vpmultishiftqb128(a.as_i8x16(), b.as_i8x16()))
@@ -385,6 +414,7 @@ pub unsafe fn _mm_multishift_epi64_epi8(a: __m128i, b: __m128i) -> __m128i {
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_multishift_epi64_epi8&expand=4018)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm_mask_multishift_epi64_epi8(
     src: __m128i,
@@ -401,6 +431,7 @@ pub unsafe fn _mm_mask_multishift_epi64_epi8(
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_multishift_epi64_epi8&expand=4019)
 #[inline]
 #[target_feature(enable = "avx512vbmi,avx512vl")]
+#[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 #[cfg_attr(test, assert_instr(vpmultishiftqb))]
 pub unsafe fn _mm_maskz_multishift_epi64_epi8(k: __mmask16, a: __m128i, b: __m128i) -> __m128i {
     let multishift = _mm_multishift_epi64_epi8(a, b).as_i8x16();

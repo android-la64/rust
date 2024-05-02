@@ -14,19 +14,30 @@ use crate::{
     data::EntryRange,
 };
 
-mod node {
+mod root {
     use crate::cache::delta::{traverse::util::ItemSliceSync, Item};
 
     /// An item returned by `iter_root_chunks`, allowing access to the `data` stored alongside nodes in a [`Tree`].
     pub(crate) struct Node<'a, T: Send> {
+        // SAFETY INVARIANT: see Node::new(). That function is the only one used
+        // to create or modify these fields.
         item: &'a mut Item<T>,
         child_items: &'a ItemSliceSync<'a, Item<T>>,
     }
 
     impl<'a, T: Send> Node<'a, T> {
-        /// SAFETY: The child_items must be unique among between users of the `ItemSliceSync`.
+        /// SAFETY: `item.children` must uniquely reference elements in child_items that no other currently alive
+        /// item does. All child_items must also have unique children, unless the child_item is itself `item`,
+        /// in which case no other live item should reference it in its `item.children`.
+        ///
+        /// This safety invariant can be reliably upheld by making sure `item` comes from a Tree and `child_items`
+        /// was constructed using that Tree's child_items. This works since Tree has this invariant as well: all
+        /// child_items are referenced at most once (really, exactly once) by a node in the tree.
+        ///
+        /// Note that this invariant is a bit more relaxed than that on `deltas()`, because this function can be called
+        /// for traversal within a child item, which happens in into_child_iter()
         #[allow(unsafe_code)]
-        pub(crate) unsafe fn new(item: &'a mut Item<T>, child_items: &'a ItemSliceSync<'a, Item<T>>) -> Self {
+        pub(super) unsafe fn new(item: &'a mut Item<T>, child_items: &'a ItemSliceSync<'a, Item<T>>) -> Self {
             Node { item, child_items }
         }
     }
@@ -49,7 +60,7 @@ mod node {
 
         /// Returns true if this node has children, e.g. is not a leaf in the tree.
         pub fn has_children(&self) -> bool {
-            !self.item.children.is_empty()
+            !self.item.children().is_empty()
         }
 
         /// Transform this `Node` into an iterator over its children.
@@ -57,18 +68,20 @@ mod node {
         /// Children are `Node`s referring to pack entries whose base object is this pack entry.
         pub fn into_child_iter(self) -> impl Iterator<Item = Node<'a, T>> + 'a {
             let children = self.child_items;
-            // SAFETY: The index is a valid index into the children array.
-            // SAFETY: The resulting mutable pointer cannot be yielded by any other node.
             #[allow(unsafe_code)]
-            self.item.children.iter().map(move |&index| Node {
-                item: unsafe { children.get_mut(index as usize) },
-                child_items: children,
+            self.item.children().iter().map(move |&index| {
+                // SAFETY: Due to the invariant on new(), we can rely on these indices
+                // being unique.
+                let item = unsafe { children.get_mut(index as usize) };
+                // SAFETY: Since every child_item is also required to uphold the uniqueness guarantee,
+                // creating a Node with one of the child_items that we are allowed access to is still fine.
+                unsafe { Node::new(item, children) }
             })
         }
     }
 }
 
-pub(crate) struct State<'items, F, MBFN, T: Send> {
+pub(super) struct State<'items, F, MBFN, T: Send> {
     pub delta_bytes: Vec<u8>,
     pub fully_resolved_delta_bytes: Vec<u8>,
     pub progress: Box<dyn Progress>,
@@ -77,8 +90,15 @@ pub(crate) struct State<'items, F, MBFN, T: Send> {
     pub child_items: &'items ItemSliceSync<'items, Item<T>>,
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn deltas<T, F, MBFN, E, R>(
+/// SAFETY: `item.children` must uniquely reference elements in child_items that no other currently alive
+/// item does. All child_items must also have unique children.
+///
+/// This safety invariant can be reliably upheld by making sure `item` comes from a Tree and `child_items`
+/// was constructed using that Tree's child_items. This works since Tree has this invariant as well: all
+/// child_items are referenced at most once (really, exactly once) by a node in the tree.
+#[allow(clippy::too_many_arguments, unsafe_code)]
+#[deny(unsafe_op_in_unsafe_fn)] // this is a big function, require unsafe for the one small unsafe op we have
+pub(super) unsafe fn deltas<T, F, MBFN, E, R>(
     objects: gix_features::progress::StepShared,
     size: gix_features::progress::StepShared,
     item: &mut Item<T>,
@@ -118,9 +138,9 @@ where
     // each node is a base, and its children always start out as deltas which become a base after applying them.
     // These will be pushed onto our stack until all are processed
     let root_level = 0;
-    // SAFETY: The child items are unique
+    // SAFETY: This invariant is required from the caller
     #[allow(unsafe_code)]
-    let root_node = unsafe { node::Node::new(item, child_items) };
+    let root_node = unsafe { root::Node::new(item, child_items) };
     let mut nodes: Vec<_> = vec![(root_level, root_node)];
     while let Some((level, mut base)) = nodes.pop() {
         if should_interrupt.load(Ordering::Relaxed) {
@@ -240,7 +260,7 @@ fn deltas_mt<T, F, MBFN, E, R>(
     objects: gix_features::progress::StepShared,
     size: gix_features::progress::StepShared,
     progress: &dyn Progress,
-    nodes: Vec<(u16, node::Node<'_, T>)>,
+    nodes: Vec<(u16, root::Node<'_, T>)>,
     resolve: F,
     resolve_data: &R,
     modify_base: MBFN,

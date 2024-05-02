@@ -8,6 +8,7 @@ mod extensions;
 mod functions;
 mod handles;
 mod implements;
+mod index;
 mod interfaces;
 mod iterators;
 mod method_names;
@@ -16,10 +17,11 @@ mod structs;
 mod try_format;
 mod winrt_methods;
 mod writer;
+
 use super::*;
-use crate::{Error, Result, Tree};
-use cfg::*;
+use index::*;
 use rayon::prelude::*;
+use writer::*;
 
 pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
     let mut writer = Writer::new(reader, output);
@@ -30,6 +32,8 @@ pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collectio
     writer.implement = config.remove("implement").is_some();
     writer.minimal = config.remove("minimal").is_some();
     writer.no_inner_attributes = config.remove("no-inner-attributes").is_some();
+    writer.no_bindgen_comment = config.remove("no-bindgen-comment").is_some();
+    writer.vtbl = config.remove("vtbl").is_some();
 
     if writer.package && writer.flatten {
         return Err(Error::new("cannot combine `package` and `flatten` configuration values"));
@@ -38,6 +42,20 @@ pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collectio
     if writer.implement && writer.sys {
         return Err(Error::new("cannot combine `implement` and `sys` configuration values"));
     }
+
+    config.retain(|key, value| {
+        if let Some(full_name) = key.strip_prefix("prepend:") {
+            if let Some(index) = full_name.rfind('.') {
+                let namespace = &full_name[0..index];
+                let name = &full_name[index + 1..];
+                if let Some(type_def) = reader.get_type_def(namespace, name).next() {
+                    writer.prepend.insert(type_def, value.to_string());
+                    return false;
+                }
+            }
+        }
+        true
+    });
 
     if let Some((key, _)) = config.first_key_value() {
         return Err(Error::new(&format!("invalid configuration value `{key}`")));
@@ -56,7 +74,7 @@ fn gen_file(writer: &Writer) -> Result<()> {
 
     if writer.flatten {
         let tokens = standalone::standalone_imp(writer);
-        crate::write_to_file(&writer.output, try_format(writer, &tokens))
+        write_to_file(&writer.output, try_format(writer, &tokens))
     } else {
         let mut tokens = String::new();
         let root = Tree::new(writer.reader);
@@ -65,12 +83,12 @@ fn gen_file(writer: &Writer) -> Result<()> {
             tokens.push_str(&namespace(writer, tree));
         }
 
-        crate::write_to_file(&writer.output, try_format(writer, &tokens))
+        write_to_file(&writer.output, try_format(writer, &tokens))
     }
 }
 
 fn gen_package(writer: &Writer) -> Result<()> {
-    let directory = crate::directory(&writer.output);
+    let directory = directory(&writer.output);
     let root = Tree::new(writer.reader);
     let mut root_len = 0;
 
@@ -88,24 +106,25 @@ fn gen_package(writer: &Writer) -> Result<()> {
         let tokens_impl = if !writer.sys { namespace_impl(writer, tree) } else { String::new() };
 
         if !writer.sys && !tokens_impl.is_empty() {
-            tokens.push_str("#[cfg(feature = \"implement\")]\n::core::include!(\"impl.rs\");\n");
+            tokens.push_str("#[cfg(feature = \"implement\")]\ncore::include!(\"impl.rs\");\n");
         }
 
         let output = format!("{directory}/mod.rs");
-        crate::write_to_file(&output, try_format(writer, &tokens))?;
+        write_to_file(&output, try_format(writer, &tokens))?;
 
         if !writer.sys && !tokens_impl.is_empty() {
             let output = format!("{directory}/impl.rs");
-            crate::write_to_file(&output, try_format(writer, &tokens_impl))?;
+            write_to_file(&output, try_format(writer, &tokens_impl))?;
         }
 
         Ok::<(), Error>(())
     })?;
 
-    let cargo_toml = format!("{}/Cargo.toml", crate::directory(directory));
+    let package_root = super::directory(directory);
+    let cargo_toml = format!("{package_root}/Cargo.toml");
     let mut toml = String::new();
 
-    for line in crate::read_file_lines(&cargo_toml)? {
+    for line in read_file_lines(&cargo_toml)? {
         toml.push_str(&line);
         toml.push('\n');
 
@@ -121,21 +140,23 @@ fn gen_package(writer: &Writer) -> Result<()> {
             let dependency = &feature[..pos];
 
             toml.push_str(&format!("{feature} = [\"{dependency}\"]\n"));
+        } else if tree.namespace.starts_with("Windows.Win32") || tree.namespace.starts_with("Windows.Wdk") {
+            toml.push_str(&format!("{feature} = [\"Win32_Foundation\"]\n"));
+        } else if tree.namespace != "Windows.Foundation" {
+            toml.push_str(&format!("{feature} = [\"Foundation\"]\n"));
         } else {
             toml.push_str(&format!("{feature} = []\n"));
         }
     }
 
-    crate::write_to_file(&cargo_toml, toml)
+    write_to_file(&cargo_toml, toml)?;
+    write_to_file(&format!("{package_root}/features.json"), gen_index(writer))
 }
 
-use crate::tokens::*;
-use metadata::*;
 use method_names::*;
-use std::collections::*;
 use std::fmt::Write;
+use tokens::*;
 use try_format::*;
-use writer::*;
 
 fn namespace(writer: &Writer, tree: &Tree) -> String {
     let writer = &mut writer.clone();
@@ -145,11 +166,9 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
     for (name, tree) in &tree.nested {
         let name = to_ident(name);
         let feature = tree.namespace[tree.namespace.find('.').unwrap() + 1..].replace('.', "_");
-        let doc = format!(r#"Required features: `\"{feature}\"`"#);
         if writer.package {
             tokens.combine(&quote! {
                 #[cfg(feature = #feature)]
-                #[doc = #doc]
                 pub mod #name;
             });
         } else {
@@ -160,57 +179,28 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
         }
     }
 
-    let mut functions = BTreeMap::<&str, TokenStream>::new();
-    let mut types = BTreeMap::<TypeKind, BTreeMap<&str, TokenStream>>::new();
+    let mut functions = std::collections::BTreeMap::<&str, TokenStream>::new();
+    let mut types = std::collections::BTreeMap::<metadata::TypeKind, std::collections::BTreeMap<&str, TokenStream>>::new();
 
     for item in writer.reader.namespace_items(writer.namespace) {
         match item {
-            Item::Type(def) => {
+            metadata::Item::Type(def) => {
                 let type_name = def.type_name();
-                if REMAP_TYPES.iter().any(|(x, _)| x == &type_name) {
+                if writer.reader.remap_types().any(|(x, _)| x == &type_name) {
                     continue;
                 }
-                if CORE_TYPES.iter().any(|(x, _)| x == &type_name) {
+                if writer.reader.core_types().any(|(x, _)| x == &type_name) {
                     continue;
                 }
-                let name = type_name.name;
-                let kind = def.kind();
-                match kind {
-                    TypeKind::Class => {
-                        if def.flags().contains(TypeAttributes::WindowsRuntime) {
-                            types.entry(kind).or_default().insert(name, classes::writer(writer, def));
-                        }
-                    }
-                    TypeKind::Interface => types.entry(kind).or_default().entry(name).or_default().combine(&interfaces::writer(writer, def)),
-                    TypeKind::Enum => types.entry(kind).or_default().entry(name).or_default().combine(&enums::writer(writer, def)),
-                    TypeKind::Struct => {
-                        if def.fields().next().is_none() {
-                            if let Some(guid) = type_def_guid(def) {
-                                let ident = to_ident(name);
-                                let value = writer.guid(&guid);
-                                let guid = writer.type_name(&Type::GUID);
-                                let cfg = type_def_cfg(def, &[]);
-                                let doc = writer.cfg_doc(&cfg);
-                                let constant = quote! {
-                                    #doc
-                                    pub const #ident: #guid = #value;
-                                };
-                                types.entry(TypeKind::Class).or_default().entry(name).or_default().combine(&constant);
-                                continue;
-                            }
-                        }
-                        types.entry(kind).or_default().entry(name).or_default().combine(&structs::writer(writer, def));
-                    }
-                    TypeKind::Delegate => types.entry(kind).or_default().entry(name).or_default().combine(&delegates::writer(writer, def)),
-                }
+                types.entry(def.kind()).or_default().entry(type_name.name).or_default().combine(&writer.type_def(def));
             }
-            Item::Fn(def, namespace) => {
+            metadata::Item::Fn(def, namespace) => {
                 let name = def.name();
                 functions.entry(name).or_default().combine(&functions::writer(writer, namespace, def));
             }
-            Item::Const(def) => {
+            metadata::Item::Const(def) => {
                 let name = def.name();
-                types.entry(TypeKind::Class).or_default().entry(name).or_default().combine(&constants::writer(writer, def));
+                types.entry(metadata::TypeKind::Class).or_default().entry(name).or_default().combine(&constants::writer(writer, def));
             }
         }
     }
@@ -235,15 +225,15 @@ fn namespace(writer: &Writer, tree: &Tree) -> String {
 fn namespace_impl(writer: &Writer, tree: &Tree) -> String {
     let writer = &mut writer.clone();
     writer.namespace = tree.namespace;
-    let mut types = BTreeMap::<&str, TokenStream>::new();
+    let mut types = std::collections::BTreeMap::<&str, TokenStream>::new();
 
     for item in writer.reader.namespace_items(tree.namespace) {
-        if let Item::Type(def) = item {
+        if let metadata::Item::Type(def) = item {
             let type_name = def.type_name();
-            if CORE_TYPES.iter().any(|(x, _)| x == &type_name) {
+            if writer.reader.core_types().any(|(x, _)| x == &type_name) {
                 continue;
             }
-            if def.kind() != TypeKind::Interface {
+            if def.kind() != metadata::TypeKind::Interface {
                 continue;
             }
             let tokens = implements::writer(writer, def);

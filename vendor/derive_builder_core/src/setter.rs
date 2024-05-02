@@ -3,12 +3,8 @@ use std::borrow::Cow;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
-use syn;
 
-use BuilderFieldType;
-use BuilderPattern;
-use DeprecationNotes;
-use Each;
+use crate::{BuilderFieldType, BuilderPattern, DeprecationNotes, Each};
 
 /// Setter for the struct fields in the build method, implementing
 /// `quote::ToTokens`.
@@ -163,6 +159,9 @@ impl<'a> ToTokens for Setter<'a> {
                 if builder_field_is_option {
                     converted = wrap_expression_in_some(crate_root, converted);
                 }
+                if stripped_option {
+                    converted = wrap_expression_in_some(crate_root, converted);
+                }
 
                 tokens.append_all(quote!(
                     #(#attrs)*
@@ -240,7 +239,7 @@ fn wrap_expression_in_some(crate_root: &syn::Path, bare_value: impl ToTokens) ->
 // We cannot handle those arbitrary names.
 fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
     use syn::punctuated::Pair;
-    use syn::token::Colon2;
+    use syn::token::PathSep;
     use syn::{GenericArgument, Path, PathArguments, PathSegment};
 
     fn extract_type_path(ty: &syn::Type) -> Option<&Path> {
@@ -252,7 +251,7 @@ fn extract_type_from_option(ty: &syn::Type) -> Option<&syn::Type> {
 
     // TODO store (with lazy static) precomputed parsing of Option when support of rust 1.18 will be removed (incompatible with lazy_static)
     // TODO maybe optimization, reverse the order of segments
-    fn extract_option_segment(path: &Path) -> Option<Pair<&PathSegment, &Colon2>> {
+    fn extract_option_segment(path: &Path) -> Option<Pair<&PathSegment, &PathSep>> {
         let idents_of_path = path.segments.iter().fold(String::new(), |mut acc, v| {
             acc.push_str(&v.ident.to_string());
             acc.push('|');
@@ -458,6 +457,44 @@ mod tests {
                         ::db::export::core::option::Option::Some(value.into())
                     );
                     new
+                }
+            )
+            .to_string()
+        );
+    }
+    #[test]
+    fn strip_option_try_setter() {
+        let ty = parse_quote!(Option<Foo>);
+        let mut setter = default_setter!();
+        setter.strip_option = true;
+        setter.try_setter = true;
+        setter.generic_into = true;
+        setter.field_type = BuilderFieldType::Optional(&ty);
+        #[rustfmt::skip]
+        assert_eq!(
+            quote!(#setter).to_string(),
+            quote!(
+                #[allow(unused_mut)]
+                pub fn foo<VALUE: ::db::export::core::convert::Into<Foo>>(
+                    &mut self,
+                    value: VALUE
+                ) -> &mut Self {
+                    let mut new = self;
+                    new.foo = ::db::export::core::option::Option::Some(
+                        ::db::export::core::option::Option::Some(value.into())
+                    );
+                    new
+                }
+                pub fn try_foo<VALUE: ::db::export::core::convert::TryInto<Foo>>(
+                    &mut self,
+                    value: VALUE
+                ) -> ::db::export::core::result::Result<&mut Self, VALUE::Error> {
+                    let converted: Foo = value.try_into()?;
+                    let mut new = self;
+                    new.foo = ::db::export::core::option::Option::Some(
+                        ::db::export::core::option::Option::Some(converted)
+                    );
+                    Ok(new)
                 }
             )
             .to_string()

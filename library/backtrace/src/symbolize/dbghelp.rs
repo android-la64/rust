@@ -23,6 +23,7 @@ use core::char;
 use core::ffi::c_void;
 use core::marker;
 use core::mem;
+use core::ptr;
 use core::slice;
 
 // Store an OsString on std so we can provide the symbol name and filename.
@@ -44,7 +45,7 @@ impl Symbol<'_> {
     }
 
     pub fn addr(&self) -> Option<*mut c_void> {
-        Some(self.addr as *mut _)
+        Some(self.addr)
     }
 
     pub fn filename_raw(&self) -> Option<BytesOrWideString<'_>> {
@@ -71,6 +72,22 @@ impl Symbol<'_> {
 #[repr(C, align(8))]
 struct Aligned8<T>(T);
 
+#[cfg(not(target_vendor = "win7"))]
+pub unsafe fn resolve(what: ResolveWhat<'_>, cb: &mut dyn FnMut(&super::Symbol)) {
+    // Ensure this process's symbols are initialized
+    let dbghelp = match dbghelp::init() {
+        Ok(dbghelp) => dbghelp,
+        Err(()) => return, // oh well...
+    };
+    match what {
+        ResolveWhat::Address(_) => resolve_with_inline(&dbghelp, what.address_or_ip(), None, cb),
+        ResolveWhat::Frame(frame) => {
+            resolve_with_inline(&dbghelp, frame.ip(), frame.inner.inline_context(), cb)
+        }
+    }
+}
+
+#[cfg(target_vendor = "win7")]
 pub unsafe fn resolve(what: ResolveWhat<'_>, cb: &mut dyn FnMut(&super::Symbol)) {
     // Ensure this process's symbols are initialized
     let dbghelp = match dbghelp::init() {
@@ -99,6 +116,7 @@ pub unsafe fn resolve(what: ResolveWhat<'_>, cb: &mut dyn FnMut(&super::Symbol))
 ///
 /// This should work all the way down to Windows XP. The inline context is
 /// ignored, since this concept was only introduced in dbghelp 6.2+.
+#[cfg(target_vendor = "win7")]
 unsafe fn resolve_legacy(
     dbghelp: &dbghelp::Init,
     addr: *mut c_void,
@@ -184,8 +202,7 @@ unsafe fn do_resolve(
 ) {
     const SIZE: usize = 2 * MAX_SYM_NAME + mem::size_of::<SYMBOL_INFOW>();
     let mut data = Aligned8([0u8; SIZE]);
-    let data = &mut data.0;
-    let info = &mut *(data.as_mut_ptr() as *mut SYMBOL_INFOW);
+    let info = &mut *data.0.as_mut_ptr().cast::<SYMBOL_INFOW>();
     info.MaxNameLen = MAX_SYM_NAME as ULONG;
     // the struct size in C.  the value is different to
     // `size_of::<SYMBOL_INFOW>() - MAX_SYM_NAME + 1` (== 81)
@@ -200,7 +217,7 @@ unsafe fn do_resolve(
     // give a buffer of (MaxNameLen - 1) characters and set NameLen to
     // the real value.
     let name_len = ::core::cmp::min(info.NameLen as usize, info.MaxNameLen as usize - 1);
-    let name_ptr = info.Name.as_ptr() as *const u16;
+    let name_ptr = info.Name.as_ptr().cast::<u16>();
     let name = slice::from_raw_parts(name_ptr, name_len);
 
     // Reencode the utf-16 symbol to utf-8 so we can use `SymbolName::new` like
@@ -222,7 +239,7 @@ unsafe fn do_resolve(
             }
         }
     }
-    let name = &name_buffer[..name_len] as *const [u8];
+    let name = ptr::addr_of!(name_buffer[..name_len]);
 
     let mut line = mem::zeroed::<IMAGEHLP_LINEW64>();
     line.SizeOfStruct = mem::size_of::<IMAGEHLP_LINEW64>() as DWORD;
@@ -240,7 +257,7 @@ unsafe fn do_resolve(
 
         let len = len as usize;
 
-        filename = Some(slice::from_raw_parts(base, len) as *const [u16]);
+        filename = Some(ptr::from_ref(slice::from_raw_parts(base, len)));
     }
 
     cb(&super::Symbol {

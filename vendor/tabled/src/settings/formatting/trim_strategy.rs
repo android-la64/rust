@@ -111,8 +111,12 @@ impl<R> CellOption<R, ColoredConfig> for TrimStrategy {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for TrimStrategy {
+impl<R, D> TableOption<R, ColoredConfig, D> for TrimStrategy {
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         <Self as CellOption<_, _>>::change(self, records, cfg, Entity::Global)
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
     }
 }

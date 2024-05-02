@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 use std::ffi::OsString;
 use std::io;
@@ -6,15 +7,14 @@ use std::os::windows::ffi::OsStrExt;
 use std::os::windows::ffi::OsStringExt;
 use std::path::Component;
 use std::path::Path;
-use std::path::PathBuf;
 use std::path::Prefix;
 use std::path::PrefixComponent;
 use std::ptr;
 
 use windows_sys::Win32::Storage::FileSystem::GetFullPathNameW;
 
-use super::BasePath;
-use super::BasePathBuf;
+use crate::BasePath;
+use crate::BasePathBuf;
 
 macro_rules! static_assert {
     ( $condition:expr ) => {
@@ -22,50 +22,72 @@ macro_rules! static_assert {
     };
 }
 
-const SEPARATOR: u16 = b'\\' as _;
+const SEPARATOR: u8 = b'\\';
 
-pub(super) fn is_base(path: &Path) -> bool {
+pub(crate) fn is_base(path: &Path) -> bool {
     matches!(path.components().next(), Some(Component::Prefix(_)))
 }
 
-pub(super) fn to_base(path: &Path) -> io::Result<BasePathBuf> {
+pub(crate) fn to_base(path: &Path) -> io::Result<BasePathBuf> {
     let base = env::current_dir()?;
     debug_assert!(is_base(&base));
 
-    let mut base = BasePathBuf(base.into_os_string());
+    let mut base = BasePathBuf(base);
     base.push(path);
     Ok(base)
 }
 
-fn convert_separators(path: &Path) -> (Vec<u16>, PathBuf) {
-    let mut wide_path: Vec<_> = path.as_os_str().encode_wide().collect();
-    for ch in &mut wide_path {
-        if ch == &b'/'.into() {
-            *ch = SEPARATOR;
-        }
+fn convert_separators(path: &Path, length: Option<usize>) -> Cow<'_, Path> {
+    let path_bytes = path.as_os_str().as_encoded_bytes();
+    let (prefix, suffix) = length
+        .map(|x| path_bytes.split_at(x))
+        .unwrap_or((path_bytes, &[]));
+    let mut parts = prefix.split(|&x| x == b'/');
+
+    let part = parts.next().expect("split iterator is empty");
+    if part.len() == prefix.len() {
+        debug_assert_eq!(prefix, part);
+        debug_assert_eq!(None, parts.next());
+        return Cow::Borrowed(path);
     }
-    let path = OsString::from_wide(&wide_path).into();
-    (wide_path, path)
+
+    let mut path_bytes = Vec::with_capacity(path_bytes.len());
+    path_bytes.extend(part);
+    for part in parts {
+        path_bytes.push(SEPARATOR);
+        path_bytes.extend(part);
+    }
+    path_bytes.extend(suffix);
+
+    // SAFETY: Only UTF-8 substrings were replaced.
+    Cow::Owned(
+        unsafe { OsString::from_encoded_bytes_unchecked(path_bytes) }.into(),
+    )
 }
 
-fn normalize_verbatim(path: &Path) -> BasePathBuf {
-    let mut path: Vec<_> = path.as_os_str().encode_wide().collect();
+fn normalize_verbatim(path: &Path) -> Cow<'_, BasePath> {
     // Normalizing more of a verbatim path can change its meaning. The part
     // changed here is required for the path to be verbatim.
-    for ch in &mut path[..4] {
-        if ch == &b'/'.into() {
-            *ch = SEPARATOR;
+    let path = convert_separators(path, Some(4));
+    debug_assert!(matches!(
+        path.components().next(),
+        Some(Component::Prefix(prefix)) if prefix.kind().is_verbatim(),
+    ));
+    match path {
+        Cow::Borrowed(path) => {
+            Cow::Borrowed(BasePath::from_inner(path.as_os_str()))
         }
+        Cow::Owned(path) => Cow::Owned(BasePathBuf(path)),
     }
-    BasePathBuf(OsString::from_wide(&path))
 }
 
-pub(super) fn normalize_virtually(
+pub(crate) fn normalize_virtually(
     initial_path: &Path,
 ) -> io::Result<BasePathBuf> {
     // [GetFullPathNameW] always converts separators.
-    let (mut wide_path, path) = convert_separators(initial_path);
+    let path = convert_separators(initial_path, None);
 
+    let mut wide_path: Vec<_> = path.as_os_str().encode_wide().collect();
     if wide_path.contains(&0) {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -77,9 +99,9 @@ pub(super) fn normalize_virtually(
     match path.components().next() {
         // Verbatim paths should not be modified.
         Some(Component::Prefix(prefix)) if prefix.kind().is_verbatim() => {
-            return Ok(normalize_verbatim(initial_path));
+            return Ok(normalize_verbatim(initial_path).into_owned());
         }
-        Some(Component::RootDir) if wide_path[1] == SEPARATOR => {
+        Some(Component::RootDir) if wide_path[1] == SEPARATOR.into() => {
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
                 "partial UNC prefixes are invalid",
@@ -138,11 +160,11 @@ pub(super) fn normalize_virtually(
         unsafe {
             buffer.set_len(length);
         }
-        break Ok(BasePathBuf(OsString::from_wide(&buffer)));
+        break Ok(BasePathBuf(OsString::from_wide(&buffer).into()));
     }
 }
 
-pub(super) fn normalize(path: &Path) -> io::Result<BasePathBuf> {
+pub(crate) fn normalize(path: &Path) -> io::Result<BasePathBuf> {
     path.metadata().and_then(|_| normalize_virtually(path))
 }
 
@@ -159,16 +181,13 @@ fn get_prefix(base: &BasePath) -> PrefixComponent<'_> {
 }
 
 fn push_separator(base: &mut BasePathBuf) {
-    base.replace_with(|mut base| {
-        // Add a separator if necessary.
-        base.push("");
-        base
-    });
+    // Add a separator if necessary.
+    base.0.push("");
 }
 
-pub(super) fn push(base: &mut BasePathBuf, initial_path: &Path) {
+pub(crate) fn push(base: &mut BasePathBuf, initial_path: &Path) {
     // [GetFullPathNameW] always converts separators.
-    let (wide_path, path) = convert_separators(initial_path);
+    let path = convert_separators(initial_path, None);
 
     let mut components = path.components();
     let mut next_component = components.next();
@@ -176,7 +195,7 @@ pub(super) fn push(base: &mut BasePathBuf, initial_path: &Path) {
         Some(Component::Prefix(prefix)) => {
             // Verbatim paths should not be modified.
             if prefix.kind().is_verbatim() {
-                *base = normalize_verbatim(initial_path);
+                *base = normalize_verbatim(initial_path).into_owned();
                 return;
             }
 
@@ -187,14 +206,14 @@ pub(super) fn push(base: &mut BasePathBuf, initial_path: &Path) {
                 // Equivalent to [path.has_root()] but more efficient.
                 || next_component == Some(Component::RootDir)
             {
-                *base = BasePathBuf(path.into_os_string());
+                *base = BasePathBuf(path.into_owned());
                 return;
             }
         }
         Some(Component::RootDir) => {
             let mut buffer = get_prefix(base).as_os_str().to_owned();
-            buffer.push(path);
-            *base = BasePathBuf(buffer);
+            buffer.push(&*path);
+            *base = BasePathBuf(buffer.into());
             return;
         }
         _ => {
@@ -211,18 +230,19 @@ pub(super) fn push(base: &mut BasePathBuf, initial_path: &Path) {
 
     if let Some(component) = next_component {
         push_separator(base);
-        base.0.push(component);
+        base.0.as_mut_os_string().push(component);
 
         let components = components.as_path();
         if !components.as_os_str().is_empty() {
             push_separator(base);
-            base.0.push(components);
+            base.0.as_mut_os_string().push(components);
         }
     }
 
+    let path_bytes = path.as_os_str().as_encoded_bytes();
     // At least one separator should be kept.
-    if wide_path.last() == Some(&SEPARATOR)
-        || wide_path.ends_with(&[SEPARATOR, b'.'.into()])
+    if path_bytes.last() == Some(&SEPARATOR)
+        || path_bytes.ends_with(&[SEPARATOR, b'.'])
     {
         push_separator(base);
     }

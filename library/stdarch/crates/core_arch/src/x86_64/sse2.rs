@@ -1,8 +1,8 @@
 //! `x86_64`'s Streaming SIMD Extensions 2 (SSE2)
 
 use crate::{
-    core_arch::{simd_llvm::*, x86::*},
-    intrinsics,
+    core_arch::x86::*,
+    intrinsics::{self, simd::*},
 };
 
 #[cfg(test)]
@@ -67,6 +67,15 @@ pub unsafe fn _mm_cvttsd_si64x(a: __m128d) -> i64 {
 /// used again soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_stream_si64)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "sse2")]
 #[cfg_attr(test, assert_instr(movnti))]
@@ -107,7 +116,7 @@ pub unsafe fn _mm_cvtsi64x_si128(a: i64) -> __m128i {
 #[cfg_attr(all(test, not(windows)), assert_instr(movq))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi128_si64(a: __m128i) -> i64 {
-    simd_extract(a.as_i64x2(), 0)
+    simd_extract!(a.as_i64x2(), 0)
 }
 
 /// Returns the lowest element of `a`.
@@ -130,7 +139,7 @@ pub unsafe fn _mm_cvtsi128_si64x(a: __m128i) -> i64 {
 #[cfg_attr(test, assert_instr(cvtsi2sd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi64_sd(a: __m128d, b: i64) -> __m128d {
-    simd_insert(a, 0, b as f64)
+    simd_insert!(a, 0, b as f64)
 }
 
 /// Returns `a` with its lower element replaced by `b` after converting it to

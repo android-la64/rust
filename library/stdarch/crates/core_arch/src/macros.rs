@@ -21,7 +21,7 @@ macro_rules! static_assert_uimm_bits {
         #[allow(unused_comparisons)]
         {
             static_assert!(
-                0 <= $imm && $imm <= (1 << $bits) - 1,
+                0 <= $imm && $imm < (1 << $bits),
                 concat!(
                     stringify!($imm),
                     " doesn't fit in ",
@@ -37,7 +37,7 @@ macro_rules! static_assert_uimm_bits {
 macro_rules! static_assert_simm_bits {
     ($imm:ident, $bits:expr) => {
         static_assert!(
-            (-1 << ($bits - 1)) - 1 <= $imm && $imm <= (1 << ($bits - 1)) - 1,
+            (-1 << ($bits - 1)) - 1 <= $imm && $imm < (1 << ($bits - 1)),
             concat!(
                 stringify!($imm),
                 " doesn't fit in ",
@@ -66,13 +66,23 @@ macro_rules! types {
 #[allow(unused)]
 macro_rules! simd_shuffle {
     ($x:expr, $y:expr, $idx:expr $(,)?) => {{
-        simd_shuffle(
-            $x,
-            $y,
-            const {
-                let v: [u32; _] = $idx;
-                v
-            },
-        )
+        simd_shuffle::<_, [u32; _], _>($x, $y, const { $idx })
+    }};
+}
+
+#[allow(unused)]
+macro_rules! simd_insert {
+    ($x:expr, $idx:expr, $val:expr $(,)?) => {{
+        simd_insert($x, const { $idx }, $val)
+    }};
+}
+
+#[allow(unused)]
+macro_rules! simd_extract {
+    ($x:expr, $idx:expr $(,)?) => {{
+        simd_extract($x, const { $idx })
+    }};
+    ($x:expr, $idx:expr, $ty:ty $(,)?) => {{
+        simd_extract::<_, $ty>($x, const { $idx })
     }};
 }

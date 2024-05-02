@@ -86,7 +86,6 @@ use crate::errors;
 use self::LiveNodeKind::*;
 use self::VarKind::*;
 
-use rustc_ast::InlineAsmOptions;
 use rustc_data_structures::fx::FxIndexMap;
 use rustc_hir as hir;
 use rustc_hir::def::*;
@@ -123,6 +122,7 @@ enum LiveNodeKind {
     VarDefNode(Span, HirId),
     ClosureNode,
     ExitNode,
+    ErrNode,
 }
 
 fn live_node_kind_to_string(lnk: LiveNodeKind, tcx: TyCtxt<'_>) -> String {
@@ -133,6 +133,7 @@ fn live_node_kind_to_string(lnk: LiveNodeKind, tcx: TyCtxt<'_>) -> String {
         VarDefNode(s, _) => format!("Var def node [{}]", sm.span_to_diagnostic_string(s)),
         ClosureNode => "Closure node".to_owned(),
         ExitNode => "Exit node".to_owned(),
+        ErrNode => "Error node".to_owned(),
     }
 }
 
@@ -414,6 +415,12 @@ impl<'tcx> Visitor<'tcx> for IrMaps<'tcx> {
                 self.add_live_node_for_node(expr.hir_id, ExprNode(expr.span, expr.hir_id));
             }
 
+            // Inline assembly may contain labels.
+            hir::ExprKind::InlineAsm(asm) if asm.contains_label() => {
+                self.add_live_node_for_node(expr.hir_id, ExprNode(expr.span, expr.hir_id));
+                intravisit::walk_expr(self, expr);
+            }
+
             // otherwise, live nodes are not required:
             hir::ExprKind::Index(..)
             | hir::ExprKind::Field(..)
@@ -524,8 +531,8 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
     }
 
     fn define_bindings_in_pat(&mut self, pat: &hir::Pat<'_>, mut succ: LiveNode) -> LiveNode {
-        // In an or-pattern, only consider the first pattern; any later patterns
-        // must have the same bindings, and we also consider the first pattern
+        // In an or-pattern, only consider the first non-never pattern; any later patterns
+        // must have the same bindings, and we also consider that pattern
         // to be the "authoritative" set of ids.
         pat.each_binding_or_first(&mut |_, hir_id, pat_sp, ident| {
             let ln = self.live_node(hir_id, pat_sp);
@@ -719,6 +726,11 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
                 ty::ClosureKind::FnMut => {}
                 ty::ClosureKind::FnOnce => return succ,
             },
+            ty::CoroutineClosure(_def_id, args) => match args.as_coroutine_closure().kind() {
+                ty::ClosureKind::Fn => {}
+                ty::ClosureKind::FnMut => {}
+                ty::ClosureKind::FnOnce => return succ,
+            },
             ty::Coroutine(..) => return succ,
             _ => {
                 span_bug!(
@@ -759,7 +771,7 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
 
     fn propagate_through_stmt(&mut self, stmt: &hir::Stmt<'_>, succ: LiveNode) -> LiveNode {
         match stmt.kind {
-            hir::StmtKind::Local(local) => {
+            hir::StmtKind::Let(local) => {
                 // Note: we mark the variable as defined regardless of whether
                 // there is an initializer. Initially I had thought to only mark
                 // the live variable as defined if it was initialized, and then we
@@ -962,10 +974,10 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
 
                 // Now that we know the label we're going to,
                 // look it up in the continue loop nodes table
-                self.cont_ln
-                    .get(&sc)
-                    .cloned()
-                    .unwrap_or_else(|| span_bug!(expr.span, "continue to unknown label"))
+                self.cont_ln.get(&sc).cloned().unwrap_or_else(|| {
+                    self.ir.tcx.dcx().span_delayed_bug(expr.span, "continue to unknown label");
+                    self.ir.add_live_node(ErrNode)
+                })
             }
 
             hir::ExprKind::Assign(ref l, ref r, _) => {
@@ -1038,20 +1050,53 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
             | hir::ExprKind::Repeat(ref e, _) => self.propagate_through_expr(e, succ),
 
             hir::ExprKind::InlineAsm(asm) => {
-                // Handle non-returning asm
-                let mut succ = if asm.options.contains(InlineAsmOptions::NORETURN) {
-                    self.exit_ln
-                } else {
-                    succ
-                };
+                //
+                //     (inputs)
+                //        |
+                //        v
+                //     (outputs)
+                //    /         \
+                //    |         |
+                //    v         v
+                // (labels)(fallthrough)
+                //    |         |
+                //    v         v
+                // ( succ / exit_ln )
 
-                // Do a first pass for writing outputs only
+                // Handle non-returning asm
+                let mut succ =
+                    if self.typeck_results.expr_ty(expr).is_never() { self.exit_ln } else { succ };
+
+                // Do a first pass for labels only
+                if asm.contains_label() {
+                    let ln = self.live_node(expr.hir_id, expr.span);
+                    self.init_from_succ(ln, succ);
+                    for (op, _op_sp) in asm.operands.iter().rev() {
+                        match op {
+                            hir::InlineAsmOperand::Label { block } => {
+                                let label_ln = self.propagate_through_block(block, succ);
+                                self.merge_from_succ(ln, label_ln);
+                            }
+                            hir::InlineAsmOperand::In { .. }
+                            | hir::InlineAsmOperand::Out { .. }
+                            | hir::InlineAsmOperand::InOut { .. }
+                            | hir::InlineAsmOperand::SplitInOut { .. }
+                            | hir::InlineAsmOperand::Const { .. }
+                            | hir::InlineAsmOperand::SymFn { .. }
+                            | hir::InlineAsmOperand::SymStatic { .. } => {}
+                        }
+                    }
+                    succ = ln;
+                }
+
+                // Do a second pass for writing outputs only
                 for (op, _op_sp) in asm.operands.iter().rev() {
                     match op {
                         hir::InlineAsmOperand::In { .. }
                         | hir::InlineAsmOperand::Const { .. }
                         | hir::InlineAsmOperand::SymFn { .. }
-                        | hir::InlineAsmOperand::SymStatic { .. } => {}
+                        | hir::InlineAsmOperand::SymStatic { .. }
+                        | hir::InlineAsmOperand::Label { .. } => {}
                         hir::InlineAsmOperand::Out { expr, .. } => {
                             if let Some(expr) = expr {
                                 succ = self.write_place(expr, succ, ACC_WRITE);
@@ -1068,7 +1113,7 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
                     }
                 }
 
-                // Then do a second pass for inputs
+                // Then do a third pass for inputs
                 for (op, _op_sp) in asm.operands.iter().rev() {
                     match op {
                         hir::InlineAsmOperand::In { expr, .. } => {
@@ -1090,7 +1135,8 @@ impl<'a, 'tcx> Liveness<'a, 'tcx> {
                         }
                         hir::InlineAsmOperand::Const { .. }
                         | hir::InlineAsmOperand::SymFn { .. }
-                        | hir::InlineAsmOperand::SymStatic { .. } => {}
+                        | hir::InlineAsmOperand::SymStatic { .. }
+                        | hir::InlineAsmOperand::Label { .. } => {}
                     }
                 }
                 succ

@@ -37,6 +37,30 @@ pub struct Border<T> {
 impl<T> Border<T> {
     /// This function constructs a cell borders with all sides set.
     #[allow(clippy::too_many_arguments)]
+    pub const fn new(
+        top: Option<T>,
+        bottom: Option<T>,
+        left: Option<T>,
+        right: Option<T>,
+        left_top_corner: Option<T>,
+        left_bottom_corner: Option<T>,
+        right_top_corner: Option<T>,
+        right_bottom_corner: Option<T>,
+    ) -> Self {
+        Self {
+            top,
+            bottom,
+            left,
+            right,
+            left_top_corner,
+            left_bottom_corner,
+            right_top_corner,
+            right_bottom_corner,
+        }
+    }
+
+    /// This function constructs a cell borders with all sides set.
+    #[allow(clippy::too_many_arguments)]
     pub const fn full(
         top: T,
         bottom: T,
@@ -47,16 +71,21 @@ impl<T> Border<T> {
         bottom_left: T,
         bottom_right: T,
     ) -> Self {
-        Self {
-            top: Some(top),
-            bottom: Some(bottom),
-            right: Some(right),
-            right_top_corner: Some(top_right),
-            right_bottom_corner: Some(bottom_right),
-            left: Some(left),
-            left_bottom_corner: Some(bottom_left),
-            left_top_corner: Some(top_left),
-        }
+        Self::new(
+            Some(top),
+            Some(bottom),
+            Some(left),
+            Some(right),
+            Some(top_left),
+            Some(bottom_left),
+            Some(top_right),
+            Some(bottom_right),
+        )
+    }
+
+    /// This function constructs a cell borders with all sides being empty (set off).
+    pub const fn empty() -> Self {
+        Self::new(None, None, None, None, None, None, None, None)
     }
 
     /// Checks whether any side is set.
@@ -106,9 +135,7 @@ impl<T: Copy> Border<T> {
 }
 
 impl<T: Copy> Border<&T> {
-    /// This function constructs a cell borders with all sides's char set to a given character.
-    ///
-    /// It behaves like [`Border::full`] with the same character set to each side.
+    /// Copies the underlying reference to a new border.
     pub fn copied(&self) -> Border<T> {
         Border {
             top: self.top.copied(),
@@ -124,9 +151,7 @@ impl<T: Copy> Border<&T> {
 }
 
 impl<T: Clone> Border<&T> {
-    /// This function constructs a cell borders with all sides's char set to a given character.
-    ///
-    /// It behaves like [`Border::full`] with the same character set to each side.
+    /// Copies the underlying reference to a new border.
     pub fn cloned(&self) -> Border<T> {
         Border {
             top: self.top.cloned(),
@@ -137,6 +162,34 @@ impl<T: Clone> Border<&T> {
             left_top_corner: self.left_top_corner.cloned(),
             right_bottom_corner: self.right_bottom_corner.cloned(),
             right_top_corner: self.right_top_corner.cloned(),
+        }
+    }
+}
+
+impl<T> Border<T> {
+    /// Convert all values on the border into another ones.
+    pub fn convert<B>(self) -> Border<B>
+    where
+        B: From<T>,
+    {
+        macro_rules! conv_opt {
+            ($opt:expr) => {
+                match $opt {
+                    Some(opt) => Some(B::from(opt)),
+                    None => None,
+                }
+            };
+        }
+
+        Border {
+            top: conv_opt!(self.top),
+            bottom: conv_opt!(self.bottom),
+            left: conv_opt!(self.left),
+            right: conv_opt!(self.right),
+            left_bottom_corner: conv_opt!(self.left_bottom_corner),
+            left_top_corner: conv_opt!(self.left_top_corner),
+            right_bottom_corner: conv_opt!(self.right_bottom_corner),
+            right_top_corner: conv_opt!(self.right_top_corner),
         }
     }
 }

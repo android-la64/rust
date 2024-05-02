@@ -17,6 +17,7 @@ fn simple() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -30,7 +31,7 @@ fn simple() {
             "\
 [..] foo v0.0.1 ([CWD])
 [..] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -48,6 +49,7 @@ fn doc_no_libs() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -69,7 +71,7 @@ fn doc_twice() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -94,6 +96,7 @@ fn doc_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -111,7 +114,7 @@ fn doc_deps() {
 [..] bar v0.0.1 ([CWD]/bar)
 [..] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -149,6 +152,7 @@ fn doc_no_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -165,7 +169,7 @@ fn doc_no_deps() {
             "\
 [CHECKING] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -185,6 +189,7 @@ fn doc_only_bin() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -219,6 +224,7 @@ fn doc_multiple_targets_same_name_lib() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "foo_lib"
             "#,
@@ -230,6 +236,7 @@ fn doc_multiple_targets_same_name_lib() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "foo_lib"
             "#,
@@ -267,6 +274,7 @@ fn doc_multiple_targets_same_name() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [[bin]]
                 name = "foo_lib"
                 path = "src/foo_lib.rs"
@@ -279,6 +287,7 @@ fn doc_multiple_targets_same_name() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "foo_lib"
             "#,
@@ -300,8 +309,7 @@ the same path; see <https://github.com/rust-lang/cargo/issues/6313>.
 [DOCUMENTING] bar v0.1.0 ([ROOT]/foo/bar)
 [DOCUMENTING] foo v0.1.0 ([ROOT]/foo/foo)
 [FINISHED] [..]
-[GENERATED] [CWD]/target/doc/foo_lib/index.html
-[GENERATED] [CWD]/target/doc/foo_lib/index.html
+[GENERATED] [CWD]/target/doc/foo_lib/index.html and 1 other file
 ",
         )
         .run();
@@ -323,6 +331,7 @@ fn doc_multiple_targets_same_name_bin() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file("foo/src/bin/foo-cli.rs", "")
@@ -332,6 +341,7 @@ fn doc_multiple_targets_same_name_bin() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file("bar/src/bin/foo-cli.rs", "")
@@ -367,6 +377,7 @@ fn doc_multiple_targets_same_name_undoced() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [[bin]]
                 name = "foo-cli"
             "#,
@@ -378,6 +389,7 @@ fn doc_multiple_targets_same_name_undoced() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 [[bin]]
                 name = "foo-cli"
                 doc = false
@@ -415,7 +427,7 @@ fn doc_lib_bin_same_name_documents_lib() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -451,7 +463,7 @@ fn doc_lib_bin_same_name_documents_lib_when_requested() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -497,7 +509,7 @@ This is a known bug where multiple crates with the same name use
 the same path; see <https://github.com/rust-lang/cargo/issues/6313>.
 [CHECKING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -543,7 +555,7 @@ This is a known bug where multiple crates with the same name use
 the same path; see <https://github.com/rust-lang/cargo/issues/6313>.
 [CHECKING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -589,7 +601,7 @@ fn doc_lib_bin_example_same_name_documents_named_example_when_requested() {
             "\
 [CHECKING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/ex1/index.html
 ",
         )
@@ -644,9 +656,8 @@ fn doc_lib_bin_example_same_name_documents_examples_when_requested() {
             "\
 [CHECKING] foo v0.0.1 ([CWD])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
-[GENERATED] [CWD]/target/doc/ex1/index.html
-[GENERATED] [CWD]/target/doc/ex2/index.html
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
+[GENERATED] [CWD]/target/doc/ex1/index.html and 1 other file
 ",
         )
         .run();
@@ -673,6 +684,7 @@ fn doc_dash_p() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.a]
@@ -686,6 +698,7 @@ fn doc_dash_p() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.b]
@@ -703,7 +716,7 @@ fn doc_dash_p() {
 [..] b v0.0.1 ([CWD]/b)
 [..] b v0.0.1 ([CWD]/b)
 [DOCUMENTING] a v0.0.1 ([CWD]/a)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/a/index.html
 ",
         )
@@ -731,7 +744,7 @@ fn doc_all_exclude() {
         .with_stderr(
             "\
 [DOCUMENTING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
 ",
         )
@@ -759,7 +772,7 @@ fn doc_all_exclude_glob() {
         .with_stderr(
             "\
 [DOCUMENTING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
 ",
         )
@@ -817,6 +830,7 @@ fn target_specific_not_documented() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [target.foo.dependencies]
@@ -840,6 +854,7 @@ fn output_not_captured() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -874,6 +889,7 @@ fn target_specific_documented() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [target.foo.dependencies]
@@ -915,6 +931,7 @@ fn no_document_build_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [build-dependencies]
@@ -947,7 +964,7 @@ fn doc_release() {
             "\
 [DOCUMENTING] foo v0.0.1 ([..])
 [RUNNING] `rustdoc [..] src/lib.rs [..]`
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -963,6 +980,7 @@ fn doc_multiple_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -995,6 +1013,7 @@ fn features() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -1011,6 +1030,7 @@ fn features() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -1128,6 +1148,7 @@ fn plugins_no_use_target() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1148,6 +1169,7 @@ fn doc_all_workspace() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -1162,9 +1184,42 @@ fn doc_all_workspace() {
 
     // The order in which bar is compiled or documented is not deterministic
     p.cargo("doc --workspace")
-        .with_stderr_contains("[..] Documenting bar v0.1.0 ([..])")
-        .with_stderr_contains("[..] Checking bar v0.1.0 ([..])")
-        .with_stderr_contains("[..] Documenting foo v0.1.0 ([..])")
+        .with_stderr_contains("[DOCUMENTING] bar v0.1.0 ([..])")
+        .with_stderr_contains("[CHECKING] bar v0.1.0 ([..])")
+        .with_stderr_contains("[DOCUMENTING] foo v0.1.0 ([..])")
+        .with_stderr_contains("[GENERATED] [CWD]/target/doc/bar/index.html and 1 other file")
+        .run();
+}
+
+#[cargo_test]
+fn doc_all_workspace_verbose() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+
+                [dependencies]
+                bar = { path = "bar" }
+
+                [workspace]
+            "#,
+        )
+        .file("src/main.rs", "fn main() {}")
+        .file("bar/Cargo.toml", &basic_manifest("bar", "0.1.0"))
+        .file("bar/src/lib.rs", "pub fn bar() {}")
+        .build();
+
+    // The order in which bar is compiled or documented is not deterministic
+    p.cargo("doc --workspace -v")
+        .with_stderr_contains("[DOCUMENTING] bar v0.1.0 ([..])")
+        .with_stderr_contains("[CHECKING] bar v0.1.0 ([..])")
+        .with_stderr_contains("[DOCUMENTING] foo v0.1.0 ([..])")
+        .with_stderr_contains("[GENERATED] [CWD]/target/doc/bar/index.html")
+        .with_stderr_contains("[GENERATED] [CWD]/target/doc/foo/index.html")
         .run();
 }
 
@@ -1235,7 +1290,7 @@ fn doc_virtual_manifest_one_project() {
         .with_stderr(
             "\
 [DOCUMENTING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
 ",
         )
@@ -1263,7 +1318,7 @@ fn doc_virtual_manifest_glob() {
         .with_stderr(
             "\
 [DOCUMENTING] baz v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/baz/index.html
 ",
         )
@@ -1286,6 +1341,7 @@ fn doc_all_member_dependency_same_name() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -1353,6 +1409,7 @@ fn doc_extern_map_local() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1365,7 +1422,7 @@ fn doc_extern_map_local() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.1.0 [..]
-[RUNNING] `rustdoc --crate-type lib --crate-name foo src/lib.rs [..]--crate-version 0.1.0`
+[RUNNING] `rustdoc --edition=2015 --crate-type lib --crate-name foo src/lib.rs [..]--crate-version 0.1.0`
 [FINISHED] [..]
      Opening [CWD]/target/doc/foo/index.html
 ",
@@ -1382,6 +1439,7 @@ fn open_no_doc_crate() {
             [package]
             name = "a"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [lib]
@@ -1414,6 +1472,7 @@ fn doc_workspace_open_different_library_and_package_names() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "foolib"
             "#,
@@ -1462,6 +1521,7 @@ fn doc_workspace_open_binary() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [[bin]]
                 name = "foobin"
                 path = "src/main.rs"
@@ -1493,6 +1553,7 @@ fn doc_workspace_open_binary_and_library() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "foolib"
                 [[bin]]
@@ -1545,6 +1606,7 @@ fn doc_target_edition() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1574,6 +1636,7 @@ fn issue_5345() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [target.'cfg(all(windows, target_arch = "x86"))'.dependencies]
@@ -1657,6 +1720,7 @@ fn doc_cap_lints() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -1675,7 +1739,7 @@ fn doc_cap_lints() {
 [DOCUMENTING] a v0.5.0 ([..])
 [CHECKING] a v0.5.0 ([..])
 [DOCUMENTING] foo v0.0.1 ([..])
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -1883,6 +1947,7 @@ fn doc_example_with_deps() {
             [package]
             name = "a"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             b = {path = "../b"}
@@ -1896,6 +1961,7 @@ fn doc_example_with_deps() {
             [package]
             name = "b"
             version = "0.0.1"
+            edition = "2015"
             "#,
         )
         .file("b/src/lib.rs", "")
@@ -1919,6 +1985,7 @@ fn bin_private_items() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -1941,7 +2008,7 @@ fn bin_private_items() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -1972,6 +2039,7 @@ fn bin_private_items_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -2002,7 +2070,7 @@ fn bin_private_items_deps() {
 [DOCUMENTING] bar v0.0.1 ([..])
 [CHECKING] bar v0.0.1 ([..])
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -2026,6 +2094,7 @@ fn crate_versions() {
                 [package]
                 name = "foo"
                 version = "1.2.4"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -2036,7 +2105,7 @@ fn crate_versions() {
         .with_stderr(
             "\
 [DOCUMENTING] foo v1.2.4 [..]
-[RUNNING] `rustdoc --crate-type lib --crate-name foo src/lib.rs [..]--crate-version 1.2.4`
+[RUNNING] `rustdoc --edition=2015 --crate-type lib --crate-name foo src/lib.rs [..]--crate-version 1.2.4`
 [FINISHED] [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
@@ -2058,6 +2127,7 @@ fn crate_versions_flag_is_overridden() {
                 [package]
                 name = "foo"
                 version = "1.2.4"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -2103,6 +2173,7 @@ fn doc_test_in_workspace() {
                 [package]
                 name = "crate-a"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2119,6 +2190,7 @@ fn doc_test_in_workspace() {
                 [package]
                 name = "crate-b"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2168,6 +2240,7 @@ fn doc_test_include_file() {
                 [package]
                 name = "root"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2196,6 +2269,7 @@ fn doc_test_include_file() {
                 [package]
                 name = "child"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2268,6 +2342,7 @@ LLVM version: 9.0
             [package]
             name = "foo"
             version = "1.2.4"
+            edition = "2015"
             authors = []
         "#,
         )
@@ -2351,6 +2426,7 @@ LLVM version: 9.0
             [package]
             name = "foo"
             version = "1.2.4"
+            edition = "2015"
             authors = []
         "#,
         )
@@ -2508,8 +2584,8 @@ fn lib_before_bin() {
         .with_stderr(
             "\
 [DOCUMENTING] foo [..]
-[RUNNING] `rustdoc --crate-type lib --crate-name foo src/lib.rs [..]
-[RUNNING] `rustdoc --crate-type bin --crate-name somebin src/bin/somebin.rs [..]
+[RUNNING] `rustdoc --edition=2015 --crate-type lib --crate-name foo src/lib.rs [..]
+[RUNNING] `rustdoc --edition=2015 --crate-type bin --crate-name somebin src/bin/somebin.rs [..]
 [FINISHED] [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 [GENERATED] [CWD]/target/doc/somebin/index.html
@@ -2532,6 +2608,7 @@ fn doc_lib_false() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 doc = false
@@ -2548,6 +2625,7 @@ fn doc_lib_false() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 doc = false
@@ -2584,6 +2662,7 @@ fn doc_lib_false_dep() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -2596,6 +2675,7 @@ fn doc_lib_false_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 doc = false
@@ -2638,5 +2718,26 @@ fn link_to_private_item() {
              [FINISHED] [..]\n\
              [GENERATED] [CWD]/target/doc/foo/index.html",
         )
+        .run();
+}
+
+#[cargo_test]
+fn rustdoc_failure_hides_command_line_by_default() {
+    let p = project().file("src/lib.rs", "invalid rust code").build();
+
+    let string_to_test = "\
+Caused by:
+  process didn't exit successfully[..]rustdoc[..]";
+
+    // `cargo doc` doesn't print the full command line on failures by default
+    p.cargo("doc")
+        .with_stderr_does_not_contain(string_to_test)
+        .with_status(101)
+        .run();
+
+    // ... but it still does so if requested with `--verbose`.
+    p.cargo("doc --verbose")
+        .with_stderr_contains(string_to_test)
+        .with_status(101)
         .run();
 }

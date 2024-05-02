@@ -156,7 +156,7 @@ where
         placed
     };
 
-    // Merge until we have at most `max_cgu_count` codegen units.
+    // Merge until we don't exceed the max CGU count.
     // `merge_codegen_units` is responsible for updating the CGU size
     // estimates.
     {
@@ -175,9 +175,7 @@ where
     }
 
     // Mark one CGU for dead code, if necessary.
-    let instrument_dead_code =
-        tcx.sess.instrument_coverage() && !tcx.sess.instrument_coverage_except_unused_functions();
-    if instrument_dead_code {
+    if tcx.sess.instrument_coverage() {
         mark_code_coverage_dead_code_cgu(&mut codegen_units);
     }
 
@@ -368,7 +366,7 @@ fn merge_codegen_units<'tcx>(
         // Move the items from `cgu_src` to `cgu_dst`. Some of them may be
         // duplicate inlined items, in which case the destination CGU is
         // unaffected. Recalculate size estimates afterwards.
-        cgu_dst.items_mut().extend(cgu_src.items_mut().drain());
+        cgu_dst.items_mut().extend(cgu_src.items_mut().drain(..));
         cgu_dst.compute_size_estimate();
 
         // Record that `cgu_dst` now contains all the stuff that was in
@@ -407,7 +405,7 @@ fn merge_codegen_units<'tcx>(
         // Move the items from `smallest` to `second_smallest`. Some of them
         // may be duplicate inlined items, in which case the destination CGU is
         // unaffected. Recalculate size estimates afterwards.
-        second_smallest.items_mut().extend(smallest.items_mut().drain());
+        second_smallest.items_mut().extend(smallest.items_mut().drain(..));
         second_smallest.compute_size_estimate();
 
         // Don't update `cgu_contents`, that's only for incremental builds.
@@ -620,6 +618,8 @@ fn characteristic_def_id_of_mono_item<'tcx>(
                 | ty::InstanceDef::ReifyShim(..)
                 | ty::InstanceDef::FnPtrShim(..)
                 | ty::InstanceDef::ClosureOnceShim { .. }
+                | ty::InstanceDef::ConstructCoroutineInClosureShim { .. }
+                | ty::InstanceDef::CoroutineKindShim { .. }
                 | ty::InstanceDef::Intrinsic(..)
                 | ty::InstanceDef::DropGlue(..)
                 | ty::InstanceDef::Virtual(..)
@@ -783,6 +783,8 @@ fn mono_item_visibility<'tcx>(
         | InstanceDef::Virtual(..)
         | InstanceDef::Intrinsic(..)
         | InstanceDef::ClosureOnceShim { .. }
+        | InstanceDef::ConstructCoroutineInClosureShim { .. }
+        | InstanceDef::CoroutineKindShim { .. }
         | InstanceDef::DropGlue(..)
         | InstanceDef::CloneShim(..)
         | InstanceDef::FnPtrAddrShim(..) => return Visibility::Hidden,
@@ -1110,6 +1112,9 @@ fn collect_and_partition_mono_items(tcx: TyCtxt<'_>, (): ()) -> (&DefIdSet, &[Co
 
     let (items, usage_map) = collector::collect_crate_mono_items(tcx, collection_mode);
 
+    // If there was an error during collection (e.g. from one of the constants we evaluated),
+    // then we stop here. This way codegen does not have to worry about failing constants.
+    // (codegen relies on this and ICEs will happen if this is violated.)
     tcx.dcx().abort_if_errors();
 
     let (codegen_units, _) = tcx.sess.time("partition_and_assert_distinct_symbols", || {

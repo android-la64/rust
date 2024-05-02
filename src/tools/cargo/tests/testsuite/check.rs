@@ -19,6 +19,7 @@ fn check_success() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -48,6 +49,7 @@ fn check_fail() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -80,6 +82,7 @@ fn custom_derive() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -114,6 +117,7 @@ fn custom_derive() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 [lib]
                 proc-macro = true
@@ -146,6 +150,7 @@ fn check_build() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -177,6 +182,7 @@ fn build_check() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -224,6 +230,7 @@ fn issue_3419() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -287,6 +294,7 @@ fn dylib_check_preserves_build_cache() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -302,7 +310,7 @@ fn dylib_check_preserves_build_cache() {
         .with_stderr(
             "\
 [..]Compiling foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -310,7 +318,7 @@ fn dylib_check_preserves_build_cache() {
     p.cargo("check").run();
 
     p.cargo("build")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -324,6 +332,7 @@ fn rustc_check() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -359,6 +368,7 @@ fn rustc_check_err() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -393,6 +403,7 @@ fn check_all() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -410,10 +421,10 @@ fn check_all() {
         .build();
 
     p.cargo("check --workspace -v")
-        .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
-        .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
-        .with_stderr_contains("[..] --crate-name b b/src/lib.rs [..]")
-        .with_stderr_contains("[..] --crate-name b b/src/main.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/main.rs [..]")
+        .with_stderr_contains("[..] --crate-name b [..] b/src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name b [..] b/src/main.rs [..]")
         .run();
 }
 
@@ -438,7 +449,7 @@ fn check_all_exclude() {
         .with_stderr(
             "\
 [CHECKING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -465,7 +476,7 @@ fn check_all_exclude_glob() {
         .with_stderr(
             "\
 [CHECKING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -488,8 +499,8 @@ fn check_virtual_all_implied() {
         .build();
 
     p.cargo("check -v")
-        .with_stderr_contains("[..] --crate-name bar bar/src/lib.rs [..]")
-        .with_stderr_contains("[..] --crate-name baz baz/src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name bar [..] bar/src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name baz [..] baz/src/lib.rs [..]")
         .run();
 }
 
@@ -514,7 +525,7 @@ fn check_virtual_manifest_one_project() {
         .with_stderr(
             "\
 [CHECKING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -541,7 +552,7 @@ fn check_virtual_manifest_glob() {
         .with_stderr(
             "\
 [CHECKING] baz v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -556,7 +567,7 @@ fn exclude_warns_on_non_existing_package() {
             "\
 [WARNING] excluded package(s) `bar` not found in workspace `[CWD]`
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -573,11 +584,11 @@ fn targets_selected_default() {
         .build();
 
     foo.cargo("check -v")
-        .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
-        .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
-        .with_stderr_does_not_contain("[..] --crate-name example1 examples/example1.rs [..]")
-        .with_stderr_does_not_contain("[..] --crate-name test2 tests/test2.rs [..]")
-        .with_stderr_does_not_contain("[..] --crate-name bench3 benches/bench3.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/main.rs [..]")
+        .with_stderr_does_not_contain("[..] --crate-name example1 [..] examples/example1.rs [..]")
+        .with_stderr_does_not_contain("[..] --crate-name test2 [..] tests/test2.rs [..]")
+        .with_stderr_does_not_contain("[..] --crate-name bench3 [..] benches/bench3.rs [..]")
         .run();
 }
 
@@ -592,11 +603,11 @@ fn targets_selected_all() {
         .build();
 
     foo.cargo("check --all-targets -v")
-        .with_stderr_contains("[..] --crate-name foo src/lib.rs [..]")
-        .with_stderr_contains("[..] --crate-name foo src/main.rs [..]")
-        .with_stderr_contains("[..] --crate-name example1 examples/example1.rs [..]")
-        .with_stderr_contains("[..] --crate-name test2 tests/test2.rs [..]")
-        .with_stderr_contains("[..] --crate-name bench3 benches/bench3.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/lib.rs [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/main.rs [..]")
+        .with_stderr_contains("[..] --crate-name example1 [..] examples/example1.rs [..]")
+        .with_stderr_contains("[..] --crate-name test2 [..] tests/test2.rs [..]")
+        .with_stderr_contains("[..] --crate-name bench3 [..] benches/bench3.rs [..]")
         .run();
 }
 
@@ -692,9 +703,9 @@ fn check_filters() {
         .run();
     p.root().join("target").rm_rf();
     p.cargo("check --tests -v")
-        .with_stderr_contains("[..] --crate-name foo src/lib.rs [..] --test [..]")
-        .with_stderr_contains("[..] --crate-name foo src/lib.rs [..] --crate-type lib [..]")
-        .with_stderr_contains("[..] --crate-name foo src/main.rs [..] --test [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/lib.rs [..] --test [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/lib.rs [..] --crate-type lib [..]")
+        .with_stderr_contains("[..] --crate-name foo [..] src/main.rs [..] --test [..]")
         .with_stderr_contains("[..]unused_unit_lib[..]")
         .with_stderr_contains("[..]unused_unit_bin[..]")
         .with_stderr_contains("[..]unused_normal_lib[..]")
@@ -820,6 +831,7 @@ fn proc_macro() {
                 [package]
                 name = "demo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [lib]
                 proc-macro = true
@@ -945,6 +957,7 @@ fn rustc_workspace_wrapper_includes_path_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1001,6 +1014,7 @@ fn rustc_workspace_wrapper_excludes_published_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1035,10 +1049,12 @@ fn warn_manifest_package_and_project() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [project]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("src/main.rs", "fn main() {}")
@@ -1049,7 +1065,7 @@ fn warn_manifest_package_and_project() {
             "\
 [WARNING] manifest at `[CWD]` contains both `project` and `package`, this could become a hard error in the future
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1065,10 +1081,12 @@ fn git_manifest_package_and_project() {
             [package]
             name = "bar"
             version = "0.0.1"
+            edition = "2015"
 
             [project]
             name = "bar"
             version = "0.0.1"
+            edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1082,6 +1100,7 @@ fn git_manifest_package_and_project() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -1100,7 +1119,7 @@ fn git_manifest_package_and_project() {
 [UPDATING] git repository `[..]`
 [CHECKING] bar v0.0.1 ([..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1115,6 +1134,7 @@ fn warn_manifest_with_project() {
                 [project]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("src/main.rs", "fn main() {}")
@@ -1125,7 +1145,7 @@ fn warn_manifest_with_project() {
             "\
 [WARNING] manifest at `[CWD]` contains `[project]` instead of `[package]`, this could become a hard error in the future
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1141,6 +1161,7 @@ fn git_manifest_with_project() {
             [project]
             name = "bar"
             version = "0.0.1"
+            edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1154,6 +1175,7 @@ fn git_manifest_with_project() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -1172,7 +1194,7 @@ fn git_manifest_with_project() {
 [UPDATING] git repository `[..]`
 [CHECKING] bar v0.0.1 ([..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1187,6 +1209,7 @@ fn check_fixable_warning() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("src/lib.rs", "use std::io;")
@@ -1206,6 +1229,7 @@ fn check_fixable_test_warning() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file(
@@ -1237,6 +1261,7 @@ fn check_fixable_error_no_fix() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file(
@@ -1277,6 +1302,7 @@ fn check_fixable_warning_workspace() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("foo/src/lib.rs", "use std::io;")
@@ -1286,6 +1312,7 @@ fn check_fixable_warning_workspace() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 foo = { path = "../foo" }
@@ -1423,6 +1450,7 @@ fn check_fixable_warning_for_clippy() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         // We don't want to show a warning that is `clippy`
@@ -1450,6 +1478,7 @@ fn check_unused_manifest_keys() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -1492,7 +1521,7 @@ fn check_unused_manifest_keys() {
 [CHECKING] [..]
 [CHECKING] [..]
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1507,6 +1536,7 @@ fn versionless_package() {
                 [package]
                 name = "foo"
                 description = "foo"
+                edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1515,7 +1545,7 @@ fn versionless_package() {
         .with_stderr(
             "\
 [CHECKING] foo v0.0.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1534,6 +1564,7 @@ fn pkgid_querystring_works() {
                 r#"
                 [package]
                 name = "foo"
+                edition = "2015"
 
                 [dependencies]
                 gitdep = {{ git = "{}", branch = "master" }}
@@ -1556,7 +1587,7 @@ fn pkgid_querystring_works() {
         .with_stderr(
             "\
 [COMPILING] gitdep v1.0.0 (file:///[..]/gitdep?branch=master#[..])
-[FINISHED] dev [..]",
+[FINISHED] `dev` profile [..]",
         )
         .run();
 }

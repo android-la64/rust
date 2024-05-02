@@ -45,18 +45,15 @@ mod cell_option;
 mod settings_list;
 mod table_option;
 
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub mod object;
-
-#[cfg(feature = "std")]
-mod modify;
-
 mod alignment;
 mod extract;
 mod margin;
 mod padding;
+mod reverse;
 mod rotate;
+
+#[cfg(feature = "std")]
+mod modify;
 
 #[cfg(feature = "std")]
 mod color;
@@ -66,6 +63,10 @@ mod concat;
 mod duplicate;
 
 pub mod style;
+
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub mod object;
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
@@ -84,7 +85,7 @@ pub mod height;
 pub mod highlight;
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub mod locator;
+pub mod location;
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod measurement;
@@ -117,19 +118,26 @@ pub use cell_option::CellOption;
 pub use settings_list::{EmptySettings, Settings};
 pub use table_option::TableOption;
 
-#[cfg(feature = "std")]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub use modify::{Modify, ModifyList};
-
 pub use self::{
-    alignment::Alignment, extract::Extract, margin::Margin, padding::Padding, rotate::Rotate,
-    style::Style,
+    alignment::Alignment, extract::Extract, margin::Margin, padding::Padding, reverse::Reverse,
+    rotate::Rotate, style::Border, style::Style,
 };
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub use self::{
-    color::Color, concat::Concat, disable::Disable, duplicate::Dup, format::Format, height::Height,
-    highlight::Highlight, merge::Merge, panel::Panel, shadow::Shadow, span::Span, style::Border,
+    color::Color,
+    concat::Concat,
+    disable::Disable,
+    duplicate::Dup,
+    format::Format,
+    height::Height,
+    highlight::Highlight,
+    merge::Merge,
+    modify::{Modify, ModifyList},
+    panel::Panel,
+    shadow::Shadow,
+    span::Span,
+    themes::Theme,
     width::Width,
 };

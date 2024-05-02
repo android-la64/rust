@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Context as _};
-use cargo::core::shell::Shell;
 use cargo::core::{features, CliUnstable};
-use cargo::{self, drop_print, drop_println, CargoResult, CliResult, Config};
-use clap::{builder::UnknownArgumentValueParser, Arg, ArgMatches};
+use cargo::util::context::TermConfig;
+use cargo::{drop_print, drop_println, CargoResult};
+use clap::builder::UnknownArgumentValueParser;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -13,16 +13,21 @@ use super::commands;
 use super::list_commands;
 use crate::command_prelude::*;
 use crate::util::is_rustup;
+use cargo::core::shell::ColorChoice;
 use cargo::util::style;
 
-pub fn main(config: &mut LazyConfig) -> CliResult {
-    let args = cli().try_get_matches()?;
+#[tracing::instrument(skip_all)]
+pub fn main(gctx: &mut GlobalContext) -> CliResult {
+    // CAUTION: Be careful with using `config` until it is configured below.
+    // In general, try to avoid loading config values unless necessary (like
+    // the [alias] table).
+
+    let args = cli(gctx).try_get_matches()?;
 
     // Update the process-level notion of cwd
-    // This must be completed before config is initialized
-    assert_eq!(config.is_init(), false);
     if let Some(new_cwd) = args.get_one::<std::path::PathBuf>("directory") {
-        // This is a temporary hack. This cannot access `Config`, so this is a bit messy.
+        // This is a temporary hack.
+        // This cannot access `GlobalContext`, so this is a bit messy.
         // This does not properly parse `-Z` flags that appear after the subcommand.
         // The error message is not as helpful as the standard one.
         let nightly_features_allowed = matches!(&*features::channel(), "nightly" | "dev");
@@ -40,148 +45,160 @@ pub fn main(config: &mut LazyConfig) -> CliResult {
             .into());
         }
         std::env::set_current_dir(&new_cwd).context("could not change to requested directory")?;
+        gctx.reload_cwd()?;
     }
 
-    // CAUTION: Be careful with using `config` until it is configured below.
-    // In general, try to avoid loading config values unless necessary (like
-    // the [alias] table).
-    let config = config.get_mut();
+    let (expanded_args, global_args) = expand_aliases(gctx, args, vec![])?;
 
-    let (expanded_args, global_args) = expand_aliases(config, args, vec![])?;
+    let is_verbose = expanded_args.verbose() > 0;
 
     if expanded_args
         .get_one::<String>("unstable-features")
         .map(String::as_str)
         == Some("help")
     {
-        let header = style::HEADER.render();
-        let literal = style::LITERAL.render();
-        let placeholder = style::PLACEHOLDER.render();
-        let reset = anstyle::Reset.render();
+        // Don't let config errors get in the way of parsing arguments
+        let _ = configure_gctx(gctx, &expanded_args, None, global_args, None);
+        print_zhelp(gctx);
+    } else if expanded_args.flag("version") {
+        // Don't let config errors get in the way of parsing arguments
+        let _ = configure_gctx(gctx, &expanded_args, None, global_args, None);
+        let version = get_version_string(is_verbose);
+        drop_print!(gctx, "{}", version);
+    } else if let Some(code) = expanded_args.get_one::<String>("explain") {
+        // Don't let config errors get in the way of parsing arguments
+        let _ = configure_gctx(gctx, &expanded_args, None, global_args, None);
+        let mut procss = gctx.load_global_rustc(None)?.process();
+        procss.arg("--explain").arg(code).exec()?;
+    } else if expanded_args.flag("list") {
+        // Don't let config errors get in the way of parsing arguments
+        let _ = configure_gctx(gctx, &expanded_args, None, global_args, None);
+        print_list(gctx, is_verbose);
+    } else {
+        let (cmd, subcommand_args) = match expanded_args.subcommand() {
+            Some((cmd, args)) => (cmd, args),
+            _ => {
+                // No subcommand provided.
+                cli(gctx).print_help()?;
+                return Ok(());
+            }
+        };
+        let exec = Exec::infer(cmd)?;
+        configure_gctx(
+            gctx,
+            &expanded_args,
+            Some(subcommand_args),
+            global_args,
+            Some(&exec),
+        )?;
+        super::init_git(gctx);
 
-        let options = CliUnstable::help();
-        let max_length = options
-            .iter()
-            .filter(|(_, help)| help.is_some())
-            .map(|(option_name, _)| option_name.len())
-            .max()
-            .unwrap_or(0);
-        let z_flags = options
-            .iter()
-            .filter(|(_, help)| help.is_some())
-            .map(|(opt, help)| {
-                let opt = opt.replace("_", "-");
-                let help = help.unwrap();
-                format!("    {literal}-Z {opt:<max_length$}{reset}  {help}")
-            })
-            .join("\n");
-        drop_println!(
-            config,
-            "\
-{header}Available unstable (nightly-only) flags:{reset}
+        exec.exec(gctx, subcommand_args)?;
+    }
+    Ok(())
+}
+
+fn print_zhelp(gctx: &GlobalContext) {
+    let header = style::HEADER;
+    let literal = style::LITERAL;
+    let placeholder = style::PLACEHOLDER;
+
+    let options = CliUnstable::help();
+    let max_length = options
+        .iter()
+        .filter(|(_, help)| help.is_some())
+        .map(|(option_name, _)| option_name.len())
+        .max()
+        .unwrap_or(0);
+    let z_flags = options
+        .iter()
+        .filter(|(_, help)| help.is_some())
+        .map(|(opt, help)| {
+            let opt = opt.replace("_", "-");
+            let help = help.unwrap();
+            format!("    {literal}-Z {opt:<max_length$}{literal:#}  {help}")
+        })
+        .join("\n");
+    drop_println!(
+        gctx,
+        "\
+{header}Available unstable (nightly-only) flags:{header:#}
 
 {z_flags}
 
-Run with `{literal}cargo -Z{reset} {placeholder}[FLAG] [COMMAND]{reset}`",
-        );
-        if !config.nightly_features_allowed {
-            drop_println!(
-                config,
-                "\nUnstable flags are only available on the nightly channel \
+Run with `{literal}cargo -Z{literal:#} {placeholder}[FLAG] [COMMAND]{placeholder:#}`",
+    );
+    if !gctx.nightly_features_allowed {
+        drop_println!(
+            gctx,
+            "\nUnstable flags are only available on the nightly channel \
                  of Cargo, but this is the `{}` channel.\n\
                  {}",
-                features::channel(),
-                features::SEE_CHANNELS
-            );
-        }
-        drop_println!(
-            config,
-            "\nSee https://doc.rust-lang.org/nightly/cargo/reference/unstable.html \
+            features::channel(),
+            features::SEE_CHANNELS
+        );
+    }
+    drop_println!(
+        gctx,
+        "\nSee https://doc.rust-lang.org/nightly/cargo/reference/unstable.html \
              for more information about these flags."
-        );
-        return Ok(());
-    }
+    );
+}
 
-    let is_verbose = expanded_args.verbose() > 0;
-    if expanded_args.flag("version") {
-        let version = get_version_string(is_verbose);
-        drop_print!(config, "{}", version);
-        return Ok(());
-    }
-
-    if let Some(code) = expanded_args.get_one::<String>("explain") {
-        let mut procss = config.load_global_rustc(None)?.process();
-        procss.arg("--explain").arg(code).exec()?;
-        return Ok(());
-    }
-
-    if expanded_args.flag("list") {
-        // Maps from commonly known external commands (not builtin to cargo)
-        // to their description, for the help page. Reserved for external
-        // subcommands that are core within the rust ecosystem (esp ones that
-        // might become internal in the future).
-        let known_external_command_descriptions = HashMap::from([
-            (
-                "clippy",
-                "Checks a package to catch common mistakes and improve your Rust code.",
-            ),
-            (
-                "fmt",
-                "Formats all bin and lib files of the current crate using rustfmt.",
-            ),
-        ]);
-        drop_println!(
-            config,
-            color_print::cstr!("<green,bold>Installed Commands:</>")
-        );
-        for (name, command) in list_commands(config) {
-            let known_external_desc = known_external_command_descriptions.get(name.as_str());
-            let literal = style::LITERAL.render();
-            let reset = anstyle::Reset.render();
-            match command {
-                CommandInfo::BuiltIn { about } => {
-                    assert!(
-                        known_external_desc.is_none(),
-                        "known_external_commands shouldn't contain builtin `{name}`",
-                    );
-                    let summary = about.unwrap_or_default();
-                    let summary = summary.lines().next().unwrap_or(&summary); // display only the first line
-                    drop_println!(config, "    {literal}{name:<20}{reset} {summary}");
-                }
-                CommandInfo::External { path } => {
-                    if let Some(desc) = known_external_desc {
-                        drop_println!(config, "    {literal}{name:<20}{reset} {desc}");
-                    } else if is_verbose {
-                        drop_println!(config, "    {literal}{name:<20}{reset} {}", path.display());
-                    } else {
-                        drop_println!(config, "    {literal}{name}{reset}");
-                    }
-                }
-                CommandInfo::Alias { target } => {
+fn print_list(gctx: &GlobalContext, is_verbose: bool) {
+    // Maps from commonly known external commands (not builtin to cargo)
+    // to their description, for the help page. Reserved for external
+    // subcommands that are core within the rust ecosystem (esp ones that
+    // might become internal in the future).
+    let known_external_command_descriptions = HashMap::from([
+        (
+            "clippy",
+            "Checks a package to catch common mistakes and improve your Rust code.",
+        ),
+        (
+            "fmt",
+            "Formats all bin and lib files of the current crate using rustfmt.",
+        ),
+    ]);
+    drop_println!(
+        gctx,
+        color_print::cstr!("<green,bold>Installed Commands:</>")
+    );
+    for (name, command) in list_commands(gctx) {
+        let known_external_desc = known_external_command_descriptions.get(name.as_str());
+        let literal = style::LITERAL;
+        match command {
+            CommandInfo::BuiltIn { about } => {
+                assert!(
+                    known_external_desc.is_none(),
+                    "known_external_commands shouldn't contain builtin `{name}`",
+                );
+                let summary = about.unwrap_or_default();
+                let summary = summary.lines().next().unwrap_or(&summary); // display only the first line
+                drop_println!(gctx, "    {literal}{name:<20}{literal:#} {summary}");
+            }
+            CommandInfo::External { path } => {
+                if let Some(desc) = known_external_desc {
+                    drop_println!(gctx, "    {literal}{name:<20}{literal:#} {desc}");
+                } else if is_verbose {
                     drop_println!(
-                        config,
-                        "    {literal}{name:<20}{reset} alias: {}",
-                        target.iter().join(" ")
+                        gctx,
+                        "    {literal}{name:<20}{literal:#} {}",
+                        path.display()
                     );
+                } else {
+                    drop_println!(gctx, "    {literal}{name}{literal:#}");
                 }
             }
+            CommandInfo::Alias { target } => {
+                drop_println!(
+                    gctx,
+                    "    {literal}{name:<20}{literal:#} alias: {}",
+                    target.iter().join(" ")
+                );
+            }
         }
-        return Ok(());
     }
-
-    let (cmd, subcommand_args) = match expanded_args.subcommand() {
-        Some((cmd, args)) => (cmd, args),
-        _ => {
-            // No subcommand provided.
-            cli().print_help()?;
-            return Ok(());
-        }
-    };
-    let exec = Exec::infer(cmd)?;
-    config_configure(config, &expanded_args, subcommand_args, global_args, &exec)?;
-    super::init_git(config);
-
-    exec.exec(config, subcommand_args)
 }
 
 pub fn get_version_string(is_verbose: bool) -> String {
@@ -256,19 +273,20 @@ fn add_ssl(version_string: &mut String) {
 /// [`GlobalArgs`] need to be extracted before expanding aliases because the
 /// clap code for extracting a subcommand discards global options
 /// (appearing before the subcommand).
+#[tracing::instrument(skip_all)]
 fn expand_aliases(
-    config: &mut Config,
+    gctx: &mut GlobalContext,
     args: ArgMatches,
     mut already_expanded: Vec<String>,
 ) -> Result<(ArgMatches, GlobalArgs), CliError> {
     if let Some((cmd, sub_args)) = args.subcommand() {
         let exec = commands::builtin_exec(cmd);
-        let aliased_cmd = super::aliased_command(config, cmd);
+        let aliased_cmd = super::aliased_command(gctx, cmd);
 
         match (exec, aliased_cmd) {
             (Some(_), Ok(Some(_))) => {
                 // User alias conflicts with a built-in subcommand
-                config.shell().warn(format!(
+                gctx.shell().warn(format!(
                     "user-defined alias `{}` is ignored, because it is shadowed by a built-in command",
                     cmd,
                 ))?;
@@ -297,8 +315,8 @@ To pass the arguments to the subcommand, remove `--`",
                 // Currently this is only a warning, but after a transition period this will become
                 // a hard error.
                 if super::builtin_aliases_execs(cmd).is_none() {
-                    if let Some(path) = super::find_external_subcommand(config, cmd) {
-                        config.shell().warn(format!(
+                    if let Some(path) = super::find_external_subcommand(gctx, cmd) {
+                        gctx.shell().warn(format!(
                         "\
 user-defined alias `{}` is shadowing an external subcommand found at: `{}`
 This was previously accepted but is being phased out; it will become a hard error in a future release.
@@ -309,10 +327,10 @@ For more information, see issue #10049 <https://github.com/rust-lang/cargo/issue
                     }
                 }
                 if commands::run::is_manifest_command(cmd) {
-                    if config.cli_unstable().script {
+                    if gctx.cli_unstable().script {
                         return Ok((args, GlobalArgs::default()));
                     } else {
-                        config.shell().warn(format_args!(
+                        gctx.shell().warn(format_args!(
                             "\
 user-defined alias `{cmd}` has the appearance of a manifest-command
 This was previously accepted but will be phased out when `-Zscript` is stabilized.
@@ -336,7 +354,7 @@ For more information, see issue #12207 <https://github.com/rust-lang/cargo/issue
                 // Note that an alias to an external command will not receive
                 // these arguments. That may be confusing, but such is life.
                 let global_args = GlobalArgs::new(sub_args);
-                let new_args = cli().no_binary_name(true).try_get_matches_from(alias)?;
+                let new_args = cli(gctx).no_binary_name(true).try_get_matches_from(alias)?;
 
                 let new_cmd = new_args.subcommand_name().expect("subcommand is required");
                 already_expanded.push(cmd.to_string());
@@ -351,7 +369,7 @@ For more information, see issue #12207 <https://github.com/rust-lang/cargo/issue
                     .into());
                 }
 
-                let (expanded_args, _) = expand_aliases(config, new_args, already_expanded)?;
+                let (expanded_args, _) = expand_aliases(gctx, new_args, already_expanded)?;
                 return Ok((expanded_args, global_args));
             }
             (None, Err(e)) => return Err(e.into()),
@@ -361,19 +379,22 @@ For more information, see issue #12207 <https://github.com/rust-lang/cargo/issue
     Ok((args, GlobalArgs::default()))
 }
 
-fn config_configure(
-    config: &mut Config,
+#[tracing::instrument(skip_all)]
+fn configure_gctx(
+    gctx: &mut GlobalContext,
     args: &ArgMatches,
-    subcommand_args: &ArgMatches,
+    subcommand_args: Option<&ArgMatches>,
     global_args: GlobalArgs,
-    exec: &Exec,
+    exec: Option<&Exec>,
 ) -> CliResult {
-    let arg_target_dir = &subcommand_args.value_of_path("target-dir", config);
+    let arg_target_dir = &subcommand_args.and_then(|a| a.value_of_path("target-dir", gctx));
     let mut verbose = global_args.verbose + args.verbose();
     // quiet is unusual because it is redefined in some subcommands in order
     // to provide custom help text.
-    let mut quiet = args.flag("quiet") || subcommand_args.flag("quiet") || global_args.quiet;
-    if matches!(exec, Exec::Manifest(_)) && !quiet {
+    let mut quiet = args.flag("quiet")
+        || subcommand_args.map(|a| a.flag("quiet")).unwrap_or_default()
+        || global_args.quiet;
+    if matches!(exec, Some(Exec::Manifest(_))) && !quiet {
         // Verbosity is shifted quieter for `Exec::Manifest` as it is can be used as if you ran
         // `cargo install` and we especially shouldn't pollute programmatic output.
         //
@@ -381,7 +402,7 @@ fn config_configure(
         // subject to change.
         if let Some(lower) = verbose.checked_sub(1) {
             verbose = lower;
-        } else if !config.shell().is_err_tty() {
+        } else if !gctx.shell().is_err_tty() {
             // Don't pollute potentially-scripted output
             quiet = true;
         }
@@ -402,7 +423,7 @@ fn config_configure(
     if let Some(values) = args.get_many::<String>("config") {
         config_args.extend(values.cloned());
     }
-    config.configure(
+    gctx.configure(
         verbose,
         quiet,
         color,
@@ -441,26 +462,27 @@ impl Exec {
         }
     }
 
-    fn exec(self, config: &mut Config, subcommand_args: &ArgMatches) -> CliResult {
+    #[tracing::instrument(skip_all)]
+    fn exec(self, gctx: &mut GlobalContext, subcommand_args: &ArgMatches) -> CliResult {
         match self {
-            Self::Builtin(exec) => exec(config, subcommand_args),
+            Self::Builtin(exec) => exec(gctx, subcommand_args),
             Self::Manifest(cmd) => {
-                let ext_path = super::find_external_subcommand(config, &cmd);
-                if !config.cli_unstable().script && ext_path.is_some() {
-                    config.shell().warn(format_args!(
+                let ext_path = super::find_external_subcommand(gctx, &cmd);
+                if !gctx.cli_unstable().script && ext_path.is_some() {
+                    gctx.shell().warn(format_args!(
                         "\
 external subcommand `{cmd}` has the appearance of a manifest-command
 This was previously accepted but will be phased out when `-Zscript` is stabilized.
 For more information, see issue #12207 <https://github.com/rust-lang/cargo/issues/12207>.",
                     ))?;
-                    Self::External(cmd).exec(config, subcommand_args)
+                    Self::External(cmd).exec(gctx, subcommand_args)
                 } else {
                     let ext_args: Vec<OsString> = subcommand_args
                         .get_many::<OsString>("")
                         .unwrap_or_default()
                         .cloned()
                         .collect();
-                    commands::run::exec_manifest_command(config, &cmd, &ext_args)
+                    commands::run::exec_manifest_command(gctx, &cmd, &ext_args)
                 }
             }
             Self::External(cmd) => {
@@ -471,7 +493,7 @@ For more information, see issue #12207 <https://github.com/rust-lang/cargo/issue
                         .unwrap_or_default()
                         .map(OsString::as_os_str),
                 );
-                super::execute_external_subcommand(config, &cmd, &ext_args)
+                super::execute_external_subcommand(gctx, &cmd, &ext_args)
             }
         }
     }
@@ -512,7 +534,20 @@ impl GlobalArgs {
     }
 }
 
-pub fn cli() -> Command {
+#[tracing::instrument(skip_all)]
+pub fn cli(gctx: &GlobalContext) -> Command {
+    // Don't let config errors get in the way of parsing arguments
+    let term = gctx.get::<TermConfig>("term").unwrap_or_default();
+    let color = term
+        .color
+        .and_then(|c| c.parse().ok())
+        .unwrap_or(ColorChoice::CargoAuto);
+    let color = match color {
+        ColorChoice::Always => clap::ColorChoice::Always,
+        ColorChoice::Never => clap::ColorChoice::Never,
+        ColorChoice::CargoAuto => clap::ColorChoice::Auto,
+    };
+
     let usage = if is_rustup() {
         color_print::cstr!("<cyan,bold>cargo</> <cyan>[+toolchain] [OPTIONS] [COMMAND]</>\n       <cyan,bold>cargo</> <cyan>[+toolchain] [OPTIONS]</> <cyan,bold>-Zscript</> <cyan><<MANIFEST_RS>> [ARGS]...</>")
     } else {
@@ -537,6 +572,7 @@ pub fn cli() -> Command {
         // We also want these to come before auto-generated `--help`
         .next_display_order(800)
         .allow_external_subcommands(true)
+        .color(color)
         .styles(styles)
         // Provide a custom help subcommand for calling into man pages
         .disable_help_subcommand(true)
@@ -644,52 +680,10 @@ See '<cyan,bold>cargo help</> <cyan><<command>></>' for more information on a sp
         .subcommands(commands::builtin())
 }
 
-/// Delay loading [`Config`] until access.
-///
-/// In the common path, the [`Config`] is dependent on CLI parsing and shouldn't be loaded until
-/// after that is done but some other paths (like fix or earlier errors) might need access to it,
-/// so this provides a way to share the instance and the implementation across these different
-/// accesses.
-pub struct LazyConfig {
-    config: Option<Config>,
-}
-
-impl LazyConfig {
-    pub fn new() -> Self {
-        Self { config: None }
-    }
-
-    /// Check whether the config is loaded
-    ///
-    /// This is useful for asserts in case the environment needs to be setup before loading
-    pub fn is_init(&self) -> bool {
-        self.config.is_some()
-    }
-
-    /// Get the config, loading it if needed
-    ///
-    /// On error, the process is terminated
-    pub fn get(&mut self) -> &Config {
-        self.get_mut()
-    }
-
-    /// Get the config, loading it if needed
-    ///
-    /// On error, the process is terminated
-    pub fn get_mut(&mut self) -> &mut Config {
-        self.config.get_or_insert_with(|| match Config::default() {
-            Ok(cfg) => cfg,
-            Err(e) => {
-                let mut shell = Shell::new();
-                cargo::exit_with_error(e.into(), &mut shell)
-            }
-        })
-    }
-}
-
 #[test]
 fn verify_cli() {
-    cli().debug_assert();
+    let gctx = GlobalContext::default().unwrap();
+    cli(&gctx).debug_assert();
 }
 
 #[test]

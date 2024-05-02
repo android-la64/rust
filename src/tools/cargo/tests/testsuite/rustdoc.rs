@@ -14,7 +14,7 @@ fn rustdoc_simple() {
         -o [CWD]/target/doc \
         [..] \
         -L dependency=[CWD]/target/debug/deps [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -47,7 +47,7 @@ fn rustdoc_simple_json() {
             "\
 [DOCUMENTING] foo v0.0.1 ([CWD])
 [RUNNING] `rustdoc [..]--crate-name foo [..]-o [CWD]/target/doc [..]--output-format=json[..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo.json
 ",
         )
@@ -118,7 +118,7 @@ fn rustdoc_args() {
         --cfg=foo \
         -C metadata=[..] \
         -L dependency=[CWD]/target/debug/deps [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -145,6 +145,7 @@ fn rustdoc_foo_with_bar_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -172,7 +173,7 @@ fn rustdoc_foo_with_bar_dependency() {
         -C metadata=[..] \
         -L dependency=[CWD]/target/debug/deps \
         --extern [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -188,6 +189,7 @@ fn rustdoc_only_bar_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -212,7 +214,7 @@ fn rustdoc_only_bar_dependency() {
         --cfg=foo \
         -C metadata=[..] \
         -L dependency=[CWD]/target/debug/deps [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
 ",
         )
@@ -236,7 +238,7 @@ fn rustdoc_same_name_documents_lib() {
         --cfg=foo \
         -C metadata=[..] \
         -L dependency=[CWD]/target/debug/deps [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -252,6 +254,7 @@ fn features() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -275,6 +278,7 @@ fn proc_macro_crate_type() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -288,7 +292,7 @@ fn proc_macro_crate_type() {
     p.cargo("rustdoc --verbose")
         .with_stderr_contains(
             "\
-[RUNNING] `rustdoc --crate-type proc-macro [..]`
+[RUNNING] `rustdoc --edition=2015 --crate-type proc-macro [..]`
 ",
         )
         .run();
@@ -313,7 +317,7 @@ fn rustdoc_target() {
     [..] \
     -L dependency=[CWD]/target/{target}/debug/deps \
     -L dependency=[CWD]/target/debug/deps[..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/[..]/doc/foo/index.html",
             target = cross_compile::alternate()
         ))

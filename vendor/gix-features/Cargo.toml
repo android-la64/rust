@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-features"
-version = "0.37.1"
+version = "0.38.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -91,7 +91,11 @@ default-features = false
 version = "^0.14.1"
 
 [dependencies.gix-trace]
-version = "^0.1.6"
+version = "^0.1.7"
+
+[dependencies.gix-utils]
+version = "^0.1.9"
+optional = true
 
 [dependencies.jwalk]
 version = "0.8.1"
@@ -136,7 +140,11 @@ cache-efficiency-debug = []
 crc32 = ["dep:crc32fast"]
 default = []
 fast-sha1 = ["dep:sha1"]
-fs-walkdir-parallel = ["dep:jwalk"]
+fs-read-dir = ["dep:gix-utils"]
+fs-walkdir-parallel = [
+    "dep:jwalk",
+    "dep:gix-utils",
+]
 io-pipe = ["dep:bytes"]
 once_cell = ["dep:once_cell"]
 parallel = [
@@ -152,7 +160,10 @@ progress-unit-human-numbers = ["prodash?/unit-human"]
 rustsha1 = ["dep:sha1_smol"]
 tracing = ["gix-trace/tracing"]
 tracing-detail = ["gix-trace/tracing-detail"]
-walkdir = ["dep:walkdir"]
+walkdir = [
+    "dep:walkdir",
+    "dep:gix-utils",
+]
 zlib = [
     "dep:flate2",
     "flate2?/rust_backend",

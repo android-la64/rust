@@ -27,7 +27,10 @@ fn create_default_gitconfig() {
 #[cargo_test]
 fn simple_lib() {
     cargo_process("new --lib foo --vcs none --edition 2015")
-        .with_stderr("[CREATED] library `foo` package")
+        .with_stderr("\
+[CREATING] library `foo` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+")
         .run();
 
     assert!(paths::root().join("foo").is_dir());
@@ -62,7 +65,10 @@ mod tests {
 #[cargo_test]
 fn simple_bin() {
     cargo_process("new --bin foo --edition 2015")
-        .with_stderr("[CREATED] binary (application) `foo` package")
+        .with_stderr("\
+[CREATING] binary (application) `foo` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+")
         .run();
 
     assert!(paths::root().join("foo").is_dir());
@@ -79,7 +85,10 @@ fn simple_bin() {
 fn both_lib_and_bin() {
     cargo_process("new --lib --bin foo")
         .with_status(101)
-        .with_stderr("[ERROR] can't specify both lib and binary outputs")
+        .with_stderr(
+            "\
+[ERROR] can't specify both lib and binary outputs",
+        )
         .run();
 }
 
@@ -137,8 +146,10 @@ fn existing() {
     cargo_process("new foo")
         .with_status(101)
         .with_stderr(
-            "[ERROR] destination `[CWD]/foo` already exists\n\n\
-             Use `cargo init` to initialize the directory",
+            "\
+[CREATING] binary (application) `foo` package
+[ERROR] destination `[CWD]/foo` already exists\n\n\
+Use `cargo init` to initialize the directory",
         )
         .run();
 }
@@ -149,6 +160,7 @@ fn invalid_characters() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `foo.rs` package
 [ERROR] invalid character `.` in package name: `foo.rs`, [..]
 If you need a package name to not match the directory name, consider using --name flag.
 If you need a binary with the name \"foo.rs\", use a valid package name, \
@@ -171,6 +183,7 @@ fn reserved_name() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `test` package
 [ERROR] the name `test` cannot be used as a package name, it conflicts [..]
 If you need a package name to not match the directory name, consider using --name flag.
 If you need a binary with the name \"test\", use a valid package name, \
@@ -193,6 +206,7 @@ fn reserved_binary_name() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `incremental` package
 [ERROR] the name `incremental` cannot be used as a package name, it conflicts [..]
 If you need a package name to not match the directory name, consider using --name flag.
 ",
@@ -202,9 +216,10 @@ If you need a package name to not match the directory name, consider using --nam
     cargo_process("new --lib incremental")
         .with_stderr(
             "\
+[CREATING] library `incremental` package
 [WARNING] the name `incremental` will not support binary executables with that name, \
 it conflicts with cargo's build directory names
-[CREATED] library `incremental` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -216,6 +231,7 @@ fn keyword_name() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `pub` package
 [ERROR] the name `pub` cannot be used as a package name, it is a Rust keyword
 If you need a package name to not match the directory name, consider using --name flag.
 If you need a binary with the name \"pub\", use a valid package name, \
@@ -237,6 +253,7 @@ fn std_name() {
     cargo_process("new core")
         .with_stderr(
             "\
+[CREATING] binary (application) `core` package
 [WARNING] the name `core` is part of Rust's standard library
 It is recommended to use a different name to avoid problems.
 If you need a package name to not match the directory name, consider using --name flag.
@@ -249,7 +266,7 @@ or change the name in Cargo.toml with:
     name = \"core\"
     path = \"src/main.rs\"
 
-[CREATED] binary (application) `core` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -260,7 +277,7 @@ fn git_prefers_command_line() {
     let root = paths::root();
     fs::create_dir(&root.join(".cargo")).unwrap();
     fs::write(
-        &root.join(".cargo/config"),
+        &root.join(".cargo/config.toml"),
         r#"
             [cargo-new]
             vcs = "none"
@@ -348,6 +365,7 @@ fn explicit_invalid_name_not_suggested() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `10-invalid` package
 [ERROR] invalid character `1` in package name: `10-invalid`, the name cannot start with a digit
 If you need a binary with the name \"10-invalid\", use a valid package name, \
 and set the binary name to be different from the package. \
@@ -366,7 +384,10 @@ or change the name in Cargo.toml with:
 #[cargo_test]
 fn explicit_project_name() {
     cargo_process("new --lib foo --name bar")
-        .with_stderr("[CREATED] library `bar` package")
+        .with_stderr("\
+[CREATING] library `bar` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+")
         .run();
 }
 
@@ -400,14 +421,6 @@ fn new_with_bad_edition() {
 }
 
 #[cargo_test]
-fn new_with_reference_link() {
-    cargo_process("new foo").run();
-
-    let contents = fs::read_to_string(paths::root().join("foo/Cargo.toml")).unwrap();
-    assert!(contents.contains("# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html"))
-}
-
-#[cargo_test]
 fn lockfile_constant_during_new() {
     cargo_process("new foo").run();
 
@@ -425,6 +438,7 @@ fn restricted_windows_name() {
             .with_status(101)
             .with_stderr(
                 "\
+[CREATING] binary (application) `nul` package
 [ERROR] cannot use name `nul`, it is a reserved Windows filename
 If you need a package name to not match the directory name, consider using --name flag.
 ",
@@ -434,9 +448,10 @@ If you need a package name to not match the directory name, consider using --nam
         cargo_process("new nul")
             .with_stderr(
                 "\
+[CREATING] binary (application) `nul` package
 [WARNING] the name `nul` is a reserved Windows filename
 This package will not work on Windows platforms.
-[CREATED] binary (application) `nul` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
             )
             .run();
@@ -448,10 +463,11 @@ fn non_ascii_name() {
     cargo_process("new Привет")
         .with_stderr(
             "\
+[CREATING] binary (application) `Привет` package
 [WARNING] the name `Привет` contains non-ASCII characters
 Non-ASCII crate names are not supported by Rust.
 [WARNING] the name `Привет` is not snake_case or kebab-case which is recommended for package names, consider `привет`
-[CREATED] binary (application) `Привет` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -464,6 +480,7 @@ fn non_ascii_name_invalid() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `ⒶⒷⒸ` package
 [ERROR] invalid character `Ⓐ` in package name: `ⒶⒷⒸ`, \
 the first character must be a Unicode XID start character (most letters or `_`)
 If you need a package name to not match the directory name, consider using --name flag.
@@ -484,6 +501,7 @@ or change the name in Cargo.toml with:
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) `a¼` package
 [ERROR] invalid character `¼` in package name: `a¼`, \
 characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
 If you need a package name to not match the directory name, consider using --name flag.
@@ -506,8 +524,9 @@ fn non_snake_case_name() {
     cargo_process("new UPPERcase_name")
         .with_stderr(
             "\
+[CREATING] binary (application) `UPPERcase_name` package
 [WARNING] the name `UPPERcase_name` is not snake_case or kebab-case which is recommended for package names, consider `uppercase_name`
-[CREATED] binary (application) `UPPERcase_name` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -518,7 +537,8 @@ fn kebab_case_name_is_accepted() {
     cargo_process("new kebab-case-is-valid")
         .with_stderr(
             "\
-[CREATED] binary (application) `kebab-case-is-valid` package
+[CREATING] binary (application) `kebab-case-is-valid` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -559,6 +579,7 @@ fn non_utf8_str_in_ignore_file() {
         .with_status(101)
         .with_stderr(
             "\
+[CREATING] binary (application) package
 error: Failed to create package `home` at `[..]`
 
 Caused by:
@@ -574,9 +595,10 @@ fn path_with_invalid_character() {
     cargo_process("new --name testing test:ing")
         .with_stderr(
             "\
+[CREATING] binary (application) `testing` package
 [WARNING] the path `[CWD]/test:ing` contains invalid PATH characters (usually `:`, `;`, or `\"`)
 It is recommended to use a different name to avoid problems.
-[CREATED] binary (application) `testing` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();

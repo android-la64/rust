@@ -16,6 +16,7 @@ fn simple_cross_package() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -45,7 +46,7 @@ fn simple_cross_package() {
 [PACKAGING] foo v0.0.0 ([CWD])
 [VERIFYING] foo v0.0.0 ([CWD])
 [COMPILING] foo v0.0.0 ([CWD]/target/package/foo-0.0.0)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [PACKAGED] 4 files, [..] ([..] compressed)
 ",
         )
@@ -77,6 +78,7 @@ fn publish_with_target() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -109,11 +111,11 @@ fn publish_with_target() {
 [PACKAGING] foo v0.0.0 ([CWD])
 [VERIFYING] foo v0.0.0 ([CWD])
 [COMPILING] foo v0.0.0 ([CWD]/target/package/foo-0.0.0)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.0 ([CWD])
 [UPLOADED] foo v0.0.0 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.0 at registry `crates-io`
 ",

@@ -13,9 +13,10 @@
 edition = "2018"
 rust-version = "1.36"
 name = "serde_ignored"
-version = "0.1.9"
+version = "0.1.10"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 description = "Find out about keys that are ignored when deserializing data"
+documentation = "https://docs.rs/serde_ignored"
 readme = "README.md"
 keywords = [
     "serde",
@@ -36,12 +37,12 @@ targets = ["x86_64-unknown-linux-gnu"]
 doc-scrape-examples = false
 
 [dependencies.serde]
-version = "1.0.166"
+version = "1.0.194"
 features = ["alloc"]
 default-features = false
 
 [dev-dependencies.serde_derive]
-version = "1.0.166"
+version = "1.0.194"
 
 [dev-dependencies.serde_json]
-version = "1.0.100"
+version = "1.0.110"

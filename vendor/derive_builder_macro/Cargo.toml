@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
 name = "derive_builder_macro"
-version = "0.12.0"
+version = "0.20.0"
 authors = [
     "Colin Kiegel <kiegel@gmx.de>",
     "Pascal Hertleif <killercup@gmail.com>",
@@ -19,7 +20,7 @@ authors = [
     "Ted Driggs <ted.driggs@outlook.com>",
 ]
 description = "Rust macro to automatically implement the builder pattern for arbitrary structs."
-documentation = "https://docs.rs/derive_builder_macro/0.12.0"
+documentation = "https://docs.rs/derive_builder_macro/0.20.0"
 readme = "README.md"
 keywords = [
     "derive",
@@ -32,21 +33,23 @@ categories = [
     "development-tools",
     "rust-patterns",
 ]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/colin-kiegel/rust-derive-builder"
 
 [lib]
 proc-macro = true
 
 [dependencies.derive_builder_core]
-version = "=0.12.0"
+version = "=0.20.0"
 
 [dependencies.syn]
-version = "1.0.91"
+version = "2.0.15"
 features = [
     "full",
     "extra-traits",
 ]
 
 [features]
+alloc = ["derive_builder_core/alloc"]
 clippy = ["derive_builder_core/clippy"]
+lib_has_std = ["derive_builder_core/lib_has_std"]

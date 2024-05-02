@@ -25,7 +25,7 @@ use hir_expand::{
     InFile, MacroFileId, MacroFileIdExt,
 };
 use span::Span;
-use stdx::format_to;
+use stdx::{format_to, format_to_acc};
 use syntax::{
     ast::{self, edit::IndentLevel},
     AstNode,
@@ -58,6 +58,7 @@ pub fn identity_when_valid(_attr: TokenStream, item: TokenStream) -> TokenStream
             name: "identity_when_valid".into(),
             kind: ProcMacroKind::Attr,
             expander: sync::Arc::new(IdentityWhenValidProcMacroExpander),
+            disabled: false,
         },
     )];
     let db = TestDB::with_files_extra_proc_macros(ra_fixture, extra_proc_macros);
@@ -149,8 +150,7 @@ pub fn identity_when_valid(_attr: TokenStream, item: TokenStream) -> TokenStream
         if tree {
             let tree = format!("{:#?}", parse.syntax_node())
                 .split_inclusive('\n')
-                .map(|line| format!("// {line}"))
-                .collect::<String>();
+                .fold(String::new(), |mut acc, line| format_to_acc!(acc, "// {line}"));
             format_to!(expn_text, "\n{}", tree)
         }
         let range = call.syntax().text_range();
@@ -225,7 +225,7 @@ fn reindent(indent: IndentLevel, pp: String) -> String {
         return pp;
     }
     let mut lines = pp.split_inclusive('\n');
-    let mut res = lines.next().unwrap().to_string();
+    let mut res = lines.next().unwrap().to_owned();
     for line in lines {
         if line.trim().is_empty() {
             res.push_str(line)

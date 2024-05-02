@@ -3,9 +3,7 @@ use crate::{ast, update};
 use std::{env, fmt::Write, path::Path};
 
 macro_rules! w {
-    ($($tt:tt)*) => {
-        drop(write!($($tt)*))
-    };
+    ($($tt:tt)*) => {{ let _ = write!($($tt)*); }};
 }
 
 pub(crate) fn emit(xflags: &ast::XFlags) -> String {
@@ -156,7 +154,7 @@ fn emit_impls(buf: &mut String, xflags: &ast::XFlags) -> () {
 fn emit_parse(buf: &mut String, cmd: &ast::Cmd) {
     w!(buf, "impl {} {{\n", cmd.ident());
     w!(buf, "fn parse_(p_: &mut xflags::rt::Parser) -> xflags::Result<Self> {{\n");
-    w!(buf, "#![allow(non_snake_case)]\n");
+    w!(buf, "#![allow(non_snake_case, unused_mut)]\n");
 
     let mut prefix = String::new();
     emit_locals_rec(buf, &mut prefix, cmd);
@@ -242,7 +240,9 @@ fn emit_match_flag_rec(buf: &mut String, prefix: &mut String, cmd: &ast::Cmd) {
 
 fn emit_match_arg_rec(buf: &mut String, prefix: &mut String, cmd: &ast::Cmd) {
     for sub in cmd.named_subcommands() {
-        w!(buf, "({}, \"{}\") => state_ = {},\n", cmd.idx, sub.name, sub.idx);
+        let sub_match =
+            sub.all_identifiers().map(|s| format!("\"{s}\"")).collect::<Vec<_>>().join(" | ");
+        w!(buf, "({}, {}) => state_ = {},\n", cmd.idx, sub_match, sub.idx);
     }
     if !cmd.args.is_empty() || cmd.has_subcommands() {
         w!(buf, "({}, _) => {{\n", cmd.idx);
@@ -406,7 +406,8 @@ fn help_rec(buf: &mut String, prefix: &str, cmd: &ast::Cmd) {
     let mut empty_help = true;
     if !cmd.name.is_empty() {
         empty_help = false;
-        w!(buf, "{}{}\n", prefix, cmd.name);
+        let idens = cmd.all_identifiers().cloned().collect::<Vec<_>>().join(" | ");
+        w!(buf, "{}{}\n", prefix, idens);
     }
     if let Some(doc) = &cmd.doc {
         empty_help = false;
@@ -482,6 +483,9 @@ impl ast::Cmd {
             return "Flags".to_string();
         }
         camel(&self.name)
+    }
+    pub(crate) fn all_identifiers(&self) -> impl Iterator<Item = &String> {
+        [&self.name].into_iter().chain(self.aliases.iter())
     }
     fn cmd_enum_ident(&self) -> String {
         format!("{}Cmd", self.ident())
@@ -606,7 +610,7 @@ mod tests {
             let fmt = reformat(res.clone());
 
             let code = format!(
-                "#![allow(unused)]\nuse std::{{ffi::OsString, path::PathBuf}};\n\n{}",
+                "#[allow(unused)]\nuse std::{{ffi::OsString, path::PathBuf}};\n\n{}",
                 fmt.as_deref().unwrap_or(&res)
             );
 

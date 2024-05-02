@@ -37,7 +37,7 @@ fn get_token_test() -> (Project, TestRegistry) {
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [registries.alternative]
@@ -53,6 +53,7 @@ fn get_token_test() -> (Project, TestRegistry) {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 description = "foo"
                 license = "MIT"
                 homepage = "https://example.com/"
@@ -77,7 +78,7 @@ fn publish() {
 {"v":1,"registry":{"index-url":"[..]","name":"alternative"},"kind":"get","operation":"publish","name":"foo","vers":"0.1.0","cksum":"[..]"}
 [UPLOADING] foo v0.1.0 [..]
 [UPLOADED] foo v0.1.0 [..]
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.1.0 [..]
 "#,
@@ -275,10 +276,7 @@ fn not_found() {
             r#"[UPDATING] [..]
 [CREDENTIAL] [..]not_found[..] get crates-io
 {"v":1[..]
-[ERROR] failed to query replaced source registry `crates-io`
-
-Caused by:
-  no token found, please run `cargo login`
+[ERROR] no token found, please run `cargo login`
 "#,
         )
         .run();
@@ -293,7 +291,7 @@ fn all_not_found() {
         .build();
     let not_found = build_provider("not_found", r#"{"Err": {"kind": "not-found"}}"#);
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [registry]
@@ -314,10 +312,7 @@ fn all_not_found() {
             r#"[UPDATING] [..]
 [CREDENTIAL] [..]not_found[..] get crates-io
 {"v":1,"registry":{"index-url":"[..]","name":"crates-io","headers":[[..]"WWW-Authenticate: Cargo login_url=\"https://test-registry-login/me\""[..]]},"kind":"get","operation":"read"}
-[ERROR] failed to query replaced source registry `crates-io`
-
-Caused by:
-  no token found, please run `cargo login`
+[ERROR] no token found, please run `cargo login`
 "#,
         )
         .run();
@@ -333,7 +328,7 @@ fn all_not_supported() {
     let not_supported =
         build_provider("not_supported", r#"{"Err": {"kind": "url-not-supported"}}"#);
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [registry]
@@ -353,10 +348,7 @@ fn all_not_supported() {
             r#"[UPDATING] [..]
 [CREDENTIAL] [..]not_supported[..] get crates-io
 {"v":1,"registry":{"index-url":"[..]","name":"crates-io","headers":[[..]"WWW-Authenticate: Cargo login_url=\"https://test-registry-login/me\""[..]]},"kind":"get","operation":"read"}
-[ERROR] failed to query replaced source registry `crates-io`
-
-Caused by:
-  no credential providers could handle the request
+[ERROR] no credential providers could handle the request
 "#,
         )
         .run();
@@ -378,7 +370,7 @@ fn multiple_providers() {
     let success_provider = build_provider("success_provider", r#"{"Ok": {"kind": "login"}}"#);
 
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [registry]
@@ -428,7 +420,7 @@ k3.public[..]
 fn registry_provider_overrides_global() {
     let server = registry::RegistryBuilder::new().build();
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [registry]
@@ -458,7 +450,7 @@ fn registry_provider_overrides_global() {
 fn both_asymmetric_and_token() {
     let server = registry::RegistryBuilder::new().build();
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [registry]
@@ -475,7 +467,7 @@ fn both_asymmetric_and_token() {
         .replace_crates_io(server.index_url())
         .with_stderr(
             r#"[UPDATING] [..]
-[WARNING] registry `crates-io` has a `secret_key` configured in [..]config that will be ignored because a `token` is also configured, and the `cargo:token` provider is configured with higher precedence
+[WARNING] registry `crates-io` has a `secret_key` configured in [..]config.toml that will be ignored because a `token` is also configured, and the `cargo:token` provider is configured with higher precedence
 [CREDENTIAL] cargo:token login crates-io
 [LOGIN] token for `crates-io` saved
 "#,
@@ -510,7 +502,7 @@ fn token_caching() {
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [registries.alternative]
@@ -526,6 +518,7 @@ fn token_caching() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 description = "foo"
                 license = "MIT"
                 homepage = "https://example.com/"
@@ -541,7 +534,7 @@ fn token_caching() {
 {"v":1,"registry":{"index-url":"[..]","name":"alternative"},"kind":"get","operation":"publish","name":"foo","vers":"0.1.0","cksum":"[..]"}
 [UPLOADING] foo v0.1.0 [..]
 [UPLOADED] foo v0.1.0 [..]
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.1.0 [..]
 "#;
@@ -554,7 +547,7 @@ You may press ctrl-c [..]
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         &format!(
             r#"
                 [registries.alternative]
@@ -605,6 +598,7 @@ fn basic_provider() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies.bar]
                 version = "0.0.1"
@@ -679,7 +673,7 @@ fn alias_builtin_warning() {
         .build();
 
     cargo_util::paths::append(
-        &paths::home().join(".cargo/config"),
+        &paths::home().join(".cargo/config.toml"),
         format!(
             r#"
                 [credential-alias]

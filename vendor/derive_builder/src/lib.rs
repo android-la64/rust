@@ -275,8 +275,8 @@
 //!
 //! ## Setters for Option
 //!
-//! You can avoid to user to wrap value into `Some(...)` for field of type `Option<T>`. It's as simple as adding
-//! `#[builder(setter(strip_option))]` to either a field or the whole struct.
+//! You can avoid wrapping values in `Some(...)` for fields of type `Option<T>`. It's as simple as adding
+//! `#[builder(setter(strip_option))]` to either a single field or the whole struct.
 //!
 //! ```rust
 //! # #[macro_use]
@@ -645,13 +645,13 @@
 //! #[derive(Debug, PartialEq, Default, Builder, Clone)]
 //! #[builder(derive(Debug, PartialEq))]
 //! struct Lorem {
-//!     #[builder(setter(into), field(type = "u32"))]
+//!     #[builder(setter(into), field(ty = "u32"))]
 //!     ipsum: u32,
 //!
-//!     #[builder(field(type = "String", build = "()"))]
+//!     #[builder(field(ty = "String", build = "()"))]
 //!     dolor: (),
 //!
-//!     #[builder(field(type = "&'static str", build = "self.amet.parse()?"))]
+//!     #[builder(field(ty = "&'static str", build = "self.amet.parse()?"))]
 //!     amet: u32,
 //! }
 //!
@@ -670,7 +670,7 @@
 //! # }
 //! ```
 //!
-//! The builder field type (`type =`) must implement `Default`.
+//! The builder field type (`ty =`) must implement `Default`.
 //!
 //! The argument to `build` must be a literal string containing Rust code for the contents of a block, which must evaluate to the type of the target field.
 //! It may refer to the builder struct as `self`, use `?`, etc.
@@ -712,7 +712,7 @@
 #![deny(warnings)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "alloc")]
 extern crate alloc;
 
 extern crate derive_builder_macro;
@@ -727,8 +727,8 @@ pub use error::UninitializedFieldError;
 #[doc(hidden)]
 pub mod export {
     pub mod core {
-        #[cfg(not(feature = "std"))]
-        pub use alloc::string;
+        #[cfg(feature = "alloc")]
+        pub use ::alloc::string;
         #[cfg(not(feature = "std"))]
         pub use core::*;
         #[cfg(feature = "std")]

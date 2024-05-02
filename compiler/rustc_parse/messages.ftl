@@ -22,8 +22,12 @@ parse_associated_static_item_not_allowed = associated `static` items are not all
 
 parse_async_block_in_2015 = `async` blocks are only allowed in Rust 2018 or later
 
+parse_async_bound_modifier_in_2015 = `async` trait bounds are only allowed in Rust 2018 or later
+
 parse_async_fn_in_2015 = `async fn` is not permitted in Rust 2015
     .label = to use `async fn`, switch to Rust 2018 or later
+
+parse_async_impl = `async` trait implementations are unsupported
 
 parse_async_move_block_in_2015 = `async move` blocks are only allowed in Rust 2018 or later
 
@@ -280,9 +284,6 @@ parse_found_expr_would_be_stmt = expected expression, found `{$token}`
 parse_function_body_equals_expr = function body cannot be `= expression;`
     .suggestion = surround the expression with `{"{"}` and `{"}"}` instead of `=` and `;`
 
-parse_gen_fn = `gen` functions are not yet implemented
-    .help = for now you can use `gen {"{}"}` blocks and return `impl Iterator` instead
-
 parse_generic_args_in_pat_require_turbofish_syntax = generic args in patterns require the turbofish syntax
 
 parse_generic_parameters_without_angle_brackets = generic parameters without surrounding angle brackets
@@ -390,9 +391,6 @@ parse_invalid_expression_in_let_else = a `{$operator}` expression cannot be dire
 parse_invalid_identifier_with_leading_number = identifiers cannot start with a number
 
 parse_invalid_interpolated_expression = invalid interpolated expression
-
-parse_invalid_literal_suffix = suffixes on {$kind} literals are invalid
-    .label = invalid suffix `{$suffix}`
 
 parse_invalid_literal_suffix_on_tuple_index = suffixes on a tuple index are invalid
     .label = invalid suffix `{$suffix}`
@@ -608,7 +606,6 @@ parse_nonterminal_expected_item_keyword = expected an item keyword
 parse_nonterminal_expected_lifetime = expected a lifetime, found `{$token}`
 
 parse_nonterminal_expected_statement = expected a statement
-parse_not_supported = not supported
 
 parse_note_edition_guide = for more on editions, read https://doc.rust-lang.org/edition-guide
 

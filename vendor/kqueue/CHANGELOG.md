@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.8
+
+Adds:
+
+* ios support
+
+Fixes:
+
+* panic on overflow on more than max 32bit files
+
 ## 1.0.7
 
 Fixes:

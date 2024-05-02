@@ -213,6 +213,8 @@ declare_features! (
     (internal, negative_bounds, "1.71.0", None),
     /// Allows using `#[omit_gdb_pretty_printer_section]`.
     (internal, omit_gdb_pretty_printer_section, "1.5.0", None),
+    /// Set the maximum pattern complexity allowed (not limited by default).
+    (internal, pattern_complexity, "1.78.0", None),
     /// Allows using `#[prelude_import]` on glob `use` items.
     (internal, prelude_import, "1.2.0", None),
     /// Used to identify crates that contain the profiler runtime.
@@ -259,8 +261,6 @@ declare_features! (
     (internal, needs_panic_runtime, "1.10.0", Some(32837)),
     /// Allows using the `#![panic_runtime]` attribute.
     (internal, panic_runtime, "1.10.0", Some(32837)),
-    /// Allows `extern "platform-intrinsic" { ... }`.
-    (internal, platform_intrinsics, "1.4.0", Some(27731)),
     /// Allows using `#[rustc_allow_const_fn_unstable]`.
     /// This is an attribute on `const fn` for the same
     /// purpose as `#[allow_internal_unstable]`.
@@ -301,9 +301,11 @@ declare_features! (
     (unstable, csky_target_feature, "1.73.0", Some(44839)),
     (unstable, ermsb_target_feature, "1.49.0", Some(44839)),
     (unstable, hexagon_target_feature, "1.27.0", Some(44839)),
+    (unstable, lahfsahf_target_feature, "1.78.0", Some(44839)),
     (unstable, loongarch_target_feature, "1.73.0", Some(44839)),
     (unstable, mips_target_feature, "1.27.0", Some(44839)),
     (unstable, powerpc_target_feature, "1.27.0", Some(44839)),
+    (unstable, prfchw_target_feature, "1.78.0", Some(44839)),
     (unstable, riscv_target_feature, "1.45.0", Some(44839)),
     (unstable, rtm_target_feature, "1.35.0", Some(44839)),
     (unstable, sse4a_target_feature, "1.27.0", Some(44839)),
@@ -343,6 +345,8 @@ declare_features! (
     (unstable, asm_const, "1.58.0", Some(93332)),
     /// Enables experimental inline assembly support for additional architectures.
     (unstable, asm_experimental_arch, "1.58.0", Some(93335)),
+    /// Allows using `label` operands in inline assembly.
+    (unstable, asm_goto, "1.78.0", Some(119364)),
     /// Allows the `may_unwind` option in inline assembly.
     (unstable, asm_unwind, "1.58.0", Some(93334)),
     /// Allows users to enforce equality of associated constants `TraitImpl<AssocConst=3>`.
@@ -371,8 +375,6 @@ declare_features! (
     (unstable, cfg_sanitize, "1.41.0", Some(39699)),
     /// Allows `cfg(sanitizer_cfi_generalize_pointers)` and `cfg(sanitizer_cfi_normalize_integers)`.
     (unstable, cfg_sanitizer_cfi, "1.77.0", Some(89653)),
-    /// Allows `cfg(target_abi = "...")`.
-    (unstable, cfg_target_abi, "1.55.0", Some(80970)),
     /// Allows `cfg(target(abi = "..."))`.
     (unstable, cfg_target_compact, "1.63.0", Some(96901)),
     /// Allows `cfg(target_has_atomic_load_store = "...")`.
@@ -409,6 +411,8 @@ declare_features! (
     (unstable, const_precise_live_drops, "1.46.0", Some(73255)),
     /// Allows references to types with interior mutability within constants
     (unstable, const_refs_to_cell, "1.51.0", Some(80384)),
+    /// Allows creating pointers and references to `static` items in constants.
+    (unstable, const_refs_to_static, "1.78.0", Some(119618)),
     /// Allows `impl const Trait for T` syntax.
     (unstable, const_trait_impl, "1.42.0", Some(67792)),
     /// Allows the `?` operator in const contexts.
@@ -434,8 +438,6 @@ declare_features! (
     (unstable, deprecated_safe, "1.61.0", Some(94978)),
     /// Allows having using `suggestion` in the `#[deprecated]` attribute.
     (unstable, deprecated_suggestion, "1.61.0", Some(94785)),
-    /// Allows using the `#[diagnostic]` attribute tool namespace
-    (unstable, diagnostic_namespace, "1.73.0", Some(111996)),
     /// Controls errors in trait implementations.
     (unstable, do_not_recommend, "1.67.0", Some(51992)),
     /// Tells rustdoc to automatically generate `#[doc(cfg(...))]`.
@@ -461,16 +463,20 @@ declare_features! (
     (unstable, extended_varargs_abi_support, "1.65.0", Some(100189)),
     /// Allows defining `extern type`s.
     (unstable, extern_types, "1.23.0", Some(43467)),
+    /// Allow using 128-bit (quad precision) floating point numbers.
+    (unstable, f128, "1.78.0", Some(116909)),
+    /// Allow using 16-bit (half precision) floating point numbers.
+    (unstable, f16, "1.78.0", Some(116909)),
     /// Allows the use of `#[ffi_const]` on foreign functions.
     (unstable, ffi_const, "1.45.0", Some(58328)),
     /// Allows the use of `#[ffi_pure]` on foreign functions.
     (unstable, ffi_pure, "1.45.0", Some(58329)),
-    /// Allows using `#[ffi_returns_twice]` on foreign functions.
-    (unstable, ffi_returns_twice, "1.34.0", Some(58314)),
     /// Allows using `#[repr(align(...))]` on function items
     (unstable, fn_align, "1.53.0", Some(82232)),
     /// Support delegating implementation of functions to other already implemented functions.
     (incomplete, fn_delegation, "1.76.0", Some(118212)),
+    /// Allows impls for the Freeze trait.
+    (internal, freeze_impls, "1.78.0", Some(121675)),
     /// Allows defining gen blocks and `gen fn`.
     (unstable, gen_blocks, "1.75.0", Some(117078)),
     /// Infer generic args for both consts and types.
@@ -496,7 +502,7 @@ declare_features! (
     /// Allow anonymous constants from an inline `const` block
     (unstable, inline_const, "1.49.0", Some(76001)),
     /// Allow anonymous constants from an inline `const` block in pattern position
-    (incomplete, inline_const_pat, "1.58.0", Some(76001)),
+    (unstable, inline_const_pat, "1.58.0", Some(76001)),
     /// Allows using `pointer` and `reference` in intra-doc links
     (unstable, intra_doc_pointers, "1.51.0", Some(80896)),
     // Allows setting the threshold for the `large_assignments` lint.
@@ -516,7 +522,7 @@ declare_features! (
     (unstable, marker_trait_attr, "1.30.0", Some(29864)),
     /// Allows exhaustive pattern matching on types that contain uninhabited types in cases that are
     /// unambiguously sound.
-    (incomplete, min_exhaustive_patterns, "1.77.0", Some(119612)),
+    (unstable, min_exhaustive_patterns, "1.77.0", Some(119612)),
     /// A minimal, sound subset of specialization intended to be used by the
     /// standard library until the soundness issues with specialization
     /// are fixed.

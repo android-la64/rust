@@ -4,7 +4,7 @@ use cargo::{
     core::compiler::CompileMode,
     core::{Shell, Workspace},
     ops::CompileOptions,
-    Config,
+    GlobalContext,
 };
 use cargo_test_support::compare;
 use cargo_test_support::paths::{root, CargoPathExt};
@@ -78,6 +78,7 @@ fn incremental_profile() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [profile.dev]
@@ -116,7 +117,7 @@ fn incremental_config() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 incremental = false
@@ -394,6 +395,7 @@ fn cargo_compile_duplicate_build_targets() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -465,18 +467,18 @@ fn cargo_compile_with_empty_package_name() {
 #[cargo_test]
 fn cargo_compile_with_invalid_package_name() {
     let p = project()
-        .file("Cargo.toml", &basic_manifest("foo::bar", "0.0.0"))
+        .file("Cargo.toml", &basic_manifest("foo@bar", "0.0.0"))
         .build();
 
     p.cargo("build")
         .with_status(101)
         .with_stderr(
             "\
-[ERROR] invalid character `:` in package name: `foo::bar`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
+[ERROR] invalid character `@` in package name: `foo@bar`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
  --> Cargo.toml:3:16
   |
-3 |         name = \"foo::bar\"
-  |                ^^^^^^^^^^
+3 |         name = \"foo@bar\"
+  |                ^^^^^^^^^
   |
 ",
         )
@@ -493,6 +495,7 @@ fn cargo_compile_with_invalid_bin_target_name() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [[bin]]
                 name = ""
@@ -523,6 +526,7 @@ fn cargo_compile_with_forbidden_bin_target_name() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [[bin]]
                 name = "build"
@@ -553,6 +557,7 @@ fn cargo_compile_with_bin_and_crate_type() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [[bin]]
                 name = "the_foo_bin"
@@ -586,6 +591,7 @@ fn cargo_compile_api_exposes_artifact_paths() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [[bin]]
                 name = "the_foo_bin"
@@ -602,9 +608,9 @@ fn cargo_compile_api_exposes_artifact_paths() {
         .build();
 
     let shell = Shell::from_write(Box::new(Vec::new()));
-    let config = Config::new(shell, env::current_dir().unwrap(), paths::home());
-    let ws = Workspace::new(&p.root().join("Cargo.toml"), &config).unwrap();
-    let compile_options = CompileOptions::new(ws.config(), CompileMode::Build).unwrap();
+    let gctx = GlobalContext::new(shell, env::current_dir().unwrap(), paths::home());
+    let ws = Workspace::new(&p.root().join("Cargo.toml"), &gctx).unwrap();
+    let compile_options = CompileOptions::new(ws.gctx(), CompileMode::Build).unwrap();
 
     let result = cargo::ops::compile(&ws, &compile_options).unwrap();
 
@@ -636,6 +642,7 @@ fn cargo_compile_with_bin_and_proc() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [[bin]]
                 name = "the_foo_bin"
@@ -668,6 +675,7 @@ fn cargo_compile_with_invalid_lib_target_name() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
 
                 [lib]
                 name = ""
@@ -697,11 +705,13 @@ fn cargo_compile_with_invalid_non_numeric_dep_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 crossbeam = "y"
             "#,
         )
+        .file("src/lib.rs", "")
         .build();
 
     p.cargo("build")
@@ -773,6 +783,7 @@ fn cargo_compile_with_invalid_code_in_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -822,6 +833,7 @@ fn cargo_compile_with_warnings_in_a_dep_package() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -865,6 +877,7 @@ fn cargo_compile_with_nested_deps_inferred() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -882,6 +895,7 @@ fn cargo_compile_with_nested_deps_inferred() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.baz]
@@ -928,6 +942,7 @@ fn cargo_compile_with_nested_deps_correct_bin() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -945,6 +960,7 @@ fn cargo_compile_with_nested_deps_correct_bin() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.baz]
@@ -991,6 +1007,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -1005,6 +1022,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.baz]
@@ -1055,11 +1073,13 @@ fn cargo_compile_with_nested_deps_longhand() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
                 path = "bar"
                 version = "0.5.0"
+                edition = "2015"
 
                 [[bin]]
 
@@ -1074,11 +1094,13 @@ fn cargo_compile_with_nested_deps_longhand() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.baz]
                 path = "../baz"
                 version = "0.5.0"
+                edition = "2015"
 
                 [lib]
 
@@ -1127,6 +1149,7 @@ fn cargo_compile_with_dep_name_mismatch() {
 
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [[bin]]
@@ -1165,6 +1188,7 @@ fn cargo_compile_with_invalid_dep_rename() {
                 [package]
                 name = "buggin"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 "haha this isn't a valid name 🐛" = { package = "libc", version = "0.1" }
@@ -1178,9 +1202,9 @@ fn cargo_compile_with_invalid_dep_rename() {
         .with_stderr(
             "\
 [ERROR] invalid character ` ` in package name: `haha this isn't a valid name 🐛`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
- --> Cargo.toml:7:17
+ --> Cargo.toml:8:17
   |
-7 |                 \"haha this isn't a valid name 🐛\" = { package = \"libc\", version = \"0.1\" }
+8 |                 \"haha this isn't a valid name 🐛\" = { package = \"libc\", version = \"0.1\" }
   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 ",
@@ -1267,6 +1291,7 @@ fn incompatible_dependencies() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -1313,6 +1338,7 @@ fn incompatible_dependencies_with_multi_semver() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -1355,6 +1381,7 @@ fn compile_path_dep_then_change_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -1398,6 +1425,7 @@ fn cargo_default_env_metadata_env_var() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -1411,6 +1439,7 @@ fn cargo_default_env_metadata_env_var() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1426,21 +1455,21 @@ fn cargo_default_env_metadata_env_var() {
         .with_stderr(&format!(
             "\
 [COMPILING] bar v0.0.1 ([CWD]/bar)
-[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--crate-type dylib \
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--crate-type dylib \
         --emit=[..]link \
         -C prefer-dynamic[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps`
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         -C extra-filename=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps \
         --extern bar=[CWD]/target/debug/deps/{prefix}bar{suffix}`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
             prefix = env::consts::DLL_PREFIX,
             suffix = env::consts::DLL_SUFFIX,
         ))
@@ -1454,21 +1483,21 @@ fn cargo_default_env_metadata_env_var() {
         .with_stderr(&format!(
             "\
 [COMPILING] bar v0.0.1 ([CWD]/bar)
-[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--crate-type dylib \
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--crate-type dylib \
         --emit=[..]link \
         -C prefer-dynamic[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps`
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         -C extra-filename=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps \
         --extern bar=[CWD]/target/debug/deps/{prefix}bar-[..]{suffix}`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
             prefix = env::consts::DLL_PREFIX,
             suffix = env::consts::DLL_SUFFIX,
@@ -1485,6 +1514,7 @@ fn crate_env_vars() {
             [package]
             name = "foo"
             version = "0.5.1-alpha.1"
+            edition = "2015"
             description = "This is foo"
             homepage = "https://example.com"
             repository = "https://example.com/repo.git"
@@ -1712,6 +1742,7 @@ fn cargo_rustc_current_dir_foreign_workspace_dep() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -1732,6 +1763,7 @@ fn cargo_rustc_current_dir_foreign_workspace_dep() {
             [package]
             name = "baz"
             version = "0.1.0"
+            edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1759,6 +1791,7 @@ fn cargo_rustc_current_dir_foreign_workspace_dep() {
             [package]
             name = "baz_member"
             version = "0.1.0"
+            edition = "2015"
             authors = []
             "#,
         )
@@ -1820,6 +1853,7 @@ fn cargo_rustc_current_dir_non_local_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -1864,6 +1898,7 @@ fn crate_authors_env_vars() {
                 [package]
                 name = "foo"
                 version = "0.5.1-alpha.1"
+                edition = "2015"
                 authors = ["wycats@example.com", "neikos@example.com"]
             "#,
         )
@@ -1913,6 +1948,7 @@ fn vv_prints_rustc_env_vars() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = ["escape='\"@example.com"]
             "#,
         )
@@ -1994,6 +2030,7 @@ fn many_crate_types_old_style_lib_location() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -2027,6 +2064,7 @@ fn many_crate_types_correct() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -2054,6 +2092,7 @@ fn set_both_dylib_and_cdylib_crate_types() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -2101,6 +2140,7 @@ fn dev_dependencies_conflicting_warning() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("a/src/lib.rs", "")
@@ -2137,6 +2177,7 @@ fn build_dependencies_conflicting_warning() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
             "#,
         )
         .file("a/src/lib.rs", "")
@@ -2158,6 +2199,7 @@ fn lib_crate_types_conflicting_warning() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -2185,6 +2227,7 @@ fn examples_crate_types_conflicting_warning() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [[example]]
@@ -2234,6 +2277,7 @@ fn self_dependency() {
 
                 name = "test"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies.test]
@@ -2314,6 +2358,7 @@ fn lto_build() {
 
                 name = "test"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [profile.release]
@@ -2326,12 +2371,12 @@ fn lto_build() {
         .with_stderr(
             "\
 [COMPILING] test v0.0.0 ([CWD])
-[RUNNING] `rustc --crate-name test src/main.rs [..]--crate-type bin \
+[RUNNING] `rustc --crate-name test --edition=2015 src/main.rs [..]--crate-type bin \
         --emit=[..]link \
         -C opt-level=3 \
         -C lto \
         [..]
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 ",
         )
         .run();
@@ -2344,12 +2389,12 @@ fn verbose_build() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2362,13 +2407,13 @@ fn verbose_release_build() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]\
         -C opt-level=3[..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/release/deps`
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 ",
         )
         .run();
@@ -2381,13 +2426,13 @@ fn verbose_release_build_short() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]\
         -C opt-level=3[..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/release/deps`
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 ",
         )
         .run();
@@ -2403,6 +2448,7 @@ fn verbose_release_build_deps() {
 
                 name = "test"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies.foo]
@@ -2417,6 +2463,7 @@ fn verbose_release_build_deps() {
 
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -2430,7 +2477,7 @@ fn verbose_release_build_deps() {
         .with_stderr(&format!(
             "\
 [COMPILING] foo v0.0.0 ([CWD]/foo)
-[RUNNING] `rustc --crate-name foo foo/src/lib.rs [..]\
+[RUNNING] `rustc --crate-name foo --edition=2015 foo/src/lib.rs [..]\
         --crate-type dylib --crate-type rlib \
         --emit=[..]link \
         -C prefer-dynamic[..]\
@@ -2439,7 +2486,7 @@ fn verbose_release_build_deps() {
         --out-dir [..] \
         -L dependency=[CWD]/target/release/deps`
 [COMPILING] test v0.0.0 ([CWD])
-[RUNNING] `rustc --crate-name test src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name test --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]\
         -C opt-level=3[..]\
         -C metadata=[..] \
@@ -2447,7 +2494,7 @@ fn verbose_release_build_deps() {
         -L dependency=[CWD]/target/release/deps \
         --extern foo=[CWD]/target/release/deps/{prefix}foo{suffix} \
         --extern foo=[CWD]/target/release/deps/libfoo.rlib`
-[FINISHED] release [optimized] target(s) in [..]
+[FINISHED] `release` profile [optimized] target(s) in [..]
 ",
             prefix = env::consts::DLL_PREFIX,
             suffix = env::consts::DLL_SUFFIX
@@ -2464,6 +2511,7 @@ fn explicit_examples() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -2521,6 +2569,7 @@ fn non_existing_test() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2555,6 +2604,7 @@ fn non_existing_example() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2589,6 +2639,7 @@ fn non_existing_benchmark() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2644,6 +2695,7 @@ fn commonly_wrong_path_of_test() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2680,6 +2732,7 @@ fn commonly_wrong_path_of_example() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2716,6 +2769,7 @@ fn commonly_wrong_path_of_benchmark() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 name = "foo"
@@ -2820,6 +2874,7 @@ fn legacy_binary_paths_warnings() {
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -2845,6 +2900,7 @@ please set bin.path in Cargo.toml",
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -2870,6 +2926,7 @@ please set bin.path in Cargo.toml",
                 [package]
                 name = "foo"
                 version = "1.0.0"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -2989,6 +3046,7 @@ fn deletion_causes_failure() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -3034,7 +3092,7 @@ fn lib_with_standard_name() {
         .with_stderr(
             "\
 [COMPILING] syntax v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3050,6 +3108,7 @@ fn simple_staticlib() {
                   name = "foo"
                   authors = []
                   version = "0.0.1"
+                  edition = "2015"
 
                   [lib]
                   name = "foo"
@@ -3073,6 +3132,7 @@ fn staticlib_rlib_and_bin() {
                   name = "foo"
                   authors = []
                   version = "0.0.1"
+                  edition = "2015"
 
                   [lib]
                   name = "foo"
@@ -3098,6 +3158,7 @@ fn opt_out_of_bin() {
                   name = "foo"
                   authors = []
                   version = "0.0.1"
+                  edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -3116,6 +3177,7 @@ fn single_lib() {
                   name = "foo"
                   authors = []
                   version = "0.0.1"
+                  edition = "2015"
 
                   [lib]
                   name = "foo"
@@ -3136,6 +3198,7 @@ fn freshness_ignores_excluded() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 exclude = ["src/b*.rs"]
@@ -3150,7 +3213,7 @@ fn freshness_ignores_excluded() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3174,6 +3237,7 @@ fn rebuild_preserves_out_dir() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 build = 'build.rs'
             "#,
@@ -3204,7 +3268,7 @@ fn rebuild_preserves_out_dir() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3214,7 +3278,7 @@ fn rebuild_preserves_out_dir() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3229,6 +3293,7 @@ fn dep_no_libs() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -3251,6 +3316,7 @@ fn recompile_space_in_name() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -3316,7 +3382,7 @@ fn bad_cargo_config() {
     let foo = project()
         .file("Cargo.toml", &basic_manifest("foo", "0.0.0"))
         .file("src/lib.rs", "")
-        .file(".cargo/config", "this is not valid toml")
+        .file(".cargo/config.toml", "this is not valid toml")
         .build();
     foo.cargo("build -v")
         .with_status(101)
@@ -3349,6 +3415,7 @@ fn cargo_platform_specific_dependency() {
                     [package]
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
                     build = "build.rs"
 
@@ -3396,6 +3463,7 @@ fn cargo_platform_specific_dependency_build_dependencies_conflicting_warning() {
                     [package]
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
                     build = "build.rs"
 
@@ -3437,6 +3505,7 @@ fn cargo_platform_specific_dependency_dev_dependencies_conflicting_warning() {
                     [package]
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
 
                     [target.{host}.dev-dependencies]
@@ -3477,6 +3546,7 @@ fn bad_platform_specific_dependency() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [target.wrong-target.dependencies.bar]
@@ -3507,6 +3577,7 @@ fn cargo_platform_specific_dependency_wrong_platform() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [target.non-existing-triplet.dependencies.bar]
@@ -3539,6 +3610,7 @@ fn example_as_lib() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[example]]
@@ -3563,6 +3635,7 @@ fn example_as_rlib() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[example]]
@@ -3587,6 +3660,7 @@ fn example_as_dylib() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[example]]
@@ -3611,6 +3685,7 @@ fn example_as_proc_macro() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[example]]
@@ -3680,6 +3755,7 @@ fn transitive_dependencies_not_available() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.aaaaa]
@@ -3696,6 +3772,7 @@ fn transitive_dependencies_not_available() {
                 [package]
                 name = "aaaaa"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bbbbb]
@@ -3722,6 +3799,7 @@ fn cyclic_deps_rejected() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.a]
@@ -3735,6 +3813,7 @@ fn cyclic_deps_rejected() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.foo]
@@ -3763,6 +3842,7 @@ fn predictable_filenames() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -3800,6 +3880,7 @@ fn dashes_in_crate_name_bad() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -3945,7 +4026,7 @@ fn custom_target_dir_env() {
     assert!(p.root().join("foo2/target/debug").join(&exe_name).is_file());
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
             [build]
             target-dir = "foo/target"
@@ -3972,7 +4053,7 @@ fn custom_target_dir_line_parameter() {
     assert!(p.root().join("target/debug").join(&exe_name).is_file());
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
             [build]
             target-dir = "foo/target"
@@ -4005,6 +4086,7 @@ fn build_multiple_packages() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.d1]
@@ -4026,6 +4108,7 @@ fn build_multiple_packages() {
                 [package]
                 name = "d2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -4066,6 +4149,7 @@ fn invalid_spec() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.d1]
@@ -4101,6 +4185,7 @@ fn manifest_with_bom_is_ok() {
             [package]
             name = \"foo\"
             version = \"0.0.1\"
+            edition = \"2015\"
             authors = []
         ",
         )
@@ -4118,6 +4203,7 @@ fn panic_abort_compiles_with_panic_abort() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [profile.dev]
@@ -4141,6 +4227,7 @@ fn compiler_json_error_format() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -4389,6 +4476,7 @@ fn no_warn_about_package_metadata() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [package.metadata]
@@ -4405,7 +4493,7 @@ fn no_warn_about_package_metadata() {
     p.cargo("build")
         .with_stderr(
             "[..] foo v0.0.1 ([..])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -4434,6 +4522,7 @@ fn no_warn_about_workspace_metadata() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             "#,
         )
         .file("foo/src/lib.rs", "")
@@ -4442,7 +4531,7 @@ fn no_warn_about_workspace_metadata() {
     p.cargo("build")
         .with_stderr(
             "[..] foo v0.0.1 ([..])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -4494,6 +4583,7 @@ fn build_all_workspace() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -4511,7 +4601,7 @@ fn build_all_workspace() {
             "\
 [COMPILING] bar v0.1.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4526,6 +4616,7 @@ fn build_all_exclude() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar", "baz"]
@@ -4544,7 +4635,7 @@ fn build_all_exclude() {
             "\
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4559,6 +4650,7 @@ fn cargo_build_with_unsupported_short_exclude_flag() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar", "baz"]
@@ -4596,6 +4688,7 @@ fn build_all_exclude_not_found() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar"]
@@ -4613,7 +4706,7 @@ fn build_all_exclude_not_found() {
 [WARNING] excluded package(s) `baz` not found in workspace [..]
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4628,6 +4721,7 @@ fn build_all_exclude_glob() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar", "baz"]
@@ -4646,7 +4740,7 @@ fn build_all_exclude_glob() {
             "\
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4661,6 +4755,7 @@ fn build_all_exclude_glob_not_found() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar"]
@@ -4678,7 +4773,7 @@ fn build_all_exclude_glob_not_found() {
 [WARNING] excluded package pattern(s) `*z` not found in workspace [..]
 [COMPILING] [..] v0.1.0 ([..])
 [COMPILING] [..] v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4703,6 +4798,7 @@ fn build_all_workspace_implicit_examples() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -4727,7 +4823,7 @@ fn build_all_workspace_implicit_examples() {
         .with_stderr(
             "[..] Compiling bar v0.1.0 ([..])\n\
              [..] Compiling foo v0.1.0 ([..])\n\
-             [..] Finished dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
     assert!(!p.bin("a").is_file());
@@ -4762,7 +4858,7 @@ fn build_all_virtual_manifest() {
             "\
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4790,7 +4886,7 @@ fn build_virtual_manifest_all_implied() {
             "\
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4817,7 +4913,7 @@ fn build_virtual_manifest_one_project() {
         .with_stderr(
             "\
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4844,7 +4940,7 @@ fn build_virtual_manifest_glob() {
         .with_stderr(
             "\
 [COMPILING] baz v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4920,7 +5016,7 @@ fn build_all_virtual_manifest_implicit_examples() {
             "\
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -4950,6 +5046,7 @@ fn build_all_member_dependency_same_name() {
                 [package]
                 name = "a"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 a = "0.1.0"
@@ -4967,7 +5064,7 @@ fn build_all_member_dependency_same_name() {
              [DOWNLOADED] a v0.1.0 ([..])\n\
              [COMPILING] a v0.1.0\n\
              [COMPILING] a v0.1.0 ([..])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -4982,6 +5079,7 @@ fn run_proper_binary() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
                 [[bin]]
                 name = "main"
                 [[bin]]
@@ -5020,6 +5118,7 @@ fn run_proper_alias_binary_from_src() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
                 [[bin]]
                 name = "foo"
                 [[bin]]
@@ -5045,6 +5144,7 @@ fn run_proper_alias_binary_main_rs() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
                 [[bin]]
                 name = "foo"
                 [[bin]]
@@ -5102,6 +5202,7 @@ fn rustc_wrapper_relative() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "1.0"
@@ -5162,6 +5263,7 @@ fn cdylib_not_lifted() {
                 name = "foo"
                 authors = []
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 crate-type = ["cdylib"]
@@ -5200,6 +5302,7 @@ fn cdylib_final_outputs() {
                 name = "foo-bar"
                 authors = []
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 crate-type = ["cdylib"]
@@ -5240,6 +5343,7 @@ fn no_dep_info_collision_when_cdylib_and_bin_coexist() {
             [package]
             name = "foo"
             version = "1.0.0"
+            edition = "2015"
 
             [lib]
             crate-type = ["cdylib"]
@@ -5287,6 +5391,7 @@ fn deterministic_cfg_flags() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -5323,7 +5428,7 @@ fn deterministic_cfg_flags() {
 --cfg[..]default[..]--cfg[..]f_a[..]--cfg[..]f_b[..]\
 --cfg[..]f_c[..]--cfg[..]f_d[..] \
 --cfg cfg_a --cfg cfg_b --cfg cfg_c --cfg cfg_d --cfg cfg_e`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -5337,6 +5442,7 @@ fn explicit_bins_without_paths() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -5412,6 +5518,7 @@ fn inferred_bin_path() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             authors = []
 
             [[bin]]
@@ -5482,6 +5589,7 @@ fn target_edition() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [lib]
                 edition = "2018"
@@ -5566,6 +5674,7 @@ fn building_a_dependent_crate_without_bin_should_fail() {
                 [package]
                 name = "testless"
                 version = "0.1.0"
+                edition = "2015"
 
                 [[bin]]
                 name = "a_bin"
@@ -5581,6 +5690,7 @@ fn building_a_dependent_crate_without_bin_should_fail() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 testless = "0.1.0"
@@ -5704,11 +5814,11 @@ fn build_filter_infer_profile() {
 
     p.cargo("build -v")
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
              --emit=[..]link[..]",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]",
         )
         .run();
@@ -5716,15 +5826,15 @@ fn build_filter_infer_profile() {
     p.root().join("target").rm_rf();
     p.cargo("build -v --test=t1")
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
              --emit=[..]link[..]-C debuginfo=2 [..]",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name t1 tests/t1.rs [..]--emit=[..]link[..]\
+            "[RUNNING] `rustc --crate-name t1 --edition=2015 tests/t1.rs [..]--emit=[..]link[..]\
              -C debuginfo=2 [..]",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]-C debuginfo=2 [..]",
         )
         .run();
@@ -5733,16 +5843,16 @@ fn build_filter_infer_profile() {
     // Bench uses test profile without `--release`.
     p.cargo("build -v --bench=b1")
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
              --emit=[..]link[..]-C debuginfo=2 [..]",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name b1 benches/b1.rs [..]--emit=[..]link[..]\
+            "[RUNNING] `rustc --crate-name b1 --edition=2015 benches/b1.rs [..]--emit=[..]link[..]\
              -C debuginfo=2 [..]",
         )
         .with_stderr_does_not_contain("opt-level")
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]-C debuginfo=2 [..]",
         )
         .run();
@@ -5754,17 +5864,17 @@ fn targets_selected_default() {
     p.cargo("build -v")
         // Binaries.
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]",
         )
         // Benchmarks.
         .with_stderr_does_not_contain(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--emit=[..]link \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--emit=[..]link \
              -C opt-level=3 --test [..]",
         )
         // Unit tests.
         .with_stderr_does_not_contain(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--emit=[..]link[..]\
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--emit=[..]link[..]\
              -C debuginfo=2 --test [..]",
         )
         .run();
@@ -5776,12 +5886,12 @@ fn targets_selected_all() {
     p.cargo("build -v --all-targets")
         // Binaries.
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]",
         )
         // Unit tests.
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--emit=[..]link[..]\
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--emit=[..]link[..]\
              -C debuginfo=2 [..]--test [..]",
         )
         .run();
@@ -5793,12 +5903,12 @@ fn all_targets_no_lib() {
     p.cargo("build -v --all-targets")
         // Binaries.
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--crate-type bin \
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--crate-type bin \
              --emit=[..]link[..]",
         )
         // Unit tests.
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name foo src/main.rs [..]--emit=[..]link[..]\
+            "[RUNNING] `rustc --crate-name foo --edition=2015 src/main.rs [..]--emit=[..]link[..]\
              -C debuginfo=2 [..]--test [..]",
         )
         .run();
@@ -5814,6 +5924,7 @@ fn no_linkable_target() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 the_lib = { path = "the_lib" }
@@ -5826,6 +5937,7 @@ fn no_linkable_target() {
                 [package]
                 name = "the_lib"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 name = "the_lib"
                 crate-type = ["staticlib"]
@@ -5851,6 +5963,7 @@ fn avoid_dev_deps() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dev-dependencies]
@@ -5881,7 +5994,7 @@ fn default_cargo_config_jobs() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 jobs = 1
@@ -5896,7 +6009,7 @@ fn good_cargo_config_jobs() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 jobs = 4
@@ -5925,7 +6038,7 @@ fn invalid_cargo_config_jobs() {
     let p = project()
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 jobs = 0
@@ -6039,6 +6152,7 @@ fn signal_display() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [dependencies]
                 pm = { path = "pm" }
             "#,
@@ -6059,6 +6173,7 @@ fn signal_display() {
                 [package]
                 name = "pm"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 proc-macro = true
             "#,
@@ -6101,6 +6216,7 @@ fn tricky_pipelining() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [dependencies]
                 bar = { path = "bar" }
             "#,
@@ -6123,6 +6239,7 @@ fn pipelining_works() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [dependencies]
                 bar = { path = "bar" }
             "#,
@@ -6155,6 +6272,7 @@ fn pipelining_big_graph() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [dependencies]
                 a1 = { path = "a1" }
                 b1 = { path = "b1" }
@@ -6172,6 +6290,7 @@ fn pipelining_big_graph() {
                             [package]
                             name = "{x}{n}"
                             version = "0.1.0"
+                            edition = "2015"
                             [dependencies]
                             a{np1} = {{ path = "../a{np1}" }}
                             b{np1} = {{ path = "../b{np1}" }}
@@ -6221,6 +6340,7 @@ fn forward_rustc_output() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 [lib]
                 proc-macro = true
             "#,
@@ -6271,12 +6391,12 @@ fn build_lib_only() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--crate-type lib \
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--crate-type lib \
         --emit=[..]link[..]-C debuginfo=2 [..]\
         -C metadata=[..] \
         --out-dir [..] \
         -L dependency=[CWD]/target/debug/deps`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -6304,6 +6424,7 @@ fn build_with_relative_cargo_home_path() {
 
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies]
@@ -6517,6 +6638,7 @@ fn close_output_during_drain() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 dep = "1.0"
@@ -6571,6 +6693,7 @@ fn reduced_reproduction_8249() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 b = { version = "*", features = ["a-src"] }
@@ -6652,6 +6775,7 @@ fn build_script_o0_default_even_with_release() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [profile.release]
                 opt-level = 1
@@ -6694,6 +6818,7 @@ fn primary_package_env_var() {
                     [package]
                     name = "foo"
                     version = "0.1.0"
+                    edition = "2015"
 
                     [dependencies]
                     bar = {{ path = "bar" }}
@@ -6741,6 +6866,7 @@ fn renamed_uplifted_artifact_remains_unmodified_after_rebuild() {
                 name = "foo"
                 authors = []
                 version = "0.0.0"
+                edition = "2015"
             "#,
         )
         .file("src/main.rs", "fn main() {}")

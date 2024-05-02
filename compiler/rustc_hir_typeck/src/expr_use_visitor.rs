@@ -142,7 +142,7 @@ impl<'a, 'tcx> ExprUseVisitor<'a, 'tcx> {
             let param_ty = return_if_err!(self.mc.pat_ty_adjusted(param.pat));
             debug!("consume_body: param_ty = {:?}", param_ty);
 
-            let param_place = self.mc.cat_rvalue(param.hir_id, param.pat.span, param_ty);
+            let param_place = self.mc.cat_rvalue(param.hir_id, param_ty);
 
             self.walk_irrefutable_pat(&param_place, param.pat);
         }
@@ -293,6 +293,9 @@ impl<'a, 'tcx> ExprUseVisitor<'a, 'tcx> {
                         | hir::InlineAsmOperand::Const { .. }
                         | hir::InlineAsmOperand::SymFn { .. }
                         | hir::InlineAsmOperand::SymStatic { .. } => {}
+                        hir::InlineAsmOperand::Label { block } => {
+                            self.walk_block(block);
+                        }
                     }
                 }
             }
@@ -368,11 +371,11 @@ impl<'a, 'tcx> ExprUseVisitor<'a, 'tcx> {
 
     fn walk_stmt(&mut self, stmt: &hir::Stmt<'_>) {
         match stmt.kind {
-            hir::StmtKind::Local(hir::Local { pat, init: Some(expr), els, .. }) => {
+            hir::StmtKind::Let(hir::Local { pat, init: Some(expr), els, .. }) => {
                 self.walk_local(expr, pat, *els, |_| {})
             }
 
-            hir::StmtKind::Local(_) => {}
+            hir::StmtKind::Let(_) => {}
 
             hir::StmtKind::Item(_) => {
                 // We don't visit nested items in this visitor,

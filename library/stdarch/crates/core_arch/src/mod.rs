@@ -43,8 +43,9 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "arm", doc))]
     #[doc(cfg(target_arch = "arm"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_arm_neon_intrinsics", issue = "111800")]
     pub mod arm {
+        #[unstable(feature = "stdarch_arm_neon_intrinsics", issue = "111800")]
         pub use crate::core_arch::arm::*;
     }
 
@@ -218,7 +219,7 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "mips", doc))]
     #[doc(cfg(target_arch = "mips"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_mips", issue = "111198")]
     pub mod mips {
         pub use crate::core_arch::mips::*;
     }
@@ -228,7 +229,7 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "mips64", doc))]
     #[doc(cfg(target_arch = "mips64"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_mips", issue = "111198")]
     pub mod mips64 {
         pub use crate::core_arch::mips::*;
     }
@@ -238,7 +239,7 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "powerpc", doc))]
     #[doc(cfg(target_arch = "powerpc"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
     pub mod powerpc {
         pub use crate::core_arch::powerpc::*;
     }
@@ -248,7 +249,7 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "powerpc64", doc))]
     #[doc(cfg(target_arch = "powerpc64"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
     pub mod powerpc64 {
         pub use crate::core_arch::powerpc64::*;
     }
@@ -258,13 +259,11 @@ pub mod arch {
     /// See the [module documentation](../index.html) for more details.
     #[cfg(any(target_arch = "nvptx64", doc))]
     #[doc(cfg(target_arch = "nvptx64"))]
-    #[unstable(feature = "stdsimd", issue = "27731")]
+    #[unstable(feature = "stdarch_nvptx", issue = "111199")]
     pub mod nvptx {
         pub use crate::core_arch::nvptx::*;
     }
 }
-
-mod simd_llvm;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64", doc))]
 #[doc(cfg(any(target_arch = "x86", target_arch = "x86_64")))]

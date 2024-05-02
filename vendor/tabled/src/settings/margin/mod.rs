@@ -28,7 +28,7 @@
 
 use crate::{
     grid::{
-        color::StaticColor,
+        ansi::ANSIStr,
         config::{CompactConfig, CompactMultilineConfig},
         config::{Indent, Sides},
     },
@@ -36,7 +36,7 @@ use crate::{
 };
 
 #[cfg(feature = "std")]
-use crate::grid::{color::AnsiColor, config::ColoredConfig};
+use crate::grid::{ansi::ANSIBuf, config::ColoredConfig};
 
 /// Margin is responsible for a left/right/top/bottom outer indent of a grid.
 ///
@@ -48,7 +48,7 @@ use crate::grid::{color::AnsiColor, config::ColoredConfig};
 ///     .with(Margin::new(1, 1, 1, 1).fill('>', '<', 'V', '^'));
 /// ```
 #[derive(Debug, Clone)]
-pub struct Margin<C = StaticColor> {
+pub struct Margin<C = ANSIStr<'static>> {
     indent: Sides<Indent>,
     colors: Option<Sides<C>>,
 }
@@ -91,9 +91,9 @@ impl<Color> Margin<Color> {
 }
 
 #[cfg(feature = "std")]
-impl<R, D, C> TableOption<R, D, ColoredConfig> for Margin<C>
+impl<R, D, C> TableOption<R, ColoredConfig, D> for Margin<C>
 where
-    C: Into<AnsiColor<'static>> + Clone,
+    C: Into<ANSIBuf> + Clone,
 {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         let indent = self.indent;
@@ -112,9 +112,9 @@ where
     }
 }
 
-impl<R, D, C> TableOption<R, D, CompactConfig> for Margin<C>
+impl<R, D, C> TableOption<R, CompactConfig, D> for Margin<C>
 where
-    C: Into<StaticColor> + Clone,
+    C: Into<ANSIStr<'static>> + Clone,
 {
     fn change(self, _: &mut R, cfg: &mut CompactConfig, _: &mut D) {
         *cfg = cfg.set_margin(self.indent);
@@ -127,11 +127,17 @@ where
     }
 }
 
-impl<R, D, C> TableOption<R, D, CompactMultilineConfig> for Margin<C>
+impl<R, D, C> TableOption<R, CompactMultilineConfig, D> for Margin<C>
 where
-    C: Into<StaticColor> + Clone,
+    C: Into<ANSIStr<'static>> + Clone,
 {
-    fn change(self, records: &mut R, cfg: &mut CompactMultilineConfig, dimension: &mut D) {
-        self.change(records, cfg.as_mut(), dimension)
+    fn change(self, _: &mut R, cfg: &mut CompactMultilineConfig, _: &mut D) {
+        cfg.set_margin(self.indent);
+
+        if let Some(c) = self.colors {
+            // todo: make a new method (BECAUSE INTO doesn't work) try_into();
+            let colors = Sides::new(c.left.into(), c.right.into(), c.top.into(), c.bottom.into());
+            cfg.set_margin_color(colors);
+        }
     }
 }

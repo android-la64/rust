@@ -24,7 +24,11 @@ pub struct Dependencies {
 }
 
 fn cfgs(config: &Config) -> Result<Vec<Cfg>> {
-    let mut cmd = config.cfgs.build(&config.out_dir);
+    let Some(cfg) = &config.program.cfg_flag else {
+        return Ok(vec![]);
+    };
+    let mut cmd = config.program.build(&config.out_dir);
+    cmd.arg(cfg);
     cmd.arg("--target").arg(config.target.as_ref().unwrap());
     let output = cmd.output()?;
     let stdout = String::from_utf8(output.stdout)?;
@@ -59,9 +63,17 @@ pub(crate) fn build_dependencies(config: &Config) -> Result<Dependencies> {
     }
 
     // Reusable closure for setting up the environment both for artifact generation and `cargo_metadata`
-    let set_locking = |cmd: &mut Command| match (&config.output_conflict_handling, &config.mode) {
+    let set_locking = |cmd: &mut Command| match (
+        &config.output_conflict_handling,
+        config
+            .comment_defaults
+            .base_immut()
+            .mode
+            .as_deref()
+            .unwrap(),
+    ) {
         (_, Mode::Yolo { .. }) => {}
-        (OutputConflictHandling::Error(_), _) => {
+        (OutputConflictHandling::Error, _) => {
             cmd.arg("--locked");
         }
         _ => {}

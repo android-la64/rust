@@ -2,6 +2,8 @@ use alloc::fmt;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+#[allow(unused_imports)] // Unused for Wasm
+use crate::endian::Endianness;
 #[cfg(feature = "coff")]
 use crate::read::coff;
 #[cfg(feature = "elf")]
@@ -18,11 +20,9 @@ use crate::read::{
     self, Architecture, BinaryFormat, CodeView, ComdatKind, CompressedData, CompressedFileRange,
     Error, Export, FileFlags, FileKind, Import, Object, ObjectComdat, ObjectKind, ObjectMap,
     ObjectSection, ObjectSegment, ObjectSymbol, ObjectSymbolTable, ReadRef, Relocation, Result,
-    SectionFlags, SectionIndex, SectionKind, SegmentFlags, SymbolFlags, SymbolIndex, SymbolKind,
-    SymbolMap, SymbolMapName, SymbolScope, SymbolSection,
+    SectionFlags, SectionIndex, SectionKind, SegmentFlags, SubArchitecture, SymbolFlags,
+    SymbolIndex, SymbolKind, SymbolMap, SymbolMapName, SymbolScope, SymbolSection,
 };
-#[allow(unused_imports)]
-use crate::{AddressSize, Endian, Endianness, SubArchitecture};
 
 /// Evaluate an expression on the contents of a file format enum.
 ///
@@ -268,14 +268,14 @@ impl<'data, R: ReadRef<'data>> File<'data, R> {
 
     /// Parse a Mach-O image from the dyld shared cache.
     #[cfg(feature = "macho")]
-    pub fn parse_dyld_cache_image<'cache, E: Endian>(
+    pub fn parse_dyld_cache_image<'cache, E: crate::Endian>(
         image: &macho::DyldCacheImage<'data, 'cache, E, R>,
     ) -> Result<Self> {
         Ok(match image.cache.architecture().address_size() {
-            Some(AddressSize::U64) => {
+            Some(read::AddressSize::U64) => {
                 File::MachO64(macho::MachOFile64::parse_dyld_cache_image(image)?)
             }
-            Some(AddressSize::U32) => {
+            Some(read::AddressSize::U32) => {
                 File::MachO32(macho::MachOFile32::parse_dyld_cache_image(image)?)
             }
             _ => return Err(Error("Unsupported file format")),
@@ -756,11 +756,11 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSection<'data> for Section<'data, 'f
         with_inner!(self.inner, SectionInternal, |x| x.compressed_data())
     }
 
-    fn name_bytes(&self) -> Result<&[u8]> {
+    fn name_bytes(&self) -> Result<&'data [u8]> {
         with_inner!(self.inner, SectionInternal, |x| x.name_bytes())
     }
 
-    fn name(&self) -> Result<&str> {
+    fn name(&self) -> Result<&'data str> {
         with_inner!(self.inner, SectionInternal, |x| x.name())
     }
 
@@ -888,11 +888,11 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectComdat<'data> for Comdat<'data, 'fil
         with_inner!(self.inner, ComdatInternal, |x| x.symbol())
     }
 
-    fn name_bytes(&self) -> Result<&[u8]> {
+    fn name_bytes(&self) -> Result<&'data [u8]> {
         with_inner!(self.inner, ComdatInternal, |x| x.name_bytes())
     }
 
-    fn name(&self) -> Result<&str> {
+    fn name(&self) -> Result<&'data str> {
         with_inner!(self.inner, ComdatInternal, |x| x.name())
     }
 

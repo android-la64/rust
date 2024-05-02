@@ -67,12 +67,11 @@ use tracing::{debug, trace};
 
 use crate::core::PackageIdSpec;
 use crate::core::{Dependency, PackageId, Registry, Summary};
-use crate::util::config::Config;
+use crate::util::context::GlobalContext;
 use crate::util::errors::CargoResult;
 use crate::util::network::PollExt;
-use crate::util::profile;
 
-use self::context::Context;
+use self::context::ResolverContext;
 use self::dep_cache::RegistryQueryer;
 use self::features::RequestedFeatures;
 use self::types::{ConflictMap, ConflictReason, DepsFrame};
@@ -118,46 +117,50 @@ mod version_prefs;
 /// * `version_prefs` - this represents a preference for some versions over others,
 ///   based on the lock file or other reasons such as `[patch]`es.
 ///
+/// * `resolve_version` - this controls how the lockfile will be serialized.
+///
 /// * `config` - a location to print warnings and such, or `None` if no warnings
 ///   should be printed
+#[tracing::instrument(skip_all)]
 pub fn resolve(
     summaries: &[(Summary, ResolveOpts)],
     replacements: &[(PackageIdSpec, Dependency)],
     registry: &mut dyn Registry,
     version_prefs: &VersionPreferences,
-    config: Option<&Config>,
+    resolve_version: ResolveVersion,
+    gctx: Option<&GlobalContext>,
 ) -> CargoResult<Resolve> {
-    let _p = profile::start("resolving");
-    let first_version = match config {
+    let first_version = match gctx {
         Some(config) if config.cli_unstable().direct_minimal_versions => {
             Some(VersionOrdering::MinimumVersionsFirst)
         }
         _ => None,
     };
     let mut registry = RegistryQueryer::new(registry, replacements, version_prefs);
-    let cx = loop {
-        let cx = Context::new();
-        let cx = activate_deps_loop(cx, &mut registry, summaries, first_version, config)?;
+    let resolver_ctx = loop {
+        let resolver_ctx = ResolverContext::new();
+        let resolver_ctx =
+            activate_deps_loop(resolver_ctx, &mut registry, summaries, first_version, gctx)?;
         if registry.reset_pending() {
-            break cx;
+            break resolver_ctx;
         } else {
             registry.registry.block_until_ready()?;
         }
     };
 
     let mut cksums = HashMap::new();
-    for (summary, _) in cx.activations.values() {
+    for (summary, _) in resolver_ctx.activations.values() {
         let cksum = summary.checksum().map(|s| s.to_string());
         cksums.insert(summary.package_id(), cksum);
     }
-    let graph = cx.graph();
-    let replacements = cx.resolve_replacements(&registry);
-    let features = cx
+    let graph = resolver_ctx.graph();
+    let replacements = resolver_ctx.resolve_replacements(&registry);
+    let features = resolver_ctx
         .resolve_features
         .iter()
         .map(|(k, v)| (*k, v.iter().cloned().collect()))
         .collect();
-    let summaries = cx
+    let summaries = resolver_ctx
         .activations
         .into_iter()
         .map(|(_key, (summary, _age))| (summary.package_id(), summary))
@@ -169,7 +172,7 @@ pub fn resolve(
         cksums,
         BTreeMap::new(),
         Vec::new(),
-        ResolveVersion::default(),
+        resolve_version,
         summaries,
     );
 
@@ -186,12 +189,12 @@ pub fn resolve(
 /// If all dependencies can be activated and resolved to a version in the
 /// dependency graph, `cx` is returned.
 fn activate_deps_loop(
-    mut cx: Context,
+    mut resolver_ctx: ResolverContext,
     registry: &mut RegistryQueryer<'_>,
     summaries: &[(Summary, ResolveOpts)],
     first_version: Option<VersionOrdering>,
-    config: Option<&Config>,
-) -> CargoResult<Context> {
+    gctx: Option<&GlobalContext>,
+) -> CargoResult<ResolverContext> {
     let mut backtrack_stack = Vec::new();
     let mut remaining_deps = RemainingDeps::new();
 
@@ -203,7 +206,7 @@ fn activate_deps_loop(
     for (summary, opts) in summaries {
         debug!("initial activation: {}", summary.package_id());
         let res = activate(
-            &mut cx,
+            &mut resolver_ctx,
             registry,
             None,
             summary.clone(),
@@ -240,19 +243,19 @@ fn activate_deps_loop(
 
         // If we spend a lot of time here (we shouldn't in most cases) then give
         // a bit of a visual indicator as to what we're doing.
-        printed.shell_status(config)?;
+        printed.shell_status(gctx)?;
 
         trace!(
             "{}[{}]>{} {} candidates",
             parent.name(),
-            cx.age,
+            resolver_ctx.age,
             dep.package_name(),
             candidates.len()
         );
 
         let just_here_for_the_error_messages = just_here_for_the_error_messages
             && past_conflicting_activations
-                .conflicting(&cx, &dep)
+                .conflicting(&resolver_ctx, &dep)
                 .is_some();
 
         let mut remaining_candidates = RemainingCandidates::new(&candidates);
@@ -274,7 +277,7 @@ fn activate_deps_loop(
         let mut backtracked = false;
 
         loop {
-            let next = remaining_candidates.next(&mut conflicting_activations, &cx);
+            let next = remaining_candidates.next(&mut conflicting_activations, &resolver_ctx);
 
             let (candidate, has_another) = next.ok_or(()).or_else(|_| {
                 // If we get here then our `remaining_candidates` was just
@@ -286,7 +289,7 @@ fn activate_deps_loop(
                 trace!(
                     "{}[{}]>{} -- no candidates",
                     parent.name(),
-                    cx.age,
+                    resolver_ctx.age,
                     dep.package_name()
                 );
 
@@ -308,7 +311,7 @@ fn activate_deps_loop(
                 if !just_here_for_the_error_messages && !backtracked {
                     past_conflicting_activations.insert(&dep, &conflicting_activations);
                     if let Some(c) = generalize_conflicting(
-                        &cx,
+                        &resolver_ctx,
                         registry,
                         &mut past_conflicting_activations,
                         &parent,
@@ -320,7 +323,7 @@ fn activate_deps_loop(
                 }
 
                 match find_candidate(
-                    &cx,
+                    &resolver_ctx,
                     &mut backtrack_stack,
                     &parent,
                     backtracked,
@@ -331,7 +334,7 @@ fn activate_deps_loop(
                     Some((candidate, has_another, frame)) => {
                         // Reset all of our local variables used with the
                         // contents of `frame` to complete our backtrack.
-                        cx = frame.context;
+                        resolver_ctx = frame.context;
                         remaining_deps = frame.remaining_deps;
                         remaining_candidates = frame.remaining_candidates;
                         parent = frame.parent;
@@ -344,13 +347,13 @@ fn activate_deps_loop(
                     None => {
                         debug!("no candidates found");
                         Err(errors::activation_error(
-                            &cx,
+                            &resolver_ctx,
                             registry.registry,
                             &parent,
                             &dep,
                             &conflicting_activations,
                             &candidates,
-                            config,
+                            gctx,
                         ))
                     }
                 }
@@ -375,7 +378,7 @@ fn activate_deps_loop(
             // if we can.
             let backtrack = if has_another {
                 Some(BacktrackFrame {
-                    context: Context::clone(&cx),
+                    context: ResolverContext::clone(&resolver_ctx),
                     remaining_deps: remaining_deps.clone(),
                     remaining_candidates: remaining_candidates.clone(),
                     parent: Summary::clone(&parent),
@@ -398,13 +401,13 @@ fn activate_deps_loop(
             trace!(
                 "{}[{}]>{} trying {}",
                 parent.name(),
-                cx.age,
+                resolver_ctx.age,
                 dep.package_name(),
                 candidate.version()
             );
             let first_version = None; // this is an indirect dependency
             let res = activate(
-                &mut cx,
+                &mut resolver_ctx,
                 registry,
                 Some((&parent, &dep)),
                 candidate,
@@ -440,7 +443,7 @@ fn activate_deps_loop(
                             .remaining_siblings
                             .clone()
                             .filter_map(|(ref new_dep, _, _)| {
-                                past_conflicting_activations.conflicting(&cx, new_dep)
+                                past_conflicting_activations.conflicting(&resolver_ctx, new_dep)
                             })
                             .next()
                         {
@@ -478,7 +481,7 @@ fn activate_deps_loop(
                                 .filter(|(_, other_dep)| known_related_bad_deps.contains(other_dep))
                                 .filter_map(|(other_parent, other_dep)| {
                                     past_conflicting_activations
-                                        .find_conflicting(&cx, &other_dep, Some(pid))
+                                        .find_conflicting(&resolver_ctx, &other_dep, Some(pid))
                                         .map(|con| (other_parent, con))
                                 })
                                 .next()
@@ -519,7 +522,7 @@ fn activate_deps_loop(
                     let activate_for_error_message = has_past_conflicting_dep && !has_another && {
                         just_here_for_the_error_messages || {
                             find_candidate(
-                                &cx,
+                                &resolver_ctx,
                                 &mut backtrack_stack.clone(),
                                 &parent,
                                 backtracked,
@@ -554,7 +557,7 @@ fn activate_deps_loop(
                         trace!(
                             "{}[{}]>{} skipping {} ",
                             parent.name(),
-                            cx.age,
+                            resolver_ctx.age,
                             dep.package_name(),
                             pid.version()
                         );
@@ -596,7 +599,7 @@ fn activate_deps_loop(
             // for error messages anyway so we can live with a little
             // imprecision.
             if let Some(b) = backtrack {
-                cx = b.context;
+                resolver_ctx = b.context;
             }
         }
 
@@ -606,7 +609,7 @@ fn activate_deps_loop(
         // so loop back to the top of the function here.
     }
 
-    Ok(cx)
+    Ok(resolver_ctx)
 }
 
 /// Attempts to activate the summary `candidate` in the context `cx`.
@@ -616,7 +619,7 @@ fn activate_deps_loop(
 /// If `candidate` was activated, this function returns the dependency frame to
 /// iterate through next.
 fn activate(
-    cx: &mut Context,
+    cx: &mut ResolverContext,
     registry: &mut RegistryQueryer<'_>,
     parent: Option<(&Summary, &Dependency)>,
     candidate: Summary,
@@ -691,7 +694,7 @@ fn activate(
 
 #[derive(Clone)]
 struct BacktrackFrame {
-    context: Context,
+    context: ResolverContext,
     remaining_deps: RemainingDeps,
     remaining_candidates: RemainingCandidates,
     parent: Summary,
@@ -745,7 +748,7 @@ impl RemainingCandidates {
     fn next(
         &mut self,
         conflicting_prev_active: &mut ConflictMap,
-        cx: &Context,
+        cx: &ResolverContext,
     ) -> Option<(Summary, bool)> {
         for b in self.remaining.by_ref() {
             let b_id = b.package_id();
@@ -801,7 +804,7 @@ impl RemainingCandidates {
 /// Attempts to find a new conflict that allows a `find_candidate` better then the input one.
 /// It will add the new conflict to the cache if one is found.
 fn generalize_conflicting(
-    cx: &Context,
+    cx: &ResolverContext,
     registry: &mut RegistryQueryer<'_>,
     past_conflicting_activations: &mut conflict_cache::ConflictCache,
     parent: &Summary,
@@ -931,7 +934,7 @@ fn shortcircuit_max<I: Ord>(iter: impl Iterator<Item = Option<I>>) -> Option<I> 
 /// Read <https://github.com/rust-lang/cargo/pull/4834>
 /// For several more detailed explanations of the logic here.
 fn find_candidate(
-    cx: &Context,
+    cx: &ResolverContext,
     backtrack_stack: &mut Vec<BacktrackFrame>,
     parent: &Summary,
     backtracked: bool,

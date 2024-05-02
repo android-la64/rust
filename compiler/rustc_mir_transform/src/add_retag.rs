@@ -36,10 +36,10 @@ fn may_contain_reference<'tcx>(ty: Ty<'tcx>, depth: u32, tcx: TyCtxt<'tcx>) -> b
         ty::Tuple(tys) => {
             depth == 0 || tys.iter().any(|ty| may_contain_reference(ty, depth - 1, tcx))
         }
-        ty::Adt(adt, subst) => {
+        ty::Adt(adt, args) => {
             depth == 0
                 || adt.variants().iter().any(|v| {
-                    v.fields.iter().any(|f| may_contain_reference(f.ty(tcx, subst), depth - 1, tcx))
+                    v.fields.iter().any(|f| may_contain_reference(f.ty(tcx, args), depth - 1, tcx))
                 })
         }
         // Conservative fallback
@@ -118,7 +118,7 @@ impl<'tcx> MirPass<'tcx> for AddRetag {
         }
 
         // PART 3
-        // Add retag after assignments where data "enters" this function: the RHS is behind a deref and the LHS is not.
+        // Add retag after assignments.
         for block_data in basic_blocks {
             // We want to insert statements as we iterate. To this end, we
             // iterate backwards using indices.

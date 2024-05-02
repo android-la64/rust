@@ -18,6 +18,7 @@ fn check_with_invalid_artifact_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -62,6 +63,7 @@ Caused by:
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -94,6 +96,7 @@ Caused by:
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -129,6 +132,7 @@ fn check_with_invalid_target_triple() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -158,6 +162,7 @@ fn build_without_nightly_aborts_with_error() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -191,6 +196,7 @@ fn disallow_artifact_and_no_artifact_dep_to_same_package_within_the_same_dep_cat
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -222,6 +228,7 @@ fn features_are_unified_among_lib_and_bin_dep_of_same_target() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -253,6 +260,7 @@ fn features_are_unified_among_lib_and_bin_dep_of_same_target() {
                 [package]
                 name = "d1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -293,6 +301,7 @@ fn features_are_unified_among_lib_and_bin_dep_of_same_target() {
                 [package]
                 name = "d2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -316,7 +325,7 @@ fn features_are_unified_among_lib_and_bin_dep_of_same_target() {
 [COMPILING] d2 v0.0.1 ([CWD]/d2)
 [COMPILING] d1 v0.0.1 ([CWD]/d1)
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -335,6 +344,7 @@ fn features_are_not_unified_among_lib_and_bin_dep_of_different_target() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -369,6 +379,7 @@ fn features_are_not_unified_among_lib_and_bin_dep_of_different_target() {
                 [package]
                 name = "d1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -400,6 +411,7 @@ fn features_are_not_unified_among_lib_and_bin_dep_of_different_target() {
                 [package]
                 name = "d2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -438,6 +450,7 @@ fn feature_resolution_works_for_cfg_target_specification() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -462,6 +475,7 @@ fn feature_resolution_works_for_cfg_target_specification() {
                 [package]
                 name = "d1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [target.'$TARGET'.dependencies]
@@ -491,6 +505,7 @@ fn feature_resolution_works_for_cfg_target_specification() {
                 [package]
                 name = "d2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -512,6 +527,7 @@ fn build_script_with_bin_artifacts() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -553,6 +569,7 @@ fn build_script_with_bin_artifacts() {
                 [package]
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -568,7 +585,9 @@ fn build_script_with_bin_artifacts() {
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_contains("[COMPILING] foo [..]")
         .with_stderr_contains("[COMPILING] bar v0.5.0 ([CWD]/bar)")
-        .with_stderr_contains("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr_contains(
+            "[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
+        )
         .run();
 
     let build_script_output = build_script_output_string(&p, "foo");
@@ -620,6 +639,7 @@ fn build_script_with_bin_artifact_and_lib_false() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -663,6 +683,7 @@ fn lib_with_bin_artifact_and_lib_false() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -704,6 +725,7 @@ fn build_script_with_selected_dashed_bin_artifact_and_lib_true() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -723,6 +745,7 @@ fn build_script_with_selected_dashed_bin_artifact_and_lib_true() {
                 [package]
                 name = "bar-baz"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [[bin]]
@@ -752,7 +775,7 @@ fn build_script_with_selected_dashed_bin_artifact_and_lib_true() {
             "\
 [COMPILING] bar-baz v0.5.0 ([CWD]/bar)
 [COMPILING] foo [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 
@@ -800,6 +823,7 @@ fn lib_with_selected_dashed_bin_artifact_and_lib_true() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -828,6 +852,7 @@ fn lib_with_selected_dashed_bin_artifact_and_lib_true() {
                 [package]
                 name = "bar-baz"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -849,7 +874,7 @@ fn lib_with_selected_dashed_bin_artifact_and_lib_true() {
             "\
 [COMPILING] bar-baz v0.5.0 ([CWD]/bar)
 [COMPILING] foo [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 
@@ -869,6 +894,7 @@ fn allow_artifact_and_no_artifact_dep_to_same_package_within_different_dep_categ
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -895,7 +921,9 @@ fn allow_artifact_and_no_artifact_dep_to_same_package_within_different_dep_categ
     p.cargo("test -Z bindeps")
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_contains("[COMPILING] bar v0.5.0 ([CWD]/bar)")
-        .with_stderr_contains("[FINISHED] test [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr_contains(
+            "[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]",
+        )
         .run();
 }
 
@@ -908,6 +936,7 @@ fn normal_build_deps_are_picked_up_in_presence_of_an_artifact_build_dep_to_the_s
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -945,6 +974,7 @@ fn disallow_using_example_binaries_as_artifacts() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -978,6 +1008,7 @@ fn allow_artifact_and_non_artifact_dependency_to_same_crate() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1028,6 +1059,7 @@ fn build_script_deps_adopt_specified_target_unconditionally() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1053,16 +1085,16 @@ fn build_script_deps_adopt_specified_target_unconditionally() {
     p.cargo("check -v -Z bindeps")
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_does_not_contain(format!(
-            "[RUNNING] `rustc --crate-name build_script_build build.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--target {} [..]",
             target
         ))
-        .with_stderr_contains("[RUNNING] `rustc --crate-name build_script_build build.rs [..]")
+        .with_stderr_contains("[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]")
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--target {} [..]",
             target
         ))
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/main.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..]--target {} [..]",
             target
         ))
         .with_stderr_does_not_contain(format!(
@@ -1090,6 +1122,7 @@ fn build_script_deps_adopt_do_not_allow_multiple_targets_under_different_name_an
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1145,6 +1178,7 @@ fn non_build_script_deps_adopt_specified_target_unconditionally() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1168,11 +1202,11 @@ fn non_build_script_deps_adopt_specified_target_unconditionally() {
     p.cargo("check -v -Z bindeps")
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--target {} [..]",
             target
         ))
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/main.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..]--target {} [..]",
             target
         ))
         .with_stderr_does_not_contain(format!(
@@ -1196,6 +1230,7 @@ fn no_cross_doctests_works_with_artifacts() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1229,7 +1264,7 @@ fn no_cross_doctests_works_with_artifacts() {
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target/{triple}/debug/deps/foo-[..][EXE])
 [DOCTEST] foo
 ",
@@ -1247,11 +1282,11 @@ fn no_cross_doctests_works_with_artifacts() {
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_contains(format!(
             "[COMPILING] bar v0.5.0 ([CWD]/bar)
-[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--target {triple} [..]
-[RUNNING] `rustc --crate-name bar bar/src/main.rs [..]--target {triple} [..]
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--target {triple} [..]
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..]--target {triple} [..]
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]",
             triple = target
         ))
         .run();
@@ -1268,7 +1303,7 @@ fn no_cross_doctests_works_with_artifacts() {
             "[FRESH] bar v0.5.0 ([CWD]/bar)
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]--test[..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[CWD]/target/{triple}/debug/deps/foo-[..][EXE]`",
             triple = target
         ))
@@ -1288,6 +1323,7 @@ fn build_script_deps_adopts_target_platform_if_target_equals_target() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1311,16 +1347,16 @@ fn build_script_deps_adopts_target_platform_if_target_equals_target() {
         .arg(alternate_target)
         .masquerade_as_nightly_cargo(&["bindeps"])
         .with_stderr_does_not_contain(format!(
-            "[RUNNING] `rustc --crate-name build_script_build build.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--target {} [..]",
             alternate_target
         ))
-        .with_stderr_contains("[RUNNING] `rustc --crate-name build_script_build build.rs [..]")
+        .with_stderr_contains("[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]")
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--target {} [..]",
             alternate_target
         ))
         .with_stderr_contains(format!(
-            "[RUNNING] `rustc --crate-name bar bar/src/main.rs [..]--target {} [..]",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..]--target {} [..]",
             alternate_target
         ))
         .with_stderr_contains(format!(
@@ -1341,6 +1377,7 @@ fn profile_override_basic() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [build-dependencies]
@@ -1369,16 +1406,16 @@ fn profile_override_basic() {
             "[RUNNING] `rustc --crate-name build_script_build [..] -C opt-level=1 [..]`",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name bar bar/src/main.rs [..] -C opt-level=3 [..]`",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..] -C opt-level=3 [..]`",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name bar bar/src/main.rs [..] -C opt-level=1 [..]`",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/main.rs [..] -C opt-level=1 [..]`",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..] -C opt-level=1 [..]`",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..] -C opt-level=1 [..]`",
         )
         .with_stderr_contains(
-            "[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..] -C opt-level=3 [..]`",
+            "[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..] -C opt-level=3 [..]`",
         )
         .with_stderr_contains("[RUNNING] `rustc --crate-name foo [..] -C opt-level=3 [..]`")
         .run();
@@ -1397,6 +1434,7 @@ fn dependencies_of_dependencies_work_in_artifacts() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1419,6 +1457,7 @@ fn dependencies_of_dependencies_work_in_artifacts() {
                 [package]
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1473,6 +1512,7 @@ fn targets_are_picked_up_from_non_workspace_artifact_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1518,6 +1558,7 @@ fn index_version_filtering() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "1.0"
@@ -1573,6 +1614,7 @@ fn proc_macro_in_artifact_dep() {
                 [package]
                 name = "pm"
                 version = "1.0.0"
+                edition = "2015"
 
                 [lib]
                 proc-macro = true
@@ -1624,6 +1666,7 @@ fn allow_dep_renames_with_multiple_versions() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1670,6 +1713,7 @@ fn allow_artifact_and_non_artifact_dependency_to_same_crate_if_these_are_not_the
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1702,7 +1746,7 @@ fn allow_artifact_and_non_artifact_dependency_to_same_crate_if_these_are_not_the
             "\
 [COMPILING] bar [..]
 [COMPILING] foo [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1717,6 +1761,7 @@ fn prevent_no_lib_warning_with_artifact_dependencies() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1737,7 +1782,7 @@ fn prevent_no_lib_warning_with_artifact_dependencies() {
             "\
             [COMPILING] bar v0.5.0 ([CWD]/bar)\n\
             [CHECKING] foo v0.0.0 ([CWD])\n\
-            [FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+            [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -1751,6 +1796,7 @@ fn show_no_lib_warning_with_artifact_dependencies_that_have_no_lib_but_lib_true(
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1771,7 +1817,7 @@ fn show_no_lib_warning_with_artifact_dependencies_that_have_no_lib_but_lib_true(
         .with_stderr_contains("[WARNING] foo v0.0.0 ([CWD]) ignoring invalid dependency `bar` which is missing a lib target")
         .with_stderr_contains("[COMPILING] bar v0.5.0 ([CWD]/bar)")
         .with_stderr_contains("[CHECKING] foo [..]")
-        .with_stderr_contains("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr_contains("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -1816,6 +1862,7 @@ fn check_missing_crate_type_in_package_fails() {
                         [package]
                         name = "foo"
                         version = "0.0.0"
+                        edition = "2015"
                         authors = []
 
                         [dependencies]
@@ -1847,6 +1894,7 @@ fn check_target_equals_target_in_non_build_dependency_errors() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1876,6 +1924,7 @@ fn env_vars_and_build_products_for_various_build_targets() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -1956,6 +2005,7 @@ fn env_vars_and_build_products_for_various_build_targets() {
                 [package]
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1977,7 +2027,7 @@ fn env_vars_and_build_products_for_various_build_targets() {
             "\
 [COMPILING] bar [..]
 [COMPILING] foo [..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] unittests [..]
 [RUNNING] tests/main.rs [..]
 [DOCTEST] foo
@@ -2000,6 +2050,7 @@ fn publish_artifact_dep() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             authors = []
             license = "MIT"
             description = "foo"
@@ -2028,7 +2079,7 @@ fn publish_artifact_dep() {
 [PACKAGED] [..]
 [UPLOADING] foo v0.1.0 [..]
 [UPLOADED] foo v0.1.0 [..]
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.1.0 [..]
 ",
@@ -2091,6 +2142,7 @@ You may press ctrl-c [..]
             &format!(
                 r#"{}
 [package]
+edition = "2015"
 name = "foo"
 version = "0.1.0"
 authors = []
@@ -2129,6 +2181,7 @@ fn doc_lib_true() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -2151,7 +2204,7 @@ fn doc_lib_true() {
 [COMPILING] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -2188,6 +2241,7 @@ fn rustdoc_works_on_libs_with_artifacts_and_lib_false() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 resolver = "2"
 
@@ -2214,6 +2268,7 @@ fn rustdoc_works_on_libs_with_artifacts_and_lib_false() {
                 [package]
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -2230,7 +2285,7 @@ fn rustdoc_works_on_libs_with_artifacts_and_lib_false() {
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -2319,6 +2374,7 @@ fn build_script_features_for_shared_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 resolver = "2"
 
                 [dependencies]
@@ -2342,6 +2398,7 @@ fn build_script_features_for_shared_dependency() {
                 [package]
                 name = "d1"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 common = { path = "../common", features = ["f2"] }
@@ -2359,6 +2416,7 @@ fn build_script_features_for_shared_dependency() {
                 [package]
                 name = "common"
                 version = "0.0.1"
+                edition = "2015"
 
                 [features]
                 f1 = []
@@ -2410,6 +2468,7 @@ fn calc_bin_artifact_fingerprint() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 resolver = "2"
 
                 [dependencies]
@@ -2433,7 +2492,7 @@ fn calc_bin_artifact_fingerprint() {
             "\
 [COMPILING] bar v0.5.0 ([CWD]/bar)
 [CHECKING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2450,7 +2509,7 @@ fn calc_bin_artifact_fingerprint() {
 [DIRTY] foo v0.1.0 ([CWD]): the dependency bar was rebuilt
 [CHECKING] foo v0.1.0 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2462,7 +2521,7 @@ fn calc_bin_artifact_fingerprint() {
             "\
 [FRESH] bar v0.5.0 ([CWD]/bar)
 [FRESH] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2516,7 +2575,7 @@ fn with_target_and_optional() {
 [RUNNING] `rustc --crate-name d1 [..]--crate-type bin[..]
 [CHECKING] foo v0.0.1 [..]
 [RUNNING] `rustc --crate-name foo [..]--cfg[..]d1[..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -2563,11 +2622,11 @@ fn with_assumed_host_target_and_optional_build_dep() {
             "\
 [COMPILING] foo v0.0.1 ([CWD])
 [COMPILING] d1 v0.0.1 ([CWD]/d1)
-[RUNNING] `rustc --crate-name build_script_build [..]--crate-type bin[..]
-[RUNNING] `rustc --crate-name d1 [..]--crate-type bin[..]
+[RUNNING] `rustc --crate-name build_script_build --edition=2021 [..]--crate-type bin[..]
+[RUNNING] `rustc --crate-name d1 --edition=2021 [..]--crate-type bin[..]
 [RUNNING] `[CWD]/target/debug/build/foo-[..]/build-script-build`
-[RUNNING] `rustc --crate-name foo [..]--cfg[..]d1[..]
-[FINISHED] dev [..]
+[RUNNING] `rustc --crate-name foo --edition=2021 [..]--cfg[..]d1[..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -2605,6 +2664,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 a = { path = "../a", features = ["feature"] }
@@ -2648,6 +2708,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep() {
                 [package]
                 name = "b"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 c = { path = "../c" }
@@ -2669,6 +2730,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep() {
                 [package]
                 name = "c"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 feature = []
@@ -2690,7 +2752,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep() {
 [COMPILING] a v0.1.0 ([CWD]/a)
 [COMPILING] bar v0.1.0 ([CWD]/bar)
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2748,6 +2810,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_lib() {
                 [package]
                 name = "a"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 b = { path = "../b", optional = true }
@@ -2768,6 +2831,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_lib() {
                 [package]
                 name = "b"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 feature = []
@@ -2790,7 +2854,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_lib() {
 [COMPILING] a v0.1.0 ([CWD]/a)
 [COMPILING] bar v0.1.0 ([CWD]/bar)
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2822,6 +2886,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_and_proc_macro() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             b = { path = "../b" }
@@ -2876,6 +2941,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_and_proc_macro() {
             [package]
             name = "a"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             d = { path = "../d" }
@@ -2897,6 +2963,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_and_proc_macro() {
             [package]
             name = "d"
             version = "0.1.0"
+            edition = "2015"
 
             [features]
             feature = []
@@ -2915,7 +2982,7 @@ fn decouple_same_target_transitive_dep_from_artifact_dep_and_proc_macro() {
 [COMPILING] c v0.1.0 ([CWD]/c)
 [COMPILING] bar v0.1.0 ([CWD]/bar)
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2932,6 +2999,7 @@ fn same_target_artifact_dep_sharing() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 a = {{ path = "a" }}
@@ -2946,6 +3014,7 @@ fn same_target_artifact_dep_sharing() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 a = { path = "../a" }
@@ -2963,6 +3032,7 @@ fn same_target_artifact_dep_sharing() {
                 [package]
                 name = "a"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file("a/src/lib.rs", "")
@@ -2974,7 +3044,7 @@ fn same_target_artifact_dep_sharing() {
 [COMPILING] a v0.1.0 ([CWD]/a)
 [COMPILING] bar v0.1.0 ([CWD]/bar)
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2989,6 +3059,7 @@ fn check_transitive_artifact_dependency_with_different_target() {
                 [package]
                 name = "foo"
                 version = "0.0.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar/" }
@@ -3001,6 +3072,7 @@ fn check_transitive_artifact_dependency_with_different_target() {
                 [package]
                 name = "bar"
                 version = "0.0.0"
+                edition = "2015"
 
                 [dependencies]
                 baz = { path = "baz/", artifact = "bin", target = "custom-target" }
@@ -3013,6 +3085,7 @@ fn check_transitive_artifact_dependency_with_different_target() {
                 [package]
                 name = "baz"
                 version = "0.0.0"
+                edition = "2015"
 
                 [dependencies]
             "#,

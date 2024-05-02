@@ -116,6 +116,19 @@ fn test_intersection() {
 }
 
 #[test]
+fn validate_path_remap() {
+    let build = Build::new(configure("test", &["A"], &["A"]));
+
+    PATH_REMAP
+        .iter()
+        .flat_map(|(_, paths)| paths.iter())
+        .map(|path| build.src.join(path))
+        .for_each(|path| {
+            assert!(path.exists(), "{} should exist.", path.display());
+        });
+}
+
+#[test]
 fn test_exclude() {
     let mut config = configure("test", &["A"], &["A"]);
     config.skip = vec!["src/tools/tidy".into()];
@@ -525,6 +538,23 @@ mod dist {
     }
 
     #[test]
+    fn llvm_out_behaviour() {
+        let mut config = configure(&["A"], &["B"]);
+        config.llvm_from_ci = true;
+        let build = Build::new(config.clone());
+
+        let target = TargetSelection::from_user("A");
+        assert!(build.llvm_out(target).ends_with("ci-llvm"));
+        let target = TargetSelection::from_user("B");
+        assert!(build.llvm_out(target).ends_with("llvm"));
+
+        config.llvm_from_ci = false;
+        let build = Build::new(config.clone());
+        let target = TargetSelection::from_user("A");
+        assert!(build.llvm_out(target).ends_with("llvm"));
+    }
+
+    #[test]
     fn build_with_empty_host() {
         let config = configure(&[], &["C"]);
         let build = Build::new(config);
@@ -591,7 +621,7 @@ mod dist {
                 compiler: Compiler { host, stage: 0 },
                 target: host,
                 mode: Mode::Std,
-                crates: vec![INTERNER.intern_str("std")],
+                crates: vec!["std".to_owned()],
             },]
         );
     }

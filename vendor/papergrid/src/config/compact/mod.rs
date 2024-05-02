@@ -2,9 +2,8 @@
 //!
 //! [`CompactGrid`]: crate::grid::compact::CompactGrid
 
-use crate::color::StaticColor;
-
-use crate::config::{AlignmentHorizontal, Borders, Indent, Line, Sides};
+use crate::ansi::ANSIStr;
+use crate::config::{AlignmentHorizontal, Borders, Indent, Sides};
 
 /// This structure represents a settings of a grid.
 ///
@@ -12,38 +11,36 @@ use crate::config::{AlignmentHorizontal, Borders, Indent, Line, Sides};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CompactConfig {
     borders: Borders<char>,
-    horizontal_line1: Option<Line<char>>,
-    border_colors: Borders<StaticColor>,
+    border_colors: Borders<ANSIStr<'static>>,
     margin: Sides<Indent>,
-    margin_color: Sides<StaticColor>,
+    margin_color: Sides<ANSIStr<'static>>,
     padding: Sides<Indent>,
-    padding_color: Sides<StaticColor>,
+    padding_color: Sides<ANSIStr<'static>>,
     halignment: AlignmentHorizontal,
 }
 
 impl Default for CompactConfig {
     fn default() -> Self {
-        Self::empty()
+        Self::new()
     }
 }
 
 impl CompactConfig {
     /// Returns an standard config.
-    pub const fn empty() -> Self {
+    pub const fn new() -> Self {
         Self {
             halignment: AlignmentHorizontal::Left,
-            horizontal_line1: None,
             borders: Borders::empty(),
             border_colors: Borders::empty(),
             margin: Sides::filled(Indent::zero()),
-            margin_color: Sides::filled(StaticColor::new("", "")),
+            margin_color: Sides::filled(ANSIStr::new("", "")),
             padding: Sides::new(
                 Indent::spaced(1),
                 Indent::spaced(1),
                 Indent::zero(),
                 Indent::zero(),
             ),
-            padding_color: Sides::filled(StaticColor::new("", "")),
+            padding_color: Sides::filled(ANSIStr::new("", "")),
         }
     }
 
@@ -64,28 +61,13 @@ impl CompactConfig {
         self
     }
 
-    /// Set the first horizontal line.
-    ///
-    /// It ignores the [`Borders`] horizontal value if set for 1st row.
-    pub const fn set_first_horizontal_line(mut self, line: Line<char>) -> Self {
-        self.horizontal_line1 = Some(line);
-        self
-    }
-
-    /// Set the first horizontal line.
-    ///
-    /// It ignores the [`Borders`] horizontal value if set for 1st row.
-    pub const fn get_first_horizontal_line(&self) -> Option<Line<char>> {
-        self.horizontal_line1
-    }
-
     /// Returns a current [`Borders`] structure.
     pub const fn get_borders(&self) -> &Borders<char> {
         &self.borders
     }
 
     /// Returns a current [`Borders`] structure.
-    pub const fn get_borders_color(&self) -> &Borders<StaticColor> {
+    pub const fn get_borders_color(&self) -> &Borders<ANSIStr<'static>> {
         &self.border_colors
     }
 
@@ -112,30 +94,30 @@ impl CompactConfig {
     }
 
     /// Sets colors of border carcass on the grid.
-    pub const fn set_borders_color(mut self, borders: Borders<StaticColor>) -> Self {
+    pub const fn set_borders_color(mut self, borders: Borders<ANSIStr<'static>>) -> Self {
         self.border_colors = borders;
         self
     }
 
     /// Set colors for a margin.
-    pub const fn set_margin_color(mut self, color: Sides<StaticColor>) -> Self {
+    pub const fn set_margin_color(mut self, color: Sides<ANSIStr<'static>>) -> Self {
         self.margin_color = color;
         self
     }
 
     /// Returns a margin color.
-    pub const fn get_margin_color(&self) -> Sides<StaticColor> {
-        self.margin_color
+    pub const fn get_margin_color(&self) -> &Sides<ANSIStr<'static>> {
+        &self.margin_color
     }
 
     /// Set a padding to a given cells.
-    pub const fn set_padding_color(mut self, color: Sides<StaticColor>) -> Self {
+    pub const fn set_padding_color(mut self, color: Sides<ANSIStr<'static>>) -> Self {
         self.padding_color = color;
         self
     }
 
     /// Set a padding to a given cells.
-    pub const fn get_padding_color(&self) -> Sides<StaticColor> {
-        self.padding_color
+    pub const fn get_padding_color(&self) -> &Sides<ANSIStr<'static>> {
+        &self.padding_color
     }
 }

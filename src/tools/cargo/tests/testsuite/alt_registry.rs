@@ -17,6 +17,7 @@ fn depend_on_alt_registry() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -36,7 +37,7 @@ fn depend_on_alt_registry() {
 [DOWNLOADED] bar v0.0.1 (registry `alternative`)
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -49,7 +50,7 @@ fn depend_on_alt_registry() {
             "\
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -66,6 +67,7 @@ fn depend_on_alt_registry_depends_on_same_registry_no_index() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -91,7 +93,7 @@ fn depend_on_alt_registry_depends_on_same_registry_no_index() {
 [CHECKING] baz v0.0.1 (registry `alternative`)
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -108,6 +110,7 @@ fn depend_on_alt_registry_depends_on_same_registry() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -133,7 +136,7 @@ fn depend_on_alt_registry_depends_on_same_registry() {
 [CHECKING] baz v0.0.1 (registry `alternative`)
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -150,6 +153,7 @@ fn depend_on_alt_registry_depends_on_crates_io() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -176,7 +180,7 @@ fn depend_on_alt_registry_depends_on_crates_io() {
 [CHECKING] baz v0.0.1
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -194,6 +198,7 @@ fn registry_and_path_dep_works() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 path = "bar"
@@ -210,7 +215,7 @@ fn registry_and_path_dep_works() {
             "\
 [CHECKING] bar v0.0.1 ([CWD]/bar)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -228,6 +233,7 @@ fn registry_incompatible_with_git() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 git = ""
@@ -258,6 +264,7 @@ fn cannot_publish_to_crates_io_with_registry_dependency() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
                 [dependencies.bar]
                 version = "0.0.1"
                 registry = "alternative"
@@ -301,6 +308,7 @@ fn publish_with_registry_dependency() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -329,7 +337,7 @@ fn publish_with_registry_dependency() {
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
 [UPLOADED] foo v0.0.1 to registry `alternative`
-note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `alternative`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
@@ -385,6 +393,7 @@ fn alt_registry_and_crates_io_deps() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies]
                 crates_io_dep = "0.0.1"
@@ -413,7 +422,7 @@ fn alt_registry_and_crates_io_deps() {
 [CHECKING] alt_reg_dep v0.1.0 (registry `alternative`)
 [CHECKING] crates_io_dep v0.0.1
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -489,7 +498,7 @@ fn publish_to_alt_registry() {
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
 [UPLOADED] foo v0.0.1 to registry `alternative`
-note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `alternative`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
@@ -542,6 +551,7 @@ fn publish_with_crates_io_dep() {
                 name = "foo"
                 version = "0.0.1"
                 authors = ["me"]
+                edition = "2015"
                 license = "MIT"
                 description = "foo"
 
@@ -571,7 +581,7 @@ fn publish_with_crates_io_dep() {
 [PACKAGED] [..]
 [UPLOADING] foo v0.0.1 [..]
 [UPLOADED] foo v0.0.1 to registry `alternative`
-note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `alternative`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
@@ -621,7 +631,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
 fn passwords_in_registries_index_url_forbidden() {
     registry::alt_init();
 
-    let config = paths::home().join(".cargo/config");
+    let config = paths::home().join(".cargo/config.toml");
 
     fs::write(
         config,
@@ -638,7 +648,7 @@ fn passwords_in_registries_index_url_forbidden() {
         .with_status(101)
         .with_stderr(
             "\
-error: invalid index URL for registry `alternative` defined in [..]/home/.cargo/config
+error: invalid index URL for registry `alternative` defined in [..]/home/.cargo/config.toml
 
 Caused by:
   registry URLs may not contain passwords
@@ -658,6 +668,7 @@ fn patch_alt_reg() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { version = "0.1.0", registry = "alternative" }
@@ -683,7 +694,7 @@ fn patch_alt_reg() {
 [UPDATING] `alternative` index
 [CHECKING] bar v0.1.0 ([CWD]/bar)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -699,6 +710,7 @@ fn bad_registry_name() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -715,14 +727,14 @@ fn bad_registry_name() {
 [ERROR] invalid character ` ` in registry name: `bad name`, characters must be Unicode XID characters (numbers, `-`, `_`, or most letters)
 
 
- --> Cargo.toml:7:17
-  |
-7 |                   [dependencies.bar]
-  |  _________________^
-8 | |                 version = \"0.0.1\"
-9 | |                 registry = \"bad name\"
-  | |_____________________________________^
-  |
+  --> Cargo.toml:8:17
+   |
+ 8 |                   [dependencies.bar]
+   |  _________________^
+ 9 | |                 version = \"0.0.1\"
+10 | |                 registry = \"bad name\"
+   | |_____________________________________^
+   |
 ",
         )
         .run();
@@ -758,6 +770,7 @@ fn no_api() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -775,7 +788,7 @@ fn no_api() {
 [DOWNLOADED] bar v0.0.1 (registry `alternative`)
 [CHECKING] bar v0.0.1 (registry `alternative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -825,6 +838,7 @@ fn alt_reg_metadata() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 altdep = { version = "0.0.1", registry = "alternative" }
@@ -1139,6 +1153,7 @@ fn unknown_registry() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -1153,7 +1168,7 @@ fn unknown_registry() {
         .publish();
 
     // Remove "alternative" from config.
-    let cfg_path = paths::home().join(".cargo/config");
+    let cfg_path = paths::home().join(".cargo/config.toml");
     let mut config = fs::read_to_string(&cfg_path).unwrap();
     let start = config.find("[registries.alternative]").unwrap();
     config.insert(start, '#');
@@ -1296,7 +1311,7 @@ fn unknown_registry() {
 #[cargo_test]
 fn registries_index_relative_url() {
     registry::alt_init();
-    let config = paths::root().join(".cargo/config");
+    let config = paths::root().join(".cargo/config.toml");
     fs::create_dir_all(config.parent().unwrap()).unwrap();
     fs::write(
         &config,
@@ -1315,6 +1330,7 @@ fn registries_index_relative_url() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -1334,7 +1350,7 @@ fn registries_index_relative_url() {
 [DOWNLOADED] bar v0.0.1 (registry `relative`)
 [CHECKING] bar v0.0.1 (registry `relative`)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
         )
         .run();
@@ -1343,7 +1359,7 @@ fn registries_index_relative_url() {
 #[cargo_test]
 fn registries_index_relative_path_not_allowed() {
     registry::alt_init();
-    let config = paths::root().join(".cargo/config");
+    let config = paths::root().join(".cargo/config.toml");
     fs::create_dir_all(config.parent().unwrap()).unwrap();
     fs::write(
         &config,
@@ -1362,6 +1378,7 @@ fn registries_index_relative_path_not_allowed() {
                 name = "foo"
                 version = "0.0.1"
                 authors = []
+                edition = "2015"
 
                 [dependencies.bar]
                 version = "0.0.1"
@@ -1379,7 +1396,7 @@ fn registries_index_relative_path_not_allowed() {
 error: failed to parse manifest at `{root}/foo/Cargo.toml`
 
 Caused by:
-  invalid index URL for registry `relative` defined in [..]/.cargo/config
+  invalid index URL for registry `relative` defined in [..]/.cargo/config.toml
 
 Caused by:
   invalid url `alternative-registry`: relative URL without a base
@@ -1440,6 +1457,7 @@ fn sparse_lockfile() {
                 name = "a"
                 version = "0.5.0"
                 authors = []
+                edition = "2015"
 
                 [dependencies]
                 foo = { registry = 'alternative', version = '0.1.0'}
@@ -1490,6 +1508,7 @@ fn publish_with_transitive_dep() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -1504,6 +1523,7 @@ fn publish_with_transitive_dep() {
                 name = "b"
                 version = "0.6.0"
                 publish = ["Alt-2"]
+                edition = "2015"
 
                 [dependencies]
                 a = { version = "0.5.0", registry = "Alt-1" }
@@ -1605,6 +1625,7 @@ fn empty_dependency_registry() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { version = "0.1.0", registry = "" }
@@ -1626,9 +1647,9 @@ fn empty_dependency_registry() {
 [ERROR] registry name cannot be empty
 
 
- --> Cargo.toml:7:23
+ --> Cargo.toml:8:23
   |
-7 |                 bar = { version = \"0.1.0\", registry = \"\" }
+8 |                 bar = { version = \"0.1.0\", registry = \"\" }
   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
 ",

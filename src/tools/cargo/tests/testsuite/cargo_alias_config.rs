@@ -11,7 +11,7 @@ fn alias_incorrect_config_type() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 b-cargo-test = 5
@@ -35,7 +35,7 @@ fn alias_malformed_config_string() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 b-cargo-test = `
@@ -50,7 +50,7 @@ fn alias_malformed_config_string() {
 [ERROR] could not load Cargo configuration
 
 Caused by:
-  could not parse TOML configuration in `[..]/config`
+  could not parse TOML configuration in `[..]/config.toml`
 
 Caused by:
   TOML parse error at line [..]
@@ -70,7 +70,7 @@ fn alias_malformed_config_list() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 b-cargo-test = [1, 2]
@@ -85,7 +85,7 @@ fn alias_malformed_config_list() {
 [ERROR] could not load Cargo configuration
 
 Caused by:
-  failed to load TOML configuration from `[..]/config`
+  failed to load TOML configuration from `[..]/config.toml`
 
 Caused by:
   [..] `alias`
@@ -106,7 +106,7 @@ fn alias_config() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 b-cargo-test = "build"
@@ -129,7 +129,7 @@ fn dependent_alias() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 b-cargo-test = "build"
@@ -164,7 +164,7 @@ fn builtin_alias_shadowing_external_subcommand() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 [..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] unittests src/main.rs [..]
 ",
         )
@@ -178,7 +178,7 @@ fn alias_shadowing_external_subcommand() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 echo = "build"
@@ -197,7 +197,7 @@ fn alias_shadowing_external_subcommand() {
 This was previously accepted but is being phased out; it will become a hard error in a future release.
 For more information, see issue #10049 <https://github.com/rust-lang/cargo/issues/10049>.
 [COMPILING] foo v0.5.0 [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -210,7 +210,7 @@ fn default_args_alias() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 echo = "echo --flag1 --flag2"
@@ -254,7 +254,7 @@ error: alias test-1 has unresolvable recursive definition: test-1 -> echo -> ech
             "\
 [WARNING] user-defined alias `build` is ignored, because it is shadowed by a built-in command
 [COMPILING] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -266,7 +266,7 @@ fn corecursive_alias() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [alias]
                 test-1 = "test-2 --flag1"
@@ -297,7 +297,7 @@ fn alias_list_test() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                [alias]
                b-cargo-test = ["build", "--release"]
@@ -317,7 +317,7 @@ fn alias_with_flags_config() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                [alias]
                b-cargo-test = "build --release"
@@ -337,7 +337,7 @@ fn alias_cannot_shadow_builtin_command() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                [alias]
                build = "fetch"
@@ -350,7 +350,7 @@ fn alias_cannot_shadow_builtin_command() {
             "\
 [WARNING] user-defined alias `build` is ignored, because it is shadowed by a built-in command
 [COMPILING] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -362,7 +362,7 @@ fn alias_override_builtin_alias() {
         .file("Cargo.toml", &basic_bin_manifest("foo"))
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                [alias]
                b = "run"
@@ -374,7 +374,7 @@ fn alias_override_builtin_alias() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`
 ",
         )
@@ -405,7 +405,7 @@ fn global_options_with_alias() {
             "\
 [CHECKING] foo [..]
 [RUNNING] `rustc [..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();

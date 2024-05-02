@@ -1,17 +1,17 @@
 // ignore-tidy-filelength
 
+#![allow(rustc::diagnostic_outside_of_impl)]
+#![allow(rustc::untranslatable_diagnostic)]
+
 use either::Either;
 use rustc_data_structures::captures::Captures;
 use rustc_data_structures::fx::FxIndexSet;
-use rustc_errors::{
-    codes::*, struct_span_code_err, Applicability, Diagnostic, DiagnosticBuilder, MultiSpan,
-};
+use rustc_errors::{codes::*, struct_span_code_err, Applicability, Diag, MultiSpan};
 use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::intravisit::{walk_block, walk_expr, Visitor};
 use rustc_hir::{CoroutineDesugaring, PatField};
 use rustc_hir::{CoroutineKind, CoroutineSource, LangItem};
-use rustc_infer::traits::ObligationCause;
 use rustc_middle::hir::nested_filter::OnlyBodies;
 use rustc_middle::mir::tcx::PlaceTy;
 use rustc_middle::mir::{
@@ -20,16 +20,21 @@ use rustc_middle::mir::{
     PlaceRef, ProjectionElem, Rvalue, Statement, StatementKind, Terminator, TerminatorKind,
     VarBindingForm,
 };
-use rustc_middle::ty::{self, suggest_constraining_type_params, PredicateKind, Ty, TyCtxt};
+use rustc_middle::ty::{
+    self, suggest_constraining_type_params, PredicateKind, ToPredicate, Ty, TyCtxt,
+    TypeSuperVisitable, TypeVisitor,
+};
 use rustc_middle::util::CallKind;
 use rustc_mir_dataflow::move_paths::{InitKind, MoveOutIndex, MovePathIndex};
+use rustc_span::def_id::DefId;
 use rustc_span::def_id::LocalDefId;
 use rustc_span::hygiene::DesugaringKind;
 use rustc_span::symbol::{kw, sym, Ident};
 use rustc_span::{BytePos, Span, Symbol};
 use rustc_trait_selection::infer::InferCtxtExt;
+use rustc_trait_selection::traits::error_reporting::suggestions::TypeErrCtxtExt;
 use rustc_trait_selection::traits::error_reporting::FindExprBySpan;
-use rustc_trait_selection::traits::ObligationCtxt;
+use rustc_trait_selection::traits::{Obligation, ObligationCause, ObligationCtxt};
 use std::iter;
 
 use crate::borrow_set::TwoPhaseActivation;
@@ -38,7 +43,7 @@ use crate::diagnostics::conflict_errors::StorageDeadOrDrop::LocalStorageDead;
 use crate::diagnostics::{find_all_local_uses, CapturedMessageOpt};
 use crate::{
     borrow_set::BorrowData, diagnostics::Instance, prefixes::IsPrefixOf,
-    InitializationRequiringAction, MirBorrowckCtxt, PrefixSet, WriteKind,
+    InitializationRequiringAction, MirBorrowckCtxt, WriteKind,
 };
 
 use super::{
@@ -113,7 +118,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             self.buffer_error(err);
         } else {
             if let Some((reported_place, _)) = self.has_move_error(&move_out_indices) {
-                if self.prefixes(*reported_place, PrefixSet::All).any(|p| p == used_place) {
+                if used_place.is_prefix_of(*reported_place) {
                     debug!(
                         "report_use_of_moved_or_uninitialized place: error suppressed mois={:?}",
                         move_out_indices
@@ -226,7 +231,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 seen_spans.insert(move_span);
             }
 
-            use_spans.var_path_only_subdiag(&mut err, desired_action);
+            use_spans.var_path_only_subdiag(self.dcx(), &mut err, desired_action);
 
             if !is_loop_move {
                 err.span_label(
@@ -282,24 +287,31 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 // something that already has `Fn`-like bounds (or is a closure), so we can't
                 // restrict anyways.
             } else {
-                self.suggest_adding_copy_bounds(&mut err, ty, span);
+                let copy_did = self.infcx.tcx.require_lang_item(LangItem::Copy, Some(span));
+                self.suggest_adding_bounds(&mut err, ty, copy_did, span);
             }
 
             if needs_note {
                 if let Some(local) = place.as_local() {
                     let span = self.body.local_decls[local].source_info.span;
-                    err.subdiagnostic(crate::session_diagnostics::TypeNoCopy::Label {
-                        is_partial_move,
-                        ty,
-                        place: &note_msg,
-                        span,
-                    });
+                    err.subdiagnostic(
+                        self.dcx(),
+                        crate::session_diagnostics::TypeNoCopy::Label {
+                            is_partial_move,
+                            ty,
+                            place: &note_msg,
+                            span,
+                        },
+                    );
                 } else {
-                    err.subdiagnostic(crate::session_diagnostics::TypeNoCopy::Note {
-                        is_partial_move,
-                        ty,
-                        place: &note_msg,
-                    });
+                    err.subdiagnostic(
+                        self.dcx(),
+                        crate::session_diagnostics::TypeNoCopy::Note {
+                            is_partial_move,
+                            ty,
+                            place: &note_msg,
+                        },
+                    );
                 };
             }
 
@@ -327,7 +339,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         &mut self,
         mpi: MovePathIndex,
         move_span: Span,
-        err: &mut DiagnosticBuilder<'_>,
+        err: &mut Diag<'tcx>,
         in_pattern: &mut bool,
         move_spans: UseSpans<'_>,
     ) {
@@ -400,67 +412,59 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     }
                 }
                 let typeck = self.infcx.tcx.typeck(self.mir_def_id());
-                let hir_id = hir.parent_id(expr.hir_id);
-                if let Some(parent) = self.infcx.tcx.opt_hir_node(hir_id) {
-                    let (def_id, args, offset) = if let hir::Node::Expr(parent_expr) = parent
-                        && let hir::ExprKind::MethodCall(_, _, args, _) = parent_expr.kind
-                        && let Some(def_id) = typeck.type_dependent_def_id(parent_expr.hir_id)
-                    {
-                        (def_id.as_local(), args, 1)
-                    } else if let hir::Node::Expr(parent_expr) = parent
-                        && let hir::ExprKind::Call(call, args) = parent_expr.kind
-                        && let ty::FnDef(def_id, _) = typeck.node_type(call.hir_id).kind()
-                    {
-                        (def_id.as_local(), args, 0)
-                    } else {
-                        (None, &[][..], 0)
+                let parent = self.infcx.tcx.parent_hir_node(expr.hir_id);
+                let (def_id, args, offset) = if let hir::Node::Expr(parent_expr) = parent
+                    && let hir::ExprKind::MethodCall(_, _, args, _) = parent_expr.kind
+                    && let Some(def_id) = typeck.type_dependent_def_id(parent_expr.hir_id)
+                {
+                    (def_id.as_local(), args, 1)
+                } else if let hir::Node::Expr(parent_expr) = parent
+                    && let hir::ExprKind::Call(call, args) = parent_expr.kind
+                    && let ty::FnDef(def_id, _) = typeck.node_type(call.hir_id).kind()
+                {
+                    (def_id.as_local(), args, 0)
+                } else {
+                    (None, &[][..], 0)
+                };
+                if let Some(def_id) = def_id
+                    && let node = self.infcx.tcx.hir_node_by_def_id(def_id)
+                    && let Some(fn_sig) = node.fn_sig()
+                    && let Some(ident) = node.ident()
+                    && let Some(pos) = args.iter().position(|arg| arg.hir_id == expr.hir_id)
+                    && let Some(arg) = fn_sig.decl.inputs.get(pos + offset)
+                {
+                    let mut span: MultiSpan = arg.span.into();
+                    span.push_span_label(
+                        arg.span,
+                        "this parameter takes ownership of the value".to_string(),
+                    );
+                    let descr = match node.fn_kind() {
+                        Some(hir::intravisit::FnKind::ItemFn(..)) | None => "function",
+                        Some(hir::intravisit::FnKind::Method(..)) => "method",
+                        Some(hir::intravisit::FnKind::Closure) => "closure",
                     };
-                    if let Some(def_id) = def_id
-                        && let Some(node) = self
-                            .infcx
-                            .tcx
-                            .opt_hir_node(self.infcx.tcx.local_def_id_to_hir_id(def_id))
-                        && let Some(fn_sig) = node.fn_sig()
-                        && let Some(ident) = node.ident()
-                        && let Some(pos) = args.iter().position(|arg| arg.hir_id == expr.hir_id)
-                        && let Some(arg) = fn_sig.decl.inputs.get(pos + offset)
-                    {
-                        let mut span: MultiSpan = arg.span.into();
-                        span.push_span_label(
-                            arg.span,
-                            "this parameter takes ownership of the value".to_string(),
-                        );
-                        let descr = match node.fn_kind() {
-                            Some(hir::intravisit::FnKind::ItemFn(..)) | None => "function",
-                            Some(hir::intravisit::FnKind::Method(..)) => "method",
-                            Some(hir::intravisit::FnKind::Closure) => "closure",
-                        };
-                        span.push_span_label(ident.span, format!("in this {descr}"));
-                        err.span_note(
-                            span,
-                            format!(
-                                "consider changing this parameter type in {descr} `{ident}` to \
+                    span.push_span_label(ident.span, format!("in this {descr}"));
+                    err.span_note(
+                        span,
+                        format!(
+                            "consider changing this parameter type in {descr} `{ident}` to \
                                  borrow instead if owning the value isn't necessary",
-                            ),
-                        );
-                    }
-                    let place = &self.move_data.move_paths[mpi].place;
-                    let ty = place.ty(self.body, self.infcx.tcx).ty;
-                    if let hir::Node::Expr(parent_expr) = parent
-                        && let hir::ExprKind::Call(call_expr, _) = parent_expr.kind
-                        && let hir::ExprKind::Path(hir::QPath::LangItem(
-                            LangItem::IntoIterIntoIter,
-                            _,
-                        )) = call_expr.kind
-                    {
-                        // Do not suggest `.clone()` in a `for` loop, we already suggest borrowing.
-                    } else if let UseSpans::FnSelfUse { kind: CallKind::Normal { .. }, .. } =
-                        move_spans
-                    {
-                        // We already suggest cloning for these cases in `explain_captures`.
-                    } else {
-                        self.suggest_cloning(err, ty, expr, move_span);
-                    }
+                        ),
+                    );
+                }
+                let place = &self.move_data.move_paths[mpi].place;
+                let ty = place.ty(self.body, self.infcx.tcx).ty;
+                if let hir::Node::Expr(parent_expr) = parent
+                    && let hir::ExprKind::Call(call_expr, _) = parent_expr.kind
+                    && let hir::ExprKind::Path(hir::QPath::LangItem(LangItem::IntoIterIntoIter, _)) =
+                        call_expr.kind
+                {
+                    // Do not suggest `.clone()` in a `for` loop, we already suggest borrowing.
+                } else if let UseSpans::FnSelfUse { kind: CallKind::Normal { .. }, .. } = move_spans
+                {
+                    // We already suggest cloning for these cases in `explain_captures`.
+                } else {
+                    self.suggest_cloning(err, ty, expr, move_span);
                 }
             }
             if let Some(pat) = finder.pat {
@@ -486,7 +490,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         desired_action: InitializationRequiringAction,
         span: Span,
         use_spans: UseSpans<'tcx>,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         // We need all statements in the body where the binding was assigned to later find all
         // the branching code paths where the binding *wasn't* assigned to.
         let inits = &self.move_data.init_path_map[mpi];
@@ -561,7 +565,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             E0381,
             "{used} binding {desc}{isnt_initialized}"
         );
-        use_spans.var_path_only_subdiag(&mut err, desired_action);
+        use_spans.var_path_only_subdiag(self.dcx(), &mut err, desired_action);
 
         if let InitializationRequiringAction::PartialAssignment
         | InitializationRequiringAction::Assignment = desired_action
@@ -613,7 +617,12 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     if self.sugg_span.is_some() {
                         return;
                     }
-                    if let hir::StmtKind::Local(hir::Local { span, ty, init: None, .. }) = &ex.kind
+
+                    // FIXME: We make sure that this is a normal top-level binding,
+                    // but we could suggest `todo!()` for all uninitalized bindings in the pattern pattern
+                    if let hir::StmtKind::Let(hir::Local { span, ty, init: None, pat, .. }) =
+                        &ex.kind
+                        && let hir::PatKind::Binding(..) = pat.kind
                         && span.contains(self.decl_span)
                     {
                         self.sugg_span = ty.map_or(Some(self.decl_span), |ty| Some(ty.span));
@@ -633,7 +642,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
     fn suggest_assign_value(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         moved_place: PlaceRef<'tcx>,
         sugg_span: Span,
     ) {
@@ -672,7 +681,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
     fn suggest_borrow_fn_like(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         ty: Ty<'tcx>,
         move_sites: &[MoveSite],
         value_name: &str,
@@ -695,7 +704,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
         // If the type is opaque/param/closure, and it is Fn or FnMut, let's suggest (mutably)
         // borrowing the type, since `&mut F: FnMut` iff `F: FnMut` and similarly for `Fn`.
-        // These types seem reasonably opaque enough that they could be substituted with their
+        // These types seem reasonably opaque enough that they could be instantiated with their
         // borrowed variants in a function body when we see a move error.
         let borrow_level = match *ty.kind() {
             ty::Param(_) => tcx
@@ -738,13 +747,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         true
     }
 
-    fn suggest_cloning(
-        &self,
-        err: &mut Diagnostic,
-        ty: Ty<'tcx>,
-        expr: &hir::Expr<'_>,
-        span: Span,
-    ) {
+    fn suggest_cloning(&self, err: &mut Diag<'_>, ty: Ty<'tcx>, expr: &hir::Expr<'_>, span: Span) {
         let tcx = self.infcx.tcx;
         // Try to find predicates on *generic params* that would allow copying `ty`
         let suggestion =
@@ -776,7 +779,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         }
     }
 
-    fn suggest_adding_copy_bounds(&self, err: &mut Diagnostic, ty: Ty<'tcx>, span: Span) {
+    fn suggest_adding_bounds(&self, err: &mut Diag<'_>, ty: Ty<'tcx>, def_id: DefId, span: Span) {
         let tcx = self.infcx.tcx;
         let generics = tcx.generics_of(self.mir_def_id());
 
@@ -789,10 +792,9 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         };
         // Try to find predicates on *generic params* that would allow copying `ty`
         let ocx = ObligationCtxt::new(self.infcx);
-        let copy_did = tcx.require_lang_item(LangItem::Copy, Some(span));
         let cause = ObligationCause::misc(span, self.mir_def_id());
 
-        ocx.register_bound(cause, self.param_env, ty, copy_did);
+        ocx.register_bound(cause, self.param_env, ty, def_id);
         let errors = ocx.select_all_or_error();
 
         // Only emit suggestion if all required predicates are on generic
@@ -852,13 +854,19 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             &value_msg,
         );
 
-        borrow_spans.var_path_only_subdiag(&mut err, crate::InitializationRequiringAction::Borrow);
+        borrow_spans.var_path_only_subdiag(
+            self.dcx(),
+            &mut err,
+            crate::InitializationRequiringAction::Borrow,
+        );
 
-        move_spans.var_subdiag(None, &mut err, None, |kind, var_span| {
+        move_spans.var_subdiag(self.dcx(), &mut err, None, |kind, var_span| {
             use crate::session_diagnostics::CaptureVarCause::*;
             match kind {
                 hir::ClosureKind::Coroutine(_) => MoveUseInCoroutine { var_span },
-                hir::ClosureKind::Closure => MoveUseInClosure { var_span },
+                hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
+                    MoveUseInClosure { var_span }
+                }
             }
         });
 
@@ -872,6 +880,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 Some(borrow_span),
                 None,
             );
+        self.suggest_copy_for_type_in_cloned_ref(&mut err, place);
         self.buffer_error(err);
     }
 
@@ -880,7 +889,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         location: Location,
         (place, _span): (Place<'tcx>, Span),
         borrow: &BorrowData<'tcx>,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         let borrow_spans = self.retrieve_borrow_spans(borrow);
         let borrow_span = borrow_spans.args_or_use();
 
@@ -897,7 +906,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             borrow_span,
             &self.describe_any_place(borrow.borrowed_place.as_ref()),
         );
-        borrow_spans.var_subdiag(None, &mut err, Some(borrow.kind), |kind, var_span| {
+        borrow_spans.var_subdiag(self.dcx(), &mut err, Some(borrow.kind), |kind, var_span| {
             use crate::session_diagnostics::CaptureVarCause::*;
             let place = &borrow.borrowed_place;
             let desc_place = self.describe_any_place(place.as_ref());
@@ -905,7 +914,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 hir::ClosureKind::Coroutine(_) => {
                     BorrowUsePlaceCoroutine { place: desc_place, var_span, is_single_var: true }
                 }
-                hir::ClosureKind::Closure => {
+                hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
                     BorrowUsePlaceClosure { place: desc_place, var_span, is_single_var: true }
                 }
             }
@@ -930,7 +939,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         (place, span): (Place<'tcx>, Span),
         gen_borrow_kind: BorrowKind,
         issued_borrow: &BorrowData<'tcx>,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         let issued_spans = self.retrieve_borrow_spans(issued_borrow);
         let issued_span = issued_spans.args_or_use();
 
@@ -1045,7 +1054,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         "mutably borrow",
                     );
                     borrow_spans.var_subdiag(
-                        None,
+                        self.dcx(),
                         &mut err,
                         Some(BorrowKind::Mut { kind: MutBorrowKind::ClosureCapture }),
                         |kind, var_span| {
@@ -1056,7 +1065,8 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                     var_span,
                                     is_single_var: true,
                                 },
-                                hir::ClosureKind::Closure => BorrowUsePlaceClosure {
+                                hir::ClosureKind::Closure
+                                | hir::ClosureKind::CoroutineClosure(_) => BorrowUsePlaceClosure {
                                     place: desc_place,
                                     var_span,
                                     is_single_var: true,
@@ -1132,22 +1142,31 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         };
 
         if issued_spans == borrow_spans {
-            borrow_spans.var_subdiag(None, &mut err, Some(gen_borrow_kind), |kind, var_span| {
-                use crate::session_diagnostics::CaptureVarCause::*;
-                match kind {
-                    hir::ClosureKind::Coroutine(_) => BorrowUsePlaceCoroutine {
-                        place: desc_place,
-                        var_span,
-                        is_single_var: false,
-                    },
-                    hir::ClosureKind::Closure => {
-                        BorrowUsePlaceClosure { place: desc_place, var_span, is_single_var: false }
+            borrow_spans.var_subdiag(
+                self.dcx(),
+                &mut err,
+                Some(gen_borrow_kind),
+                |kind, var_span| {
+                    use crate::session_diagnostics::CaptureVarCause::*;
+                    match kind {
+                        hir::ClosureKind::Coroutine(_) => BorrowUsePlaceCoroutine {
+                            place: desc_place,
+                            var_span,
+                            is_single_var: false,
+                        },
+                        hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
+                            BorrowUsePlaceClosure {
+                                place: desc_place,
+                                var_span,
+                                is_single_var: false,
+                            }
+                        }
                     }
-                }
-            });
+                },
+            );
         } else {
             issued_spans.var_subdiag(
-                Some(self.dcx()),
+                self.dcx(),
                 &mut err,
                 Some(issued_borrow.kind),
                 |kind, var_span| {
@@ -1158,7 +1177,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         hir::ClosureKind::Coroutine(_) => {
                             FirstBorrowUsePlaceCoroutine { place: borrow_place_desc, var_span }
                         }
-                        hir::ClosureKind::Closure => {
+                        hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
                             FirstBorrowUsePlaceClosure { place: borrow_place_desc, var_span }
                         }
                     }
@@ -1166,7 +1185,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             );
 
             borrow_spans.var_subdiag(
-                Some(self.dcx()),
+                self.dcx(),
                 &mut err,
                 Some(gen_borrow_kind),
                 |kind, var_span| {
@@ -1175,7 +1194,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         hir::ClosureKind::Coroutine(_) => {
                             SecondBorrowUsePlaceCoroutine { place: desc_place, var_span }
                         }
-                        hir::ClosureKind::Closure => {
+                        hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
                             SecondBorrowUsePlaceClosure { place: desc_place, var_span }
                         }
                     }
@@ -1200,14 +1219,108 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         );
 
         self.suggest_using_local_if_applicable(&mut err, location, issued_borrow, explanation);
+        self.suggest_copy_for_type_in_cloned_ref(&mut err, place);
 
         err
+    }
+
+    fn suggest_copy_for_type_in_cloned_ref(&self, err: &mut Diag<'tcx>, place: Place<'tcx>) {
+        let tcx = self.infcx.tcx;
+        let hir = tcx.hir();
+        let Some(body_id) = tcx.hir_node(self.mir_hir_id()).body_id() else { return };
+        struct FindUselessClone<'hir> {
+            pub clones: Vec<&'hir hir::Expr<'hir>>,
+        }
+        impl<'hir> FindUselessClone<'hir> {
+            pub fn new() -> Self {
+                Self { clones: vec![] }
+            }
+        }
+
+        impl<'v> Visitor<'v> for FindUselessClone<'v> {
+            fn visit_expr(&mut self, ex: &'v hir::Expr<'v>) {
+                // FIXME: use `lookup_method_for_diagnostic`?
+                if let hir::ExprKind::MethodCall(segment, _rcvr, args, _span) = ex.kind
+                    && segment.ident.name == sym::clone
+                    && args.len() == 0
+                {
+                    self.clones.push(ex);
+                }
+                hir::intravisit::walk_expr(self, ex);
+            }
+        }
+        let mut expr_finder = FindUselessClone::new();
+
+        let body = hir.body(body_id).value;
+        expr_finder.visit_expr(body);
+
+        pub struct Holds<'tcx> {
+            ty: Ty<'tcx>,
+            holds: bool,
+        }
+
+        impl<'tcx> TypeVisitor<TyCtxt<'tcx>> for Holds<'tcx> {
+            type Result = std::ops::ControlFlow<()>;
+
+            fn visit_ty(&mut self, t: Ty<'tcx>) -> Self::Result {
+                if t == self.ty {
+                    self.holds = true;
+                }
+                t.super_visit_with(self)
+            }
+        }
+
+        let mut types_to_constrain = FxIndexSet::default();
+
+        let local_ty = self.body.local_decls[place.local].ty;
+        let typeck_results = tcx.typeck(self.mir_def_id());
+        let clone = tcx.require_lang_item(LangItem::Clone, Some(body.span));
+        for expr in expr_finder.clones {
+            if let hir::ExprKind::MethodCall(_, rcvr, _, span) = expr.kind
+                && let Some(rcvr_ty) = typeck_results.node_type_opt(rcvr.hir_id)
+                && let Some(ty) = typeck_results.node_type_opt(expr.hir_id)
+                && rcvr_ty == ty
+                && let ty::Ref(_, inner, _) = rcvr_ty.kind()
+                && let inner = inner.peel_refs()
+                && let mut v = (Holds { ty: inner, holds: false })
+                && let _ = v.visit_ty(local_ty)
+                && v.holds
+                && let None = self.infcx.type_implements_trait_shallow(clone, inner, self.param_env)
+            {
+                err.span_label(
+                    span,
+                    format!(
+                        "this call doesn't do anything, the result is still `{rcvr_ty}` \
+                             because `{inner}` doesn't implement `Clone`",
+                    ),
+                );
+                types_to_constrain.insert(inner);
+            }
+        }
+        for ty in types_to_constrain {
+            self.suggest_adding_bounds(err, ty, clone, body.span);
+            if let ty::Adt(..) = ty.kind() {
+                // The type doesn't implement Clone.
+                let trait_ref = ty::Binder::dummy(ty::TraitRef::new(self.infcx.tcx, clone, [ty]));
+                let obligation = Obligation::new(
+                    self.infcx.tcx,
+                    ObligationCause::dummy(),
+                    self.param_env,
+                    trait_ref,
+                );
+                self.infcx.err_ctxt().suggest_derive(
+                    &obligation,
+                    err,
+                    trait_ref.to_predicate(self.infcx.tcx),
+                );
+            }
+        }
     }
 
     #[instrument(level = "debug", skip(self, err))]
     fn suggest_using_local_if_applicable(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         location: Location,
         issued_borrow: &BorrowData<'tcx>,
         explanation: BorrowExplanation<'tcx>,
@@ -1303,7 +1416,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
     fn suggest_slice_method_if_applicable(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         place: Place<'tcx>,
         borrowed_place: Place<'tcx>,
     ) {
@@ -1412,7 +1525,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     /// ```
     pub(crate) fn explain_iterator_advancement_in_for_loop_if_applicable(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         span: Span,
         issued_spans: &UseSpans<'tcx>,
     ) {
@@ -1538,7 +1651,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     // A bare path doesn't need a `let` assignment, it's already a simple
                     // binding access.
                     // As a new binding wasn't added, we don't need to modify the advancing call.
-                    sugg.push((loop_span.with_hi(pat_span.lo()), format!("while let Some(")));
+                    sugg.push((loop_span.with_hi(pat_span.lo()), "while let Some(".to_string()));
                     sugg.push((
                         pat_span.shrink_to_hi().with_hi(head.span.lo()),
                         ") = ".to_string(),
@@ -1599,7 +1712,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     /// ```
     fn suggest_using_closure_argument_instead_of_capture(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         borrowed_place: Place<'tcx>,
         issued_spans: &UseSpans<'tcx>,
     ) {
@@ -1660,8 +1773,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
         // Check that the parent of the closure is a method call,
         // with receiver matching with local's type (modulo refs)
-        let parent = hir.parent_id(closure_expr.hir_id);
-        if let hir::Node::Expr(parent) = tcx.hir_node(parent) {
+        if let hir::Node::Expr(parent) = tcx.parent_hir_node(closure_expr.hir_id) {
             if let hir::ExprKind::MethodCall(_, recv, ..) = parent.kind {
                 let recv_ty = typeck_results.expr_ty(recv);
 
@@ -1734,7 +1846,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
     fn suggest_binding_for_closure_capture_self(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         issued_spans: &UseSpans<'tcx>,
     ) {
         let UseSpans::ClosureUse { capture_kind_span, .. } = issued_spans else { return };
@@ -1759,7 +1871,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                         fn_decl: hir::FnDecl { inputs, .. },
                         ..
                     }) = e.kind
-                        && let Some(hir::Node::Expr(body)) = self.tcx.opt_hir_node(body.hir_id)
+                        && let hir::Node::Expr(body) = self.tcx.hir_node(body.hir_id)
                     {
                         self.suggest_arg = "this: &Self".to_string();
                         if inputs.len() > 0 {
@@ -1825,11 +1937,11 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             }
         }
 
-        if let Some(hir::Node::ImplItem(hir::ImplItem {
+        if let hir::Node::ImplItem(hir::ImplItem {
             kind: hir::ImplItemKind::Fn(_fn_sig, body_id),
             ..
-        })) = self.infcx.tcx.opt_hir_node(self.mir_hir_id())
-            && let Some(hir::Node::Expr(expr)) = self.infcx.tcx.opt_hir_node(body_id.hir_id)
+        }) = self.infcx.tcx.hir_node(self.mir_hir_id())
+            && let hir::Node::Expr(expr) = self.infcx.tcx.hir_node(body_id.hir_id)
         {
             let mut finder = ExpressionFinder {
                 capture_span: *capture_kind_span,
@@ -1981,21 +2093,14 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         kind: Option<WriteKind>,
     ) {
         let drop_span = place_span.1;
-        let root_place =
-            self.prefixes(borrow.borrowed_place.as_ref(), PrefixSet::All).last().unwrap();
+        let borrowed_local = borrow.borrowed_place.local;
 
         let borrow_spans = self.retrieve_borrow_spans(borrow);
         let borrow_span = borrow_spans.var_or_use_path_span();
 
-        assert!(root_place.projection.is_empty());
-        let proper_span = self.body.local_decls[root_place.local].source_info.span;
+        let proper_span = self.body.local_decls[borrowed_local].source_info.span;
 
-        let root_place_projection = self.infcx.tcx.mk_place_elems(root_place.projection);
-
-        if self.access_place_error_reported.contains(&(
-            Place { local: root_place.local, projection: root_place_projection },
-            borrow_span,
-        )) {
+        if self.access_place_error_reported.contains(&(Place::from(borrowed_local), borrow_span)) {
             debug!(
                 "suppressing access_place error when borrow doesn't live long enough for {:?}",
                 borrow_span
@@ -2003,12 +2108,8 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             return;
         }
 
-        self.access_place_error_reported.insert((
-            Place { local: root_place.local, projection: root_place_projection },
-            borrow_span,
-        ));
+        self.access_place_error_reported.insert((Place::from(borrowed_local), borrow_span));
 
-        let borrowed_local = borrow.borrowed_place.local;
         if self.body.local_decls[borrowed_local].is_ref_to_thread_local() {
             let err =
                 self.report_thread_local_value_does_not_live_long_enough(drop_span, borrow_span);
@@ -2129,7 +2230,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         drop_span: Span,
         borrow_spans: UseSpans<'tcx>,
         explanation: BorrowExplanation<'tcx>,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         debug!(
             "report_local_value_does_not_live_long_enough(\
              {:?}, {:?}, {:?}, {:?}, {:?}\
@@ -2219,7 +2320,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             err.span_label(borrow_span, "borrowed value does not live long enough");
             err.span_label(drop_span, format!("`{name}` dropped here while still borrowed"));
 
-            borrow_spans.args_subdiag(&mut err, |args_span| {
+            borrow_spans.args_subdiag(self.dcx(), &mut err, |args_span| {
                 crate::session_diagnostics::CaptureArgLabel::Capture {
                     is_within: borrow_spans.for_coroutine(),
                     args_span,
@@ -2304,7 +2405,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         &mut self,
         drop_span: Span,
         borrow_span: Span,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         debug!(
             "report_thread_local_value_does_not_live_long_enough(\
              {:?}, {:?}\
@@ -2329,7 +2430,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         borrow_spans: UseSpans<'tcx>,
         proper_span: Span,
         explanation: BorrowExplanation<'tcx>,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         if let BorrowExplanation::MustBeValidFor { category, span, from_closure: false, .. } =
             explanation
         {
@@ -2397,8 +2498,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                 let proper_span = proper_span.source_callsite();
                 if let Some(scope) = self.body.source_scopes.get(source_info.scope)
                     && let ClearCrossCrate::Set(scope_data) = &scope.local_data
-                    && let Some(node) = self.infcx.tcx.opt_hir_node(scope_data.lint_root)
-                    && let Some(id) = node.body_id()
+                    && let Some(id) = self.infcx.tcx.hir_node(scope_data.lint_root).body_id()
                     && let hir::ExprKind::Block(block, _) = self.infcx.tcx.hir().body(id).value.kind
                 {
                     for stmt in block.stmts {
@@ -2440,7 +2540,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                                         "consider consuming the `{ty}` when turning it into an \
                                          `Iterator`",
                                     ),
-                                    "into_iter".to_string(),
+                                    "into_iter",
                                     Applicability::MaybeIncorrect,
                                 );
                             }
@@ -2479,7 +2579,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             None,
         );
 
-        borrow_spans.args_subdiag(&mut err, |args_span| {
+        borrow_spans.args_subdiag(self.dcx(), &mut err, |args_span| {
             crate::session_diagnostics::CaptureArgLabel::Capture {
                 is_within: borrow_spans.for_coroutine(),
                 args_span,
@@ -2496,7 +2596,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         return_span: Span,
         category: ConstraintCategory<'tcx>,
         opt_place_desc: Option<&String>,
-    ) -> Option<DiagnosticBuilder<'cx>> {
+    ) -> Option<Diag<'tcx>> {
         let return_kind = match category {
             ConstraintCategory::Return(_) => "return",
             ConstraintCategory::Yield => "yield",
@@ -2531,9 +2631,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
             };
             (format!("{local_kind}`{place_desc}`"), format!("`{place_desc}` is borrowed here"))
         } else {
-            let root_place =
-                self.prefixes(borrow.borrowed_place.as_ref(), PrefixSet::All).last().unwrap();
-            let local = root_place.local;
+            let local = borrow.borrowed_place.local;
             match self.body.local_kind(local) {
                 LocalKind::Arg => (
                     "function parameter".to_string(),
@@ -2591,7 +2689,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         constraint_span: Span,
         captured_var: &str,
         scope: &str,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         let tcx = self.infcx.tcx;
         let args_span = use_span.args_or_use();
 
@@ -2699,7 +2797,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         upvar_span: Span,
         upvar_name: Symbol,
         escape_span: Span,
-    ) -> DiagnosticBuilder<'cx> {
+    ) -> Diag<'tcx> {
         let tcx = self.infcx.tcx;
 
         let escapes_from = tcx.def_descr(self.mir_def_id().to_def_id());
@@ -2938,11 +3036,13 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
                     "assign",
                 );
 
-                loan_spans.var_subdiag(None, &mut err, Some(loan.kind), |kind, var_span| {
+                loan_spans.var_subdiag(self.dcx(), &mut err, Some(loan.kind), |kind, var_span| {
                     use crate::session_diagnostics::CaptureVarCause::*;
                     match kind {
                         hir::ClosureKind::Coroutine(_) => BorrowUseInCoroutine { var_span },
-                        hir::ClosureKind::Closure => BorrowUseInClosure { var_span },
+                        hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
+                            BorrowUseInClosure { var_span }
+                        }
                     }
                 });
 
@@ -2954,11 +3054,13 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
 
         let mut err = self.cannot_assign_to_borrowed(span, loan_span, &descr_place);
 
-        loan_spans.var_subdiag(None, &mut err, Some(loan.kind), |kind, var_span| {
+        loan_spans.var_subdiag(self.dcx(), &mut err, Some(loan.kind), |kind, var_span| {
             use crate::session_diagnostics::CaptureVarCause::*;
             match kind {
                 hir::ClosureKind::Coroutine(_) => BorrowUseInCoroutine { var_span },
-                hir::ClosureKind::Closure => BorrowUseInClosure { var_span },
+                hir::ClosureKind::Closure | hir::ClosureKind::CoroutineClosure(_) => {
+                    BorrowUseInClosure { var_span }
+                }
             }
         });
 
@@ -2977,7 +3079,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         self.buffer_error(err);
     }
 
-    fn explain_deref_coercion(&mut self, loan: &BorrowData<'tcx>, err: &mut Diagnostic) {
+    fn explain_deref_coercion(&mut self, loan: &BorrowData<'tcx>, err: &mut Diag<'_>) {
         let tcx = self.infcx.tcx;
         if let (
             Some(Terminator {
@@ -3017,7 +3119,6 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     /// assignment to `x.f`).
     pub(crate) fn report_illegal_reassignment(
         &mut self,
-        _location: Location,
         (place, span): (Place<'tcx>, Span),
         assigned_span: Span,
         err_place: Place<'tcx>,
@@ -3158,7 +3259,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
     ) -> Option<AnnotatedBorrowFnSignature<'tcx>> {
         // Define a fallback for when we can't match a closure.
         let fallback = || {
-            let is_closure = self.infcx.tcx.is_closure_or_coroutine(self.mir_def_id().to_def_id());
+            let is_closure = self.infcx.tcx.is_closure_like(self.mir_def_id().to_def_id());
             if is_closure {
                 None
             } else {
@@ -3369,7 +3470,7 @@ impl<'cx, 'tcx> MirBorrowckCtxt<'cx, 'tcx> {
         sig: ty::PolyFnSig<'tcx>,
     ) -> Option<AnnotatedBorrowFnSignature<'tcx>> {
         debug!("annotate_fn_sig: did={:?} sig={:?}", did, sig);
-        let is_closure = self.infcx.tcx.is_closure_or_coroutine(did.to_def_id());
+        let is_closure = self.infcx.tcx.is_closure_like(did.to_def_id());
         let fn_hir_id = self.infcx.tcx.local_def_id_to_hir_id(did);
         let fn_decl = self.infcx.tcx.hir().fn_decl_by_hir_id(fn_hir_id)?;
 
@@ -3513,7 +3614,7 @@ enum AnnotatedBorrowFnSignature<'tcx> {
 impl<'tcx> AnnotatedBorrowFnSignature<'tcx> {
     /// Annotate the provided diagnostic with information about borrow from the fn signature that
     /// helps explain.
-    pub(crate) fn emit(&self, cx: &mut MirBorrowckCtxt<'_, 'tcx>, diag: &mut Diagnostic) -> String {
+    pub(crate) fn emit(&self, cx: &mut MirBorrowckCtxt<'_, 'tcx>, diag: &mut Diag<'_>) -> String {
         match self {
             &AnnotatedBorrowFnSignature::Closure { argument_ty, argument_span } => {
                 diag.span_label(

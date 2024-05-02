@@ -11,7 +11,6 @@
 // Note, however, that we run on lots older linuxes, as well as cross
 // compiling from a newer linux to an older linux, so we also have a
 // fallback implementation to use as well.
-#[cfg_attr(bootstrap, allow(unexpected_cfgs))]
 #[cfg(any(
     target_os = "linux",
     target_os = "android",
@@ -59,7 +58,7 @@ pub unsafe fn register_dtor(t: *mut u8, dtor: unsafe extern "C" fn(*mut u8)) {
                     unsafe extern "C" fn(*mut libc::c_void),
                 >(dtor),
                 t.cast(),
-                &__dso_handle as *const _ as *mut _,
+                core::ptr::addr_of!(__dso_handle) as *mut _,
             );
         }
         return;

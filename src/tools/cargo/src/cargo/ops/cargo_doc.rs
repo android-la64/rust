@@ -1,7 +1,7 @@
 use crate::core::compiler::{Compilation, CompileKind};
-use crate::core::{Shell, Workspace};
+use crate::core::{shell::Verbosity, Shell, Workspace};
 use crate::ops;
-use crate::util::config::{Config, PathAndArgs};
+use crate::util::context::{GlobalContext, PathAndArgs};
 use crate::util::CargoResult;
 use anyhow::{bail, Error};
 use std::path::Path;
@@ -66,31 +66,50 @@ pub fn doc(ws: &Workspace<'_>, options: &DocOptions) -> CargoResult<()> {
 
         if path.exists() {
             let config_browser = {
-                let cfg: Option<PathAndArgs> = ws.config().get("doc.browser")?;
-                cfg.map(|path_args| (path_args.path.resolve_program(ws.config()), path_args.args))
+                let cfg: Option<PathAndArgs> = ws.gctx().get("doc.browser")?;
+                cfg.map(|path_args| (path_args.path.resolve_program(ws.gctx()), path_args.args))
             };
-            let mut shell = ws.config().shell();
+            let mut shell = ws.gctx().shell();
             let link = shell.err_file_hyperlink(&path);
-            shell.status(
-                "Opening",
-                format!("{}{}{}", link.open(), path.display(), link.close()),
-            )?;
-            open_docs(&path, &mut shell, config_browser, ws.config())?;
+            shell.status("Opening", format!("{link}{}{link:#}", path.display()))?;
+            open_docs(&path, &mut shell, config_browser, ws.gctx())?;
         }
-    } else {
+    } else if ws.gctx().shell().verbosity() == Verbosity::Verbose {
         for name in &compilation.root_crate_names {
             for kind in &options.compile_opts.build_config.requested_kinds {
                 let path =
                     path_by_output_format(&compilation, &kind, &name, &options.output_format);
                 if path.exists() {
-                    let mut shell = ws.config().shell();
+                    let mut shell = ws.gctx().shell();
                     let link = shell.err_file_hyperlink(&path);
-                    shell.status(
-                        "Generated",
-                        format!("{}{}{}", link.open(), path.display(), link.close()),
-                    )?;
+                    shell.status("Generated", format!("{link}{}{link:#}", path.display()))?;
                 }
             }
+        }
+    } else {
+        let mut output = compilation.root_crate_names.iter().flat_map(|name| {
+            options
+                .compile_opts
+                .build_config
+                .requested_kinds
+                .iter()
+                .map(|kind| path_by_output_format(&compilation, kind, name, &options.output_format))
+                .filter(|path| path.exists())
+        });
+        if let Some(first_path) = output.next() {
+            let remaining = output.count();
+            let remaining = match remaining {
+                0 => "".to_owned(),
+                1 => " and 1 other file".to_owned(),
+                n => format!(" and {n} other files"),
+            };
+
+            let mut shell = ws.gctx().shell();
+            let link = shell.err_file_hyperlink(&first_path);
+            shell.status(
+                "Generated",
+                format!("{link}{}{link:#}{remaining}", first_path.display(),),
+            )?;
         }
     }
 
@@ -119,10 +138,10 @@ fn open_docs(
     path: &Path,
     shell: &mut Shell,
     config_browser: Option<(PathBuf, Vec<String>)>,
-    config: &Config,
+    gctx: &GlobalContext,
 ) -> CargoResult<()> {
     let browser =
-        config_browser.or_else(|| Some((PathBuf::from(config.get_env_os("BROWSER")?), Vec::new())));
+        config_browser.or_else(|| Some((PathBuf::from(gctx.get_env_os("BROWSER")?), Vec::new())));
 
     match browser {
         Some((browser, initial_args)) => {

@@ -25,7 +25,6 @@
 //!     table,
 //!     concat!(
 //!         " FreeBSD     | 1993 | William and Lynne Jolitz     | ? \n",
-//!         "-------------+------+------------------------------+---\n",
 //!         " OpenBSD     | 1995 | Theo de Raadt                |   \n",
 //!         " HardenedBSD | 2014 | Oliver Pinter and Shawn Webb |   ",
 //!     )
@@ -80,7 +79,7 @@ use crate::{
         util::string::string_width,
         CompactGrid,
     },
-    settings::{Style, TableOption},
+    settings::{style::Style, TableOption},
 };
 
 /// A table which consumes an [`IntoRecords`] iterator.
@@ -164,7 +163,7 @@ impl<I, D> CompactTable<I, D> {
     /// With is a generic function which applies options to the [`CompactTable`].
     pub fn with<O>(mut self, option: O) -> Self
     where
-        for<'a> O: TableOption<IterRecords<&'a I>, D, CompactConfig>,
+        for<'a> O: TableOption<IterRecords<&'a I>, CompactConfig, D>,
     {
         let mut records = IterRecords::new(&self.records, self.count_columns, self.count_rows);
         option.change(&mut records, &mut self.cfg, &mut self.dims);
@@ -198,6 +197,7 @@ impl<I, D> CompactTable<I, D> {
     pub fn fmt<W>(self, writer: W) -> fmt::Result
     where
         I: IntoRecords,
+        I::Cell: AsRef<str>,
         D: Dimension,
         W: fmt::Write,
     {
@@ -217,6 +217,7 @@ impl<I, D> CompactTable<I, D> {
     pub fn build<W>(self, writer: W) -> std::io::Result<()>
     where
         I: IntoRecords,
+        I::Cell: AsRef<str>,
         D: Dimension,
         W: std::io::Write,
     {
@@ -234,10 +235,13 @@ impl<I, D> CompactTable<I, D> {
     pub fn to_string(self) -> String
     where
         I: IntoRecords,
+        I::Cell: AsRef<str>,
         D: Dimension,
     {
         let mut buf = String::new();
-        self.fmt(&mut buf).unwrap();
+        self.fmt(&mut buf)
+            .expect("it's expected to be ok according to doc");
+
         buf
     }
 }
@@ -267,14 +271,20 @@ where
     }
 }
 
-fn build_grid<W: fmt::Write, I: IntoRecords, D: Dimension>(
+fn build_grid<W, I, D>(
     writer: W,
     records: I,
     dims: D,
     config: CompactConfig,
     cols: usize,
     rows: Option<usize>,
-) -> Result<(), fmt::Error> {
+) -> Result<(), fmt::Error>
+where
+    W: fmt::Write,
+    I: IntoRecords,
+    I::Cell: AsRef<str>,
+    D: Dimension,
+{
     match rows {
         Some(limit) => {
             let records = LimitRows::new(records, limit);
@@ -291,7 +301,7 @@ fn build_grid<W: fmt::Write, I: IntoRecords, D: Dimension>(
 }
 
 const fn create_config() -> CompactConfig {
-    CompactConfig::empty()
+    CompactConfig::new()
         .set_padding(Sides::new(
             Indent::spaced(1),
             Indent::spaced(1),
@@ -299,10 +309,10 @@ const fn create_config() -> CompactConfig {
             Indent::zero(),
         ))
         .set_alignment_horizontal(AlignmentHorizontal::Left)
-        .set_borders(*Style::ascii().get_borders())
+        .set_borders(Style::ascii().get_borders())
 }
 
-impl<R, D> TableOption<R, D, CompactConfig> for CompactConfig {
+impl<R, D> TableOption<R, CompactConfig, D> for CompactConfig {
     fn change(self, _: &mut R, cfg: &mut CompactConfig, _: &mut D) {
         *cfg = self;
     }

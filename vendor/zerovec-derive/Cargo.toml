@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "zerovec-derive"
-version = "0.10.0"
+version = "0.10.1"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the zerovec crate"
 readme = "README.md"
@@ -62,15 +62,3 @@ features = ["derive"]
 
 [dev-dependencies.serde_json]
 version = "1.0"
-
-[dev-dependencies.zerofrom]
-version = "0.1.2"
-default-features = false
-
-[dev-dependencies.zerovec]
-version = ">=0.9.4, <0.11.0"
-features = [
-    "serde",
-    "derive",
-]
-default-features = false

@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "self_cell"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Lukas Bergdoll <lukas.bergdoll@gmail.com>"]
 include = [
     "src/*.rs",

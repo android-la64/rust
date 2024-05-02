@@ -2,6 +2,21 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.20.0] - 2024-02-14
+- Bump `syn` to version 2 #308
+- Bump `darling` to version 0.20.6 #308
+- **BREAKING CHANGE**: Remove support for `field(type = "...")` as `syn` no longer allows this. #308
+- Allow omitting quotes on `builder(default = ...)` expressions #308
+
+## [0.13.1] - 2024-02-12
+- Accept `field(ty = "...")` as an alias for `field(type = "...")` in preparation for moving to syn 2.0, which doesn't allow the use of keywords as meta item paths. #306
+
+## [0.13.0] - 2024-01-22
+- Bump MSRV to 1.56.0
+- Add `build_fn(error(validation_error = <bool>))` to disable generation of `ValidationError` within the builder's error so that `alloc::string` is avoided.
+- Add feature `alloc` for controlling linking of `alloc` crate during `no_std`. This way users can use `no_std` without providing a `global_allocator`.
+- Make try-setters inherit `strip_option` from `setter` for `try_setter`. Using these settings together previously caused a compile error  #284
+
 ## [0.12.0] - 2022-11-28
 - Produce error when `default` is used with `field(type = "...")` rather than silently ignoring `default` #269
 - Add support for `crate = "..."` to support re-export scenarios #274

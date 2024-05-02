@@ -77,6 +77,7 @@ impl<'tcx> CheckConstVisitor<'tcx> {
     }
 
     /// Emits an error when an unsupported expression is found in a const context.
+    #[allow(rustc::untranslatable_diagnostic)] // FIXME: make this translatable
     fn const_check_violated(&self, expr: NonConstExpr, span: Span) {
         let Self { tcx, def_id, const_kind } = *self;
 
@@ -156,9 +157,12 @@ impl<'tcx> CheckConstVisitor<'tcx> {
                 // is a pretty narrow case, however.
                 if tcx.sess.is_nightly_build() {
                     for gate in missing_secondary {
-                        let note =
-                            format!("add `#![feature({gate})]` to the crate attributes to enable",);
-                        err.help(note);
+                        // FIXME: make this translatable
+                        #[allow(rustc::diagnostic_outside_of_impl)]
+                        #[allow(rustc::untranslatable_diagnostic)]
+                        err.help(format!(
+                            "add `#![feature({gate})]` to the crate attributes to enable"
+                        ));
                     }
                 }
 

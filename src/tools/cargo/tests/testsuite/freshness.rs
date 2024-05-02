@@ -29,7 +29,7 @@ fn modifying_and_moving() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -45,7 +45,7 @@ fn modifying_and_moving() {
 [DIRTY] foo v0.0.1 ([CWD]): the file `src/a.rs` has changed ([..])
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -71,7 +71,7 @@ fn modify_only_some_files() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -92,7 +92,7 @@ fn modify_only_some_files() {
 [DIRTY] foo v0.0.1 ([CWD]): the file `src/b.rs` has changed ([..])
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc --crate-name foo [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -109,6 +109,7 @@ fn rebuild_sub_package_then_while_package() {
                 name = "foo"
                 authors = []
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies.a]
                 path = "a"
@@ -124,6 +125,7 @@ fn rebuild_sub_package_then_while_package() {
                 name = "a"
                 authors = []
                 version = "0.0.1"
+                edition = "2015"
                 [dependencies.b]
                 path = "../b"
             "#,
@@ -139,7 +141,7 @@ fn rebuild_sub_package_then_while_package() {
 [COMPILING] b [..]
 [COMPILING] a [..]
 [COMPILING] foo [..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -155,7 +157,7 @@ fn rebuild_sub_package_then_while_package() {
 [DIRTY] b v0.0.1 ([..]): the file `b/src/lib.rs` has changed ([..])
 [COMPILING] b [..]
 [RUNNING] `rustc --crate-name b [..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -175,7 +177,7 @@ fn rebuild_sub_package_then_while_package() {
 [DIRTY] foo [..]: the dependency b was rebuilt ([..])
 [COMPILING] foo [..]
 [RUNNING] `rustc --crate-name foo [..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -191,6 +193,7 @@ fn changing_lib_features_caches_targets() {
                 name = "foo"
                 authors = []
                 version = "0.0.1"
+                edition = "2015"
 
                 [features]
                 foo = []
@@ -203,7 +206,7 @@ fn changing_lib_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -212,7 +215,7 @@ fn changing_lib_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -220,13 +223,13 @@ fn changing_lib_features_caches_targets() {
     /* Targets should be cached from the first build */
 
     p.cargo("build")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 
     p.cargo("build").with_stderr("[FINISHED] [..]").run();
 
     p.cargo("build --features foo")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -240,6 +243,7 @@ fn changing_profiles_caches_targets() {
                 name = "foo"
                 authors = []
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 panic = "abort"
@@ -252,7 +256,7 @@ fn changing_profiles_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -261,7 +265,7 @@ fn changing_profiles_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target[..]debug[..]deps[..]foo-[..][EXE])
 [DOCTEST] foo
 ",
@@ -271,13 +275,13 @@ fn changing_profiles_caches_targets() {
     /* Targets should be cached from the first build */
 
     p.cargo("build")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 
     p.cargo("test foo")
         .with_stderr(
             "\
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target[..]debug[..]deps[..]foo-[..][EXE])
 ",
         )
@@ -290,7 +294,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
     let p = project()
         .no_manifest()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 target-dir = "./target"
@@ -302,6 +306,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
                 [package]
                 name    = "dep_crate"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -327,6 +332,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
                 [package]
                 name    = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -350,6 +356,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
                 [package]
                 name    = "b"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -377,7 +384,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
             "\
 [..]Compiling dep_crate v0.0.1 ([..])
 [..]Compiling a v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/a[EXE]`
 ",
         )
@@ -389,7 +396,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling a v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/a[EXE]`
 ",
         )
@@ -403,7 +410,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
             "\
 [..]Compiling dep_crate v0.0.1 ([..])
 [..]Compiling b v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/b[EXE]`
 ",
         )
@@ -415,7 +422,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling b v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/b[EXE]`
 ",
         )
@@ -430,7 +437,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling a v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/a[EXE]`
 ",
         )
@@ -445,7 +452,7 @@ fn changing_bin_paths_common_target_features_caches_targets() {
         .with_stderr(
             "\
 [..]Compiling b v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]target/debug/b[EXE]`
 ",
         )
@@ -462,6 +469,7 @@ fn changing_bin_features_caches_targets() {
                 name = "foo"
                 authors = []
                 version = "0.0.1"
+                edition = "2015"
 
                 [features]
                 foo = []
@@ -482,7 +490,7 @@ fn changing_bin_features_caches_targets() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -492,7 +500,7 @@ fn changing_bin_features_caches_targets() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -509,10 +517,10 @@ fn changing_bin_features_caches_targets() {
 [DIRTY] foo v0.0.1 ([..]): the list of features changed
 [COMPILING] foo[..]
 [RUNNING] `rustc [..]
-[FINISHED] dev[..]",
+[FINISHED] `dev`[..]",
         );
     } else {
-        e.with_stderr("[FRESH] foo v0.0.1 ([..])\n[FINISHED] dev[..]");
+        e.with_stderr("[FRESH] foo v0.0.1 ([..])\n[FINISHED] `dev`[..]");
     }
     e.run();
     p.rename_run("foo", "off2").with_stdout("feature off").run();
@@ -524,13 +532,13 @@ fn changing_bin_features_caches_targets() {
 [DIRTY] foo v0.0.1 ([..]): the list of features changed
 [COMPILING] foo[..]
 [RUNNING] `rustc [..]
-[FINISHED] dev[..]",
+[FINISHED] `dev`[..]",
         );
     } else {
         e.with_stderr(
             "\
 [FRESH] foo v0.0.1 ([..])
-[FINISHED] dev[..]",
+[FINISHED] `dev`[..]",
         );
     }
     e.run();
@@ -573,6 +581,7 @@ fn no_rebuild_transitive_target_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -589,6 +598,7 @@ fn no_rebuild_transitive_target_deps() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [target.foo.dependencies]
@@ -602,6 +612,7 @@ fn no_rebuild_transitive_target_deps() {
                 [package]
                 name = "b"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -620,7 +631,7 @@ fn no_rebuild_transitive_target_deps() {
 [COMPILING] c v0.0.1 ([..])
 [COMPILING] b v0.0.1 ([..])
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [EXECUTABLE] unittests src/lib.rs (target/debug/deps/foo-[..][EXE])
 [EXECUTABLE] tests/foo.rs (target/debug/deps/foo-[..][EXE])
 ",
@@ -637,6 +648,7 @@ fn rerun_if_changed_in_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -650,6 +662,7 @@ fn rerun_if_changed_in_dep() {
                 [package]
                 name = "a"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -679,6 +692,7 @@ fn same_build_dir_cached_packages() {
                 [package]
                 name = "a1"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 b = { path = "../b" }
@@ -691,6 +705,7 @@ fn same_build_dir_cached_packages() {
                 [package]
                 name = "a2"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 b = { path = "../b" }
@@ -703,6 +718,7 @@ fn same_build_dir_cached_packages() {
                 [package]
                 name = "b"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 c = { path = "../c" }
@@ -715,6 +731,7 @@ fn same_build_dir_cached_packages() {
                 [package]
                 name = "c"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 d = { path = "../d" }
@@ -724,7 +741,7 @@ fn same_build_dir_cached_packages() {
         .file("d/Cargo.toml", &basic_manifest("d", "0.0.1"))
         .file("d/src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 target-dir = "./target"
@@ -740,7 +757,7 @@ fn same_build_dir_cached_packages() {
 [COMPILING] c v0.0.1 ({dir}/c)
 [COMPILING] b v0.0.1 ({dir}/b)
 [COMPILING] a1 v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
             dir = p.url().to_file_path().unwrap().to_str().unwrap()
         ))
@@ -750,7 +767,7 @@ fn same_build_dir_cached_packages() {
         .with_stderr(
             "\
 [COMPILING] a2 v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -765,6 +782,7 @@ fn no_rebuild_if_build_artifacts_move_backwards_in_time() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -795,6 +813,7 @@ fn rebuild_if_build_artifacts_move_forward_in_time() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -833,6 +852,7 @@ fn rebuild_if_environment_changes() {
                 name = "foo"
                 description = "old desc"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -851,7 +871,7 @@ fn rebuild_if_environment_changes() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`
 ",
         )
@@ -864,6 +884,7 @@ fn rebuild_if_environment_changes() {
             name = "foo"
             description = "new desc"
             version = "0.0.1"
+            edition = "2015"
             authors = []
         "#,
     );
@@ -875,7 +896,7 @@ fn rebuild_if_environment_changes() {
 [DIRTY] foo v0.0.1 ([CWD]): the metadata changed
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`
 ",
         )
@@ -891,6 +912,7 @@ fn no_rebuild_when_rename_dir() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -920,7 +942,7 @@ fn no_rebuild_when_rename_dir() {
 
     p.cargo("build")
         .cwd(&new)
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -938,6 +960,7 @@ fn unused_optional_dep() {
                 name = "p"
                 authors = []
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -952,6 +975,7 @@ fn unused_optional_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.1"
+                edition = "2015"
                 authors = []
 
                 [dev-dependencies]
@@ -965,6 +989,7 @@ fn unused_optional_dep() {
                 [package]
                 name = "baz"
                 version = "0.1.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -991,6 +1016,7 @@ fn path_dev_dep_registry_updates() {
                 name = "p"
                 authors = []
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -1003,6 +1029,7 @@ fn path_dev_dep_registry_updates() {
                 [package]
                 name = "bar"
                 version = "0.1.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1019,6 +1046,7 @@ fn path_dev_dep_registry_updates() {
                 [package]
                 name = "baz"
                 version = "0.1.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1053,6 +1081,7 @@ fn change_panic_mode() {
                 [package]
                 name = "baz"
                 version = "0.1.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1078,6 +1107,7 @@ fn dont_rebuild_based_on_plugins() {
                 [package]
                 name = "bar"
                 version = "0.1.1"
+                edition = "2015"
 
                 [workspace]
                 members = ['baz']
@@ -1093,6 +1123,7 @@ fn dont_rebuild_based_on_plugins() {
                 [package]
                 name = "proc-macro-thing"
                 version = "0.1.1"
+                edition = "2015"
 
                 [lib]
                 proc-macro = true
@@ -1108,6 +1139,7 @@ fn dont_rebuild_based_on_plugins() {
                 [package]
                 name = "baz"
                 version = "0.1.1"
+                edition = "2015"
 
                 [dependencies]
                 qux = { path = '../qux' }
@@ -1135,6 +1167,7 @@ fn reuse_workspace_lib() {
                 [package]
                 name = "bar"
                 version = "0.1.1"
+                edition = "2015"
 
                 [workspace]
 
@@ -1169,6 +1202,7 @@ fn reuse_shared_build_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 shared = {path = "shared"}
@@ -1186,6 +1220,7 @@ fn reuse_shared_build_dep() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
 
                 [build-dependencies]
                 shared = { path = "../shared" }
@@ -1217,7 +1252,7 @@ fn changing_rustflags_is_cached() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
     p.cargo("build -v")
@@ -1227,7 +1262,7 @@ fn changing_rustflags_is_cached() {
 [DIRTY] foo v0.0.1 ([..]): the rustflags changed
 [COMPILING] foo v0.0.1 ([..])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 
@@ -1237,7 +1272,7 @@ fn changing_rustflags_is_cached() {
 [DIRTY] foo v0.0.1 ([..]): the rustflags changed
 [COMPILING] foo v0.0.1 ([..])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
     p.cargo("build -v")
@@ -1247,7 +1282,7 @@ fn changing_rustflags_is_cached() {
 [DIRTY] foo v0.0.1 ([..]): the rustflags changed
 [COMPILING] foo v0.0.1 ([..])
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -1261,6 +1296,7 @@ fn update_dependency_mtime_does_not_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -1278,20 +1314,20 @@ fn update_dependency_mtime_does_not_rebuild() {
             "\
 [COMPILING] bar v0.0.1 ([..])
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
     // This does not make new files, but it does update the mtime of the dependency.
     p.cargo("build -p bar -Z mtime-on-use")
         .masquerade_as_nightly_cargo(&["mtime-on-use"])
         .env("RUSTFLAGS", "-C linker=cc")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
     // This should not recompile!
     p.cargo("build -Z mtime-on-use")
         .masquerade_as_nightly_cargo(&["mtime-on-use"])
         .env("RUSTFLAGS", "-C linker=cc")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -1336,6 +1372,7 @@ fn fingerprint_cleaner_does_not_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -1357,7 +1394,7 @@ fn fingerprint_cleaner_does_not_rebuild() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
     if is_coarse_mtime() {
@@ -1370,13 +1407,13 @@ fn fingerprint_cleaner_does_not_rebuild() {
     // This does not make new files, but it does update the mtime.
     p.cargo("build -Z mtime-on-use --features a")
         .masquerade_as_nightly_cargo(&["mtime-on-use"])
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
     fingerprint_cleaner(p.target_debug_dir(), timestamp);
     // This should not recompile!
     p.cargo("build -Z mtime-on-use --features a")
         .masquerade_as_nightly_cargo(&["mtime-on-use"])
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
     // But this should be cleaned and so need a rebuild
     p.cargo("build -Z mtime-on-use")
@@ -1384,7 +1421,7 @@ fn fingerprint_cleaner_does_not_rebuild() {
         .with_stderr(
             "\
 [COMPILING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -1398,6 +1435,7 @@ fn reuse_panic_build_dep_test() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [build-dependencies]
                 bar = { path = "bar" }
@@ -1424,7 +1462,7 @@ fn reuse_panic_build_dep_test() {
 [COMPILING] foo [..]
 [RUNNING] `rustc --crate-name build_script_build [..]
 [RUNNING] [..]build-script-build`
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]--test[..]
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]--test[..]
 [FINISHED] [..]
 [EXECUTABLE] `[..]/target/debug/deps/foo-[..][EXE]`
 ",
@@ -1443,6 +1481,7 @@ fn reuse_panic_pm() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar" }
@@ -1461,6 +1500,7 @@ fn reuse_panic_pm() {
                 [package]
                 name = "somepm"
                 version = "0.0.1"
+                edition = "2015"
 
                 [lib]
                 proc-macro = true
@@ -1478,12 +1518,12 @@ fn reuse_panic_pm() {
         .with_stderr_unordered(
             "\
 [COMPILING] bar [..]
-[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]
-[RUNNING] `rustc --crate-name bar bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C panic=abort[..]-C debuginfo=2 [..]
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--crate-type lib --emit=[..]link[..]
+[RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--crate-type lib --emit=[..]link -C panic=abort[..]-C debuginfo=2 [..]
 [COMPILING] somepm [..]
 [RUNNING] `rustc --crate-name somepm [..]
 [COMPILING] foo [..]
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]-C panic=abort[..]
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]-C panic=abort[..]
 [FINISHED] [..]
 ",
         )
@@ -1504,6 +1544,7 @@ fn bust_patched_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 registry2 = "0.1.0"
@@ -1575,6 +1616,7 @@ fn rebuild_on_mid_build_file_modification() {
                 [package]
                 name = "root"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1597,6 +1639,7 @@ fn rebuild_on_mid_build_file_modification() {
                 [package]
                 name = "proc_macro_dep"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -1646,7 +1689,7 @@ fn rebuild_on_mid_build_file_modification() {
             "\
 [COMPILING] proc_macro_dep v0.1.0 ([..]/proc_macro_dep)
 [COMPILING] root v0.1.0 ([..]/root)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1658,7 +1701,7 @@ fn rebuild_on_mid_build_file_modification() {
 [DIRTY] root v0.1.0 ([..]/root): the file `root/src/lib.rs` has changed ([..])
 [COMPILING] root v0.1.0 ([..]/root)
 [RUNNING] `rustc [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1835,6 +1878,7 @@ fn simulated_docker_deps_stay_cached() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             pathdep = { path = "pathdep" }
@@ -1953,6 +1997,7 @@ fn metadata_change_invalidates() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             "#,
         )
         .file("src/lib.rs", "")
@@ -2026,6 +2071,7 @@ fn rename_with_path_deps() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -2039,6 +2085,7 @@ fn rename_with_path_deps() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -2052,6 +2099,7 @@ fn rename_with_path_deps() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -2083,6 +2131,7 @@ fn move_target_directory_with_path_deps() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -2095,6 +2144,7 @@ fn move_target_directory_with_path_deps() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -2522,7 +2572,7 @@ fn lld_is_fresh() {
     // Check for bug when using lld linker that it remains fresh with dylib.
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [target.x86_64-pc-windows-msvc]
                 linker = "rust-lld"
@@ -2535,6 +2585,7 @@ fn lld_is_fresh() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 crate-type = ["dylib"]
@@ -2558,6 +2609,7 @@ fn env_in_code_causes_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2642,6 +2694,7 @@ fn env_build_script_no_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file(
@@ -2758,6 +2811,7 @@ fn verify_source_before_recompile() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -2779,7 +2833,9 @@ fn verify_source_before_recompile() {
     );
     // Sanity check: vendoring works correctly.
     p.cargo("check --verbose")
-        .with_stderr_contains("[RUNNING] `rustc --crate-name bar [CWD]/vendor/bar/src/lib.rs[..]")
+        .with_stderr_contains(
+            "[RUNNING] `rustc --crate-name bar --edition=2015 [CWD]/vendor/bar/src/lib.rs[..]",
+        )
         .run();
     // Now modify vendored crate.
     p.change_file(
@@ -2792,7 +2848,7 @@ fn verify_source_before_recompile() {
             "\
 [FRESH] bar v0.1.0
 [FRESH] foo v0.1.0 ([CWD])
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -2830,8 +2886,8 @@ fn skip_mtime_check_in_selected_cargo_home_subdirs() {
         .with_stderr(
             "\
 [CHECKING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]
-[FINISHED] dev [..]",
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]
+[FINISHED] `dev` profile [..]",
         )
         .run();
     p.change_file("src/lib.rs", "illegal syntax");
@@ -2840,7 +2896,7 @@ fn skip_mtime_check_in_selected_cargo_home_subdirs() {
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([CWD])
-[FINISHED] dev [..]",
+[FINISHED] `dev` profile [..]",
         )
         .run();
 }
@@ -2859,8 +2915,8 @@ fn use_mtime_cache_in_cargo_home() {
         .with_stderr(
             "\
 [CHECKING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]
-[FINISHED] dev [..]",
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]
+[FINISHED] `dev` profile [..]",
         )
         .run();
     p.change_file("src/lib.rs", "illegal syntax");
@@ -2870,7 +2926,7 @@ fn use_mtime_cache_in_cargo_home() {
             "\
 [DIRTY] foo v0.5.0 ([CWD]): [..]
 [CHECKING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name foo src/lib.rs [..]",
+[RUNNING] `rustc --crate-name foo --edition=2015 src/lib.rs [..]",
         )
         .run_expect_error();
 }

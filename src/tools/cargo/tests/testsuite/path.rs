@@ -19,6 +19,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -35,6 +36,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.baz]
@@ -73,7 +75,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
             "[COMPILING] baz v0.5.0 ([CWD]/bar/baz)\n\
              [COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -93,7 +95,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
     p.cargo("build -p baz")
         .with_stderr(
             "[COMPILING] baz v0.5.0 ([CWD]/bar/baz)\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -102,7 +104,7 @@ fn cargo_compile_with_nested_deps_shorthand() {
         .with_stderr(
             "[COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -118,6 +120,7 @@ fn cargo_compile_with_root_dev_deps() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dev-dependencies.bar]
@@ -160,6 +163,7 @@ fn cargo_compile_with_root_dev_deps_with_testing() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dev-dependencies.bar]
@@ -191,7 +195,7 @@ fn cargo_compile_with_root_dev_deps_with_testing() {
             "\
 [COMPILING] [..] v0.5.0 ([..])
 [COMPILING] [..] v0.5.0 ([..])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target/debug/deps/foo-[..][EXE])",
         )
         .with_stdout_contains("running 0 tests")
@@ -208,6 +212,7 @@ fn cargo_compile_with_transitive_dev_deps() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -224,6 +229,7 @@ fn cargo_compile_with_transitive_dev_deps() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dev-dependencies.baz]
@@ -249,7 +255,7 @@ fn cargo_compile_with_transitive_dev_deps() {
         .with_stderr(
             "[COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in \
              [..]\n",
         )
         .run();
@@ -269,6 +275,7 @@ fn no_rebuild_dependency() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -284,7 +291,7 @@ fn no_rebuild_dependency() {
         .with_stderr(
             "[CHECKING] bar v0.5.0 ([CWD]/bar)\n\
              [CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -301,7 +308,7 @@ fn no_rebuild_dependency() {
     p.cargo("check")
         .with_stderr(
             "[CHECKING] foo v0.5.0 ([..])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -317,6 +324,7 @@ fn deep_dependencies_trigger_rebuild() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -331,6 +339,7 @@ fn deep_dependencies_trigger_rebuild() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -351,7 +360,7 @@ fn deep_dependencies_trigger_rebuild() {
             "[CHECKING] baz v0.5.0 ([CWD]/baz)\n\
              [CHECKING] bar v0.5.0 ([CWD]/bar)\n\
              [CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -369,7 +378,7 @@ fn deep_dependencies_trigger_rebuild() {
             "[CHECKING] baz v0.5.0 ([CWD]/baz)\n\
              [CHECKING] bar v0.5.0 ([CWD]/bar)\n\
              [CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -388,7 +397,7 @@ fn deep_dependencies_trigger_rebuild() {
         .with_stderr(
             "[CHECKING] bar v0.5.0 ([CWD]/bar)\n\
              [CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -404,6 +413,7 @@ fn no_rebuild_two_deps() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -420,6 +430,7 @@ fn no_rebuild_two_deps() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [lib]
@@ -437,7 +448,7 @@ fn no_rebuild_two_deps() {
             "[COMPILING] baz v0.5.0 ([CWD]/baz)\n\
              [COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -456,6 +467,7 @@ fn nested_deps_recompile() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -473,7 +485,7 @@ fn nested_deps_recompile() {
         .with_stderr(
             "[CHECKING] bar v0.5.0 ([CWD]/src/bar)\n\
              [CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -485,7 +497,7 @@ fn nested_deps_recompile() {
     p.cargo("check")
         .with_stderr(
             "[CHECKING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -501,6 +513,7 @@ fn error_message_for_missing_manifest() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -543,7 +556,11 @@ fn override_relative() {
         .build();
 
     fs::create_dir(&paths::root().join(".cargo")).unwrap();
-    fs::write(&paths::root().join(".cargo/config"), r#"paths = ["bar"]"#).unwrap();
+    fs::write(
+        &paths::root().join(".cargo/config.toml"),
+        r#"paths = ["bar"]"#,
+    )
+    .unwrap();
 
     let p = project()
         .file(
@@ -554,6 +571,7 @@ fn override_relative() {
 
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
 
                     [dependencies.bar]
@@ -578,7 +596,10 @@ fn override_self() {
     let p = project();
     let root = p.root();
     let p = p
-        .file(".cargo/config", &format!("paths = ['{}']", root.display()))
+        .file(
+            ".cargo/config.toml",
+            &format!("paths = ['{}']", root.display()),
+        )
         .file(
             "Cargo.toml",
             &format!(
@@ -587,6 +608,7 @@ fn override_self() {
 
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
 
                     [dependencies.bar]
@@ -613,6 +635,7 @@ fn override_path_dep() {
                  [package]
                  name = "p1"
                  version = "0.5.0"
+                 edition = "2015"
                  authors = []
 
                  [dependencies.p2]
@@ -626,7 +649,7 @@ fn override_path_dep() {
 
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 "paths = ['{}', '{}']",
                 bar.root().join("p1").display(),
@@ -641,6 +664,7 @@ fn override_path_dep() {
 
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = ["wycats@example.com"]
 
                     [dependencies.p2]
@@ -666,6 +690,7 @@ fn path_dep_build_cmd() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.bar]
@@ -682,6 +707,7 @@ fn path_dep_build_cmd() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
 
@@ -707,7 +733,7 @@ fn path_dep_build_cmd() {
         .with_stderr(
             "[COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in \
              [..]\n",
         )
         .run();
@@ -723,7 +749,7 @@ fn path_dep_build_cmd() {
         .with_stderr(
             "[COMPILING] bar v0.5.0 ([CWD]/bar)\n\
              [COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) in \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in \
              [..]\n",
         )
         .run();
@@ -740,6 +766,7 @@ fn dev_deps_no_rebuild_lib() {
                 [package]
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = []
 
                 [dev-dependencies.bar]
@@ -764,7 +791,7 @@ fn dev_deps_no_rebuild_lib() {
         .env("FOO", "bar")
         .with_stderr(
             "[COMPILING] foo v0.5.0 ([CWD])\n\
-             [FINISHED] dev [unoptimized + debuginfo] target(s) \
+             [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) \
              in [..]\n",
         )
         .run();
@@ -774,7 +801,7 @@ fn dev_deps_no_rebuild_lib() {
             "\
 [COMPILING] [..] v0.5.0 ([CWD][..])
 [COMPILING] [..] v0.5.0 ([CWD][..])
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target/debug/deps/foo-[..][EXE])",
         )
         .with_stdout_contains("running 0 tests")
@@ -790,6 +817,7 @@ fn custom_target_no_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 a = { path = "a" }
@@ -806,6 +834,7 @@ fn custom_target_no_rebuild() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 a = { path = "../a" }
@@ -818,7 +847,7 @@ fn custom_target_no_rebuild() {
             "\
 [CHECKING] a v0.5.0 ([..])
 [CHECKING] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -832,7 +861,7 @@ fn custom_target_no_rebuild() {
         .with_stderr(
             "\
 [CHECKING] b v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -848,6 +877,7 @@ fn override_and_depend() {
                 [package]
                 name = "a1"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 a2 = { path = "../a2" }
@@ -862,6 +892,7 @@ fn override_and_depend() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 a1 = { path = "../a/a1" }
@@ -869,7 +900,7 @@ fn override_and_depend() {
             "#,
         )
         .file("b/src/lib.rs", "")
-        .file("b/.cargo/config", r#"paths = ["../a"]"#)
+        .file("b/.cargo/config.toml", r#"paths = ["../a"]"#)
         .build();
     p.cargo("check")
         .cwd("b")
@@ -879,7 +910,7 @@ fn override_and_depend() {
 [CHECKING] a2 v0.5.0 ([..])
 [CHECKING] a1 v0.5.0 ([..])
 [CHECKING] b v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -891,7 +922,7 @@ fn missing_path_dependency() {
         .file("Cargo.toml", &basic_manifest("a", "0.5.0"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"paths = ["../whoa-this-does-not-exist"]"#,
         )
         .build();
@@ -923,6 +954,7 @@ fn invalid_path_dep_in_workspace_with_lockfile() {
                 [package]
                 name = "top"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -938,6 +970,7 @@ fn invalid_path_dep_in_workspace_with_lockfile() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -957,6 +990,7 @@ fn invalid_path_dep_in_workspace_with_lockfile() {
             [package]
             name = "foo"
             version = "0.5.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -989,6 +1023,7 @@ fn workspace_produces_rlib() {
                 [package]
                 name = "top"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1018,6 +1053,7 @@ fn deep_path_error() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             [dependencies]
             a = {path="a"}
             "#,
@@ -1029,6 +1065,7 @@ fn deep_path_error() {
              [package]
              name = "a"
              version = "0.1.0"
+             edition = "2015"
              [dependencies]
              b = {path="../b"}
             "#,
@@ -1040,6 +1077,7 @@ fn deep_path_error() {
              [package]
              name = "b"
              version = "0.1.0"
+             edition = "2015"
              [dependencies]
              c = {path="../c"}
             "#,
@@ -1080,6 +1118,7 @@ fn catch_tricky_cycle() {
                 [package]
                 name = "message"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dev-dependencies]
                 test = { path = "test" }
@@ -1092,6 +1131,7 @@ fn catch_tricky_cycle() {
                 [package]
                 name = "tangle"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 message = { path = ".." }
@@ -1105,6 +1145,7 @@ fn catch_tricky_cycle() {
                 [package]
                 name = "snapshot"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 ledger = { path = "../ledger" }
@@ -1117,6 +1158,7 @@ fn catch_tricky_cycle() {
                 [package]
                 name = "ledger"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 tangle = { path = "../tangle" }
@@ -1129,6 +1171,7 @@ fn catch_tricky_cycle() {
                 [package]
                 name = "test"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 snapshot = { path = "../snapshot" }

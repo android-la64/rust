@@ -24,7 +24,7 @@ written, as always: ask your reviewer or ask around on the Rust Discord or Zulip
 
 [^new-explanations]: See the draft RFC [here][new-explanations-rfc].
 
-[`rustc_error_codes`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_error_codes/error_codes/index.html
+[`rustc_error_codes`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_error_codes/index.html
 [CommonMark Spec]: https://spec.commonmark.org/current/
 [RFC 1567]: https://github.com/rust-lang/rfcs/blob/master/text/1567-long-error-codes-explanation-normalization.md
 [new-explanations-rfc]: https://github.com/rust-lang/rfcs/pull/3370
@@ -70,10 +70,10 @@ register_diagnostics! {
 }
 ```
 
-To actually issue the error, you can use the `struct_span_err!` macro:
+To actually issue the error, you can use the `struct_span_code_err!` macro:
 
 ```rust
-struct_span_err!(self.tcx.sess, // some path to the session here
+struct_span_code_err!(self.dcx(), // some path to the `DiagCtxt` here
                  span, // whatever span in the source you want
                  E0592, // your new error code
                  fluent::example::an_error_message)
@@ -84,7 +84,7 @@ If you want to add notes or other snippets, you can invoke methods before you
 call `.emit()`:
 
 ```rust
-struct_span_err!(...)
+struct_span_code_err!(...)
     .span_label(another_span, fluent::example::example_label)
     .span_note(another_span, fluent::example::separate_note)
     .emit()

@@ -2,8 +2,7 @@
     clippy::cognitive_complexity,
     clippy::large_enum_variant,
     clippy::module_inception,
-    clippy::needless_doctest_main,
-    clippy::declare_interior_mutable_const
+    clippy::needless_doctest_main
 )]
 #![warn(
     missing_debug_implementations,
@@ -32,8 +31,8 @@
 //! * APIs for [performing asynchronous I/O][io], including [TCP and UDP][net] sockets,
 //!   [filesystem][fs] operations, and [process] and [signal] management.
 //! * A [runtime] for executing asynchronous code, including a task scheduler,
-//!   an I/O driver backed by the operating system's event queue (epoll, kqueue,
-//!   IOCP, etc...), and a high performance timer.
+//!   an I/O driver backed by the operating system's event queue (`epoll`, `kqueue`,
+//!   `IOCP`, etc...), and a high performance timer.
 //!
 //! Guide level documentation is found on the [website].
 //!
@@ -331,11 +330,11 @@
 //! - `signal`: Enables all `tokio::signal` types.
 //! - `fs`: Enables `tokio::fs` types.
 //! - `test-util`: Enables testing based infrastructure for the Tokio runtime.
-//! - `parking_lot`: As a potential optimization, use the _parking_lot_ crate's
+//! - `parking_lot`: As a potential optimization, use the `_parking_lot_` crate's
 //!                  synchronization primitives internally. Also, this
 //!                  dependency is necessary to construct some of our primitives
-//!                  in a const context. MSRV may increase according to the
-//!                  _parking_lot_ release in use.
+//!                  in a `const` context. `MSRV` may increase according to the
+//!                  `_parking_lot_` release in use.
 //!
 //! _Note: `AsyncRead` and `AsyncWrite` traits do not require any features and are
 //! always available._
@@ -410,9 +409,9 @@
 //!
 //! [mio-supported]: https://crates.io/crates/mio#platforms
 //!
-//! ### WASM support
+//! ### `WASM` support
 //!
-//! Tokio has some limited support for the WASM platform. Without the
+//! Tokio has some limited support for the `WASM` platform. Without the
 //! `tokio_unstable` flag, the following features are supported:
 //!
 //!  * `sync`
@@ -424,22 +423,22 @@
 //! Enabling any other feature (including `full`) will cause a compilation
 //! failure.
 //!
-//! The `time` module will only work on WASM platforms that have support for
-//! timers (e.g. wasm32-wasi). The timing functions will panic if used on a WASM
+//! The `time` module will only work on `WASM` platforms that have support for
+//! timers (e.g. wasm32-wasi). The timing functions will panic if used on a `WASM`
 //! platform that does not support timers.
 //!
 //! Note also that if the runtime becomes indefinitely idle, it will panic
 //! immediately instead of blocking forever. On platforms that don't support
 //! time, this means that the runtime can never be idle in any way.
 //!
-//! ### Unstable WASM support
+//! ### Unstable `WASM` support
 //!
-//! Tokio also has unstable support for some additional WASM features. This
+//! Tokio also has unstable support for some additional `WASM` features. This
 //! requires the use of the `tokio_unstable` flag.
 //!
 //! Using this flag enables the use of `tokio::net` on the wasm32-wasi target.
-//! However, not all methods are available on the networking types as WASI
-//! currently does not support the creation of new sockets from within WASM.
+//! However, not all methods are available on the networking types as `WASI`
+//! currently does not support the creation of new sockets from within `WASM`.
 //! Because of this, sockets must currently be created via the `FromRawFd`
 //! trait.
 
@@ -456,26 +455,9 @@ compile_error! {
     "Tokio requires the platform pointer width to be 32, 64, or 128 bits"
 }
 
-// Ensure that our build script has correctly set cfg flags for wasm.
-//
-// Each condition is written all(a, not(b)). This should be read as
-// "if a, then we must also have b".
-#[cfg(any(
-    all(target_arch = "wasm32", not(tokio_wasm)),
-    all(target_arch = "wasm64", not(tokio_wasm)),
-    all(target_family = "wasm", not(tokio_wasm)),
-    all(target_os = "wasi", not(tokio_wasm)),
-    all(target_os = "wasi", not(tokio_wasi)),
-    all(target_os = "wasi", tokio_wasm_not_wasi),
-    all(tokio_wasm, not(any(target_arch = "wasm32", target_arch = "wasm64"))),
-    all(tokio_wasm_not_wasi, not(tokio_wasm)),
-    all(tokio_wasi, not(tokio_wasm))
-))]
-compile_error!("Tokio's build script has incorrectly detected wasm.");
-
 #[cfg(all(
     not(tokio_unstable),
-    tokio_wasm,
+    target_family = "wasm",
     any(
         feature = "fs",
         feature = "io-std",
@@ -614,7 +596,7 @@ mod util;
 /// reach `std` on a stable compiler in time for the 1.0 release of Tokio. For
 /// this reason, the team has decided to move all `Stream` based utilities to
 /// the [`tokio-stream`] crate. While this is not ideal, once `Stream` has made
-/// it into the standard library and the MSRV period has passed, we will implement
+/// it into the standard library and the `MSRV` period has passed, we will implement
 /// stream for our different types.
 ///
 /// While this may seem unfortunate, not all is lost as you can get much of the
@@ -707,6 +689,6 @@ cfg_macros! {
 #[cfg(test)]
 fn is_unpin<T: Unpin>() {}
 
-/// fuzz test (fuzz_linked_list)
+/// fuzz test (`fuzz_linked_list`)
 #[cfg(fuzzing)]
 pub mod fuzz;

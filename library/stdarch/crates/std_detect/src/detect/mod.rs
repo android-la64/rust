@@ -27,6 +27,7 @@ mod arch;
 // This module needs to be public because the `is_{arch}_feature_detected!`
 // macros expand calls to items within it in user crates.
 #[doc(hidden)]
+#[unstable(feature = "stdarch_internal", issue = "none")]
 pub use self::arch::__is_feature_detected;
 
 pub(crate) use self::arch::Feature;
@@ -65,6 +66,9 @@ cfg_if! {
     } else if #[cfg(all(target_os = "windows", target_arch = "aarch64"))] {
         #[path = "os/windows/aarch64.rs"]
         mod os;
+    } else if #[cfg(all(target_os = "macos", target_arch = "aarch64", feature = "libc"))] {
+        #[path = "os/macos/aarch64.rs"]
+        mod os;
     } else {
         #[path = "os/other.rs"]
         mod os;
@@ -81,7 +85,7 @@ fn check_for(x: Feature) -> bool {
 /// Returns an `Iterator<Item=(&'static str, bool)>` where
 /// `Item.0` is the feature name, and `Item.1` is a `bool` which
 /// is `true` if the feature is supported by the host and `false` otherwise.
-#[unstable(feature = "stdsimd", issue = "27731")]
+#[unstable(feature = "stdarch_internal", issue = "none")]
 pub fn features() -> impl Iterator<Item = (&'static str, bool)> {
     cfg_if! {
         if #[cfg(any(
@@ -95,6 +99,7 @@ pub fn features() -> impl Iterator<Item = (&'static str, bool)> {
             target_arch = "powerpc64",
             target_arch = "mips",
             target_arch = "mips64",
+            target_arch = "loongarch64",
         ))] {
             (0_u8..Feature::_last as u8).map(|discriminant: u8| {
                 #[allow(bindings_with_variant_name)] // RISC-V has Feature::f

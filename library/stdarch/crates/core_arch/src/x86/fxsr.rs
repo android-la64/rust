@@ -71,7 +71,7 @@ mod tests {
             FxsaveArea { data: [0; 512] }
         }
         fn ptr(&mut self) -> *mut u8 {
-            &mut self.data[0] as *mut _ as *mut u8
+            self.data.as_mut_ptr()
         }
     }
 
@@ -100,6 +100,7 @@ mod tests {
     }
 
     #[simd_test(enable = "fxsr")]
+    #[cfg_attr(miri, ignore)] // Register saving/restoring is not supported in Miri
     unsafe fn fxsave() {
         let mut a = FxsaveArea::new();
         let mut b = FxsaveArea::new();

@@ -17,6 +17,12 @@ use crate::read::ReadRef;
 /// them to be returned. Entries in the cache are never removed.
 /// Entries are keyed on the offset and size of the read.
 /// Currently overlapping reads are considered separate reads.
+///
+/// This is primarily intended for environments where memory mapped files
+/// are not available or not suitable, such as WebAssembly.
+///
+/// Note that malformed files can cause the cache to grow much larger than
+/// the file size.
 #[derive(Debug)]
 pub struct ReadCache<R: Read + Seek> {
     cache: RefCell<ReadCacheInternal<R>>,
@@ -27,6 +33,30 @@ struct ReadCacheInternal<R: Read + Seek> {
     read: R,
     bufs: HashMap<(u64, u64), Box<[u8]>>,
     strings: HashMap<(u64, u8), Box<[u8]>>,
+    len: Option<u64>,
+}
+
+impl<R: Read + Seek> ReadCacheInternal<R> {
+    /// Ensures this range is contained in the len of the file
+    fn range_in_bounds(&mut self, range: &Range<u64>) -> Result<(), ()> {
+        if range.start <= range.end && range.end <= self.len()? {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    /// The length of the underlying read, memoized
+    fn len(&mut self) -> Result<u64, ()> {
+        match self.len {
+            Some(len) => Ok(len),
+            None => {
+                let len = self.read.seek(SeekFrom::End(0)).map_err(|_| ())?;
+                self.len = Some(len);
+                Ok(len)
+            }
+        }
+    }
 }
 
 impl<R: Read + Seek> ReadCache<R> {
@@ -37,6 +67,7 @@ impl<R: Read + Seek> ReadCache<R> {
                 read,
                 bufs: HashMap::new(),
                 strings: HashMap::new(),
+                len: None,
             }),
         }
     }
@@ -64,8 +95,7 @@ impl<R: Read + Seek> ReadCache<R> {
 
 impl<'a, R: Read + Seek> ReadRef<'a> for &'a ReadCache<R> {
     fn len(self) -> Result<u64, ()> {
-        let cache = &mut *self.cache.borrow_mut();
-        cache.read.seek(SeekFrom::End(0)).map_err(|_| ())
+        self.cache.borrow_mut().len()
     }
 
     fn read_bytes_at(self, offset: u64, size: u64) -> Result<&'a [u8], ()> {
@@ -73,12 +103,16 @@ impl<'a, R: Read + Seek> ReadRef<'a> for &'a ReadCache<R> {
             return Ok(&[]);
         }
         let cache = &mut *self.cache.borrow_mut();
+        cache.range_in_bounds(&(offset..(offset.saturating_add(size))))?;
         let buf = match cache.bufs.entry((offset, size)) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
                 let size = size.try_into().map_err(|_| ())?;
                 cache.read.seek(SeekFrom::Start(offset)).map_err(|_| ())?;
-                let mut bytes = vec![0; size].into_boxed_slice();
+                let mut bytes = Vec::new();
+                bytes.try_reserve_exact(size).map_err(|_| ())?;
+                bytes.resize(size, 0);
+                let mut bytes = bytes.into_boxed_slice();
                 cache.read.read_exact(&mut bytes).map_err(|_| ())?;
                 entry.insert(bytes)
             }
@@ -90,6 +124,7 @@ impl<'a, R: Read + Seek> ReadRef<'a> for &'a ReadCache<R> {
 
     fn read_bytes_at_until(self, range: Range<u64>, delimiter: u8) -> Result<&'a [u8], ()> {
         let cache = &mut *self.cache.borrow_mut();
+        cache.range_in_bounds(&range)?;
         let buf = match cache.strings.entry((range.start, delimiter)) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
@@ -131,7 +166,7 @@ impl<'a, R: Read + Seek> ReadRef<'a> for &'a ReadCache<R> {
 /// An implementation of [`ReadRef`] for a range of data in a stream that
 /// implements `Read + Seek`.
 ///
-/// Shares an underlying `ReadCache` with a lifetime of `'a`.
+/// Shares an underlying [`ReadCache`] with a lifetime of `'a`.
 #[derive(Debug)]
 pub struct ReadCacheRange<'a, R: Read + Seek> {
     r: &'a ReadCache<R>,

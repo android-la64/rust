@@ -28,7 +28,7 @@
 //! [`Table`]: crate::Table
 
 use crate::{
-    grid::color::AnsiColor,
+    grid::ansi::ANSIBuf,
     grid::config::{ColoredConfig, Indent, Offset, Sides},
     settings::{color::Color, TableOption},
 };
@@ -112,7 +112,7 @@ impl Shadow {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for Shadow {
+impl<R, D> TableOption<R, ColoredConfig, D> for Shadow {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         set_margin(cfg, self.size, self.c, &self.direction);
         set_margin_offset(cfg, self.size_offset, &self.direction);
@@ -173,8 +173,8 @@ fn set_margin_offset(cfg: &mut ColoredConfig, size: usize, direction: &Sides<boo
     cfg.set_margin_offset(margin);
 }
 
-fn set_margin_color(cfg: &mut ColoredConfig, color: AnsiColor<'static>, direction: &Sides<bool>) {
-    let mut margin: Sides<Option<AnsiColor<'static>>> = Sides::default();
+fn set_margin_color(cfg: &mut ColoredConfig, color: ANSIBuf, direction: &Sides<bool>) {
+    let mut margin: Sides<Option<ANSIBuf>> = Sides::default();
     if direction.right {
         margin.right = Some(color.clone());
     }

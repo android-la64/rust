@@ -11,21 +11,18 @@
 
 [package]
 edition = "2018"
+rust-version = "1.68"
 name = "r-efi"
-version = "4.2.0"
-authors = [
-    "David Rheinsberg <david.rheinsberg@gmail.com>",
-    "Tom Gundersen <teg@jklm.no>",
-]
+version = "4.3.0"
 description = "UEFI Reference Specification Protocol Constants and Definitions"
 homepage = "https://github.com/r-efi/r-efi/wiki"
 readme = "README.md"
 keywords = [
-    "efi",
-    "uefi",
     "boot",
+    "efi",
     "firmware",
     "specification",
+    "uefi",
 ]
 categories = [
     "embedded",
@@ -46,10 +43,6 @@ required-features = ["native"]
 
 [[example]]
 name = "hello-world"
-required-features = ["native"]
-
-[[example]]
-name = "uefi-cross-compile"
 required-features = ["native"]
 
 [dependencies.compiler_builtins]

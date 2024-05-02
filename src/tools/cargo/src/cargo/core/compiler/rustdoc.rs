@@ -1,12 +1,13 @@
 //! Utilities for building with rustdoc.
 
-use crate::core::compiler::context::Context;
+use crate::core::compiler::build_runner::BuildRunner;
 use crate::core::compiler::unit::Unit;
 use crate::core::compiler::{BuildContext, CompileKind};
 use crate::sources::CRATES_IO_REGISTRY;
 use crate::util::errors::{internal, CargoResult};
 use cargo_util::ProcessBuilder;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt;
 use std::hash;
 use url::Url;
@@ -102,29 +103,91 @@ impl hash::Hash for RustdocExternMap {
     }
 }
 
+/// Recursively generate html root url for all units and their children.
+///
+/// This is needed because in case there is a reexport of foreign reexport, you
+/// need to have information about grand-children deps level (deps of your deps).
+fn build_all_urls(
+    build_runner: &BuildRunner<'_, '_>,
+    rustdoc: &mut ProcessBuilder,
+    unit: &Unit,
+    name2url: &HashMap<&String, Url>,
+    map: &RustdocExternMap,
+    unstable_opts: &mut bool,
+    seen: &mut HashSet<Unit>,
+) {
+    for dep in build_runner.unit_deps(unit) {
+        if !seen.insert(dep.unit.clone()) {
+            continue;
+        }
+        if !dep.unit.target.is_linkable() || dep.unit.mode.is_doc() {
+            continue;
+        }
+        for (registry, location) in &map.registries {
+            let sid = dep.unit.pkg.package_id().source_id();
+            let matches_registry = || -> bool {
+                if !sid.is_registry() {
+                    return false;
+                }
+                if sid.is_crates_io() {
+                    return registry == CRATES_IO_REGISTRY;
+                }
+                if let Some(index_url) = name2url.get(registry) {
+                    return index_url == sid.url();
+                }
+                false
+            };
+            if matches_registry() {
+                let mut url = location.clone();
+                if !url.contains("{pkg_name}") && !url.contains("{version}") {
+                    if !url.ends_with('/') {
+                        url.push('/');
+                    }
+                    url.push_str("{pkg_name}/{version}/");
+                }
+                let url = url
+                    .replace("{pkg_name}", &dep.unit.pkg.name())
+                    .replace("{version}", &dep.unit.pkg.version().to_string());
+                rustdoc.arg("--extern-html-root-url");
+                rustdoc.arg(format!("{}={}", dep.unit.target.crate_name(), url));
+                *unstable_opts = true;
+            }
+        }
+        build_all_urls(
+            build_runner,
+            rustdoc,
+            &dep.unit,
+            name2url,
+            map,
+            unstable_opts,
+            seen,
+        );
+    }
+}
+
 /// Adds unstable flag [`--extern-html-root-url`][1] to the given `rustdoc`
 /// invocation. This is for unstable feature [`-Zrustdoc-map`][2].
 ///
 /// [1]: https://doc.rust-lang.org/nightly/rustdoc/unstable-features.html#--extern-html-root-url-control-how-rustdoc-links-to-non-local-crates
 /// [2]: https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#rustdoc-map
 pub fn add_root_urls(
-    cx: &Context<'_, '_>,
+    build_runner: &BuildRunner<'_, '_>,
     unit: &Unit,
     rustdoc: &mut ProcessBuilder,
 ) -> CargoResult<()> {
-    let config = cx.bcx.config;
-    if !config.cli_unstable().rustdoc_map {
+    let gctx = build_runner.bcx.gctx;
+    if !gctx.cli_unstable().rustdoc_map {
         tracing::debug!("`doc.extern-map` ignored, requires -Zrustdoc-map flag");
         return Ok(());
     }
-    let map = config.doc_extern_map()?;
+    let map = gctx.doc_extern_map()?;
     let mut unstable_opts = false;
     // Collect mapping of registry name -> index url.
     let name2url: HashMap<&String, Url> = map
         .registries
         .keys()
         .filter_map(|name| {
-            if let Ok(index_url) = config.get_registry_index(name) {
+            if let Ok(index_url) = gctx.get_registry_index(name) {
                 Some((name, index_url))
             } else {
                 tracing::warn!(
@@ -135,44 +198,19 @@ pub fn add_root_urls(
             }
         })
         .collect();
-    for dep in cx.unit_deps(unit) {
-        if dep.unit.target.is_linkable() && !dep.unit.mode.is_doc() {
-            for (registry, location) in &map.registries {
-                let sid = dep.unit.pkg.package_id().source_id();
-                let matches_registry = || -> bool {
-                    if !sid.is_registry() {
-                        return false;
-                    }
-                    if sid.is_crates_io() {
-                        return registry == CRATES_IO_REGISTRY;
-                    }
-                    if let Some(index_url) = name2url.get(registry) {
-                        return index_url == sid.url();
-                    }
-                    false
-                };
-                if matches_registry() {
-                    let mut url = location.clone();
-                    if !url.contains("{pkg_name}") && !url.contains("{version}") {
-                        if !url.ends_with('/') {
-                            url.push('/');
-                        }
-                        url.push_str("{pkg_name}/{version}/");
-                    }
-                    let url = url
-                        .replace("{pkg_name}", &dep.unit.pkg.name())
-                        .replace("{version}", &dep.unit.pkg.version().to_string());
-                    rustdoc.arg("--extern-html-root-url");
-                    rustdoc.arg(format!("{}={}", dep.unit.target.crate_name(), url));
-                    unstable_opts = true;
-                }
-            }
-        }
-    }
+    build_all_urls(
+        build_runner,
+        rustdoc,
+        unit,
+        &name2url,
+        map,
+        &mut unstable_opts,
+        &mut HashSet::new(),
+    );
     let std_url = match &map.std {
         None | Some(RustdocExternMode::Remote) => None,
         Some(RustdocExternMode::Local) => {
-            let sysroot = &cx.bcx.target_data.info(CompileKind::Host).sysroot;
+            let sysroot = &build_runner.bcx.target_data.info(CompileKind::Host).sysroot;
             let html_root = sysroot.join("share").join("doc").join("rust").join("html");
             if html_root.exists() {
                 let url = Url::from_file_path(&html_root).map_err(|()| {
@@ -211,12 +249,12 @@ pub fn add_root_urls(
 ///
 /// [1]: https://doc.rust-lang.org/nightly/rustdoc/unstable-features.html?highlight=output-format#-w--output-format-output-format
 pub fn add_output_format(
-    cx: &Context<'_, '_>,
+    build_runner: &BuildRunner<'_, '_>,
     unit: &Unit,
     rustdoc: &mut ProcessBuilder,
 ) -> CargoResult<()> {
-    let config = cx.bcx.config;
-    if !config.cli_unstable().unstable_options {
+    let gctx = build_runner.bcx.gctx;
+    if !gctx.cli_unstable().unstable_options {
         tracing::debug!("`unstable-options` is ignored, required -Zunstable-options flag");
         return Ok(());
     }

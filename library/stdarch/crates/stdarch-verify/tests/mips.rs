@@ -163,7 +163,7 @@ impl std::convert::TryFrom<&'static str> for MsaIntrinsic {
             let mut arg_tys = Vec::new();
 
             let last_parentheses = line.find(')')?;
-            for arg in (&line[first_parentheses + 1..last_parentheses]).split(',') {
+            for arg in line[first_parentheses + 1..last_parentheses].split(',') {
                 let arg = arg.trim();
                 arg_tys.push(MsaTy::from(arg));
             }
@@ -345,8 +345,8 @@ fn matches(rust: &Function, mips: &MsaIntrinsic) -> Result<(), String> {
 
     if !rust.instrs.is_empty() {
         // Normalize slightly to get rid of assembler differences
-        let actual = rust.instrs[0].replace(".", "_");
-        let expected = mips.instruction.replace(".", "_");
+        let actual = rust.instrs[0].replace('.', "_");
+        let expected = mips.instruction.replace('.', "_");
         if actual != expected {
             bail!(
                 "wrong instruction: \"{}\" != \"{}\"",

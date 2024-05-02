@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "yoke-derive"
-version = "0.7.2"
+version = "0.7.3"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 description = "Custom derive for the yoke crate"
 readme = "README.md"
@@ -55,10 +55,4 @@ features = [
 [dependencies.synstructure]
 version = "0.13"
 
-[dev-dependencies.yoke]
-version = "0.7.1"
-default-features = false
-
-[dev-dependencies.zerovec]
-version = "0.9.4"
-default-features = false
+[dev-dependencies]

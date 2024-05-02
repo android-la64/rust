@@ -1,9 +1,7 @@
-// run-pass
+//@ run-pass
 // Constants (static variables) can be used to match in patterns, but mutable
 // statics cannot. This ensures that there's some form of error if this is
 // attempted.
-
-// ignore-wasm32-bare no libc to test ffi with
 
 #![feature(rustc_private)]
 

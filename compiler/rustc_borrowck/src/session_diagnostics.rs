@@ -368,6 +368,11 @@ pub(crate) enum CaptureReasonNote {
         #[primary_span]
         var_span: Span,
     },
+    #[note(borrowck_calling_operator_moves)]
+    UnOpMoveByOperator {
+        #[primary_span]
+        span: Span,
+    },
     #[note(borrowck_calling_operator_moves_lhs)]
     LhsMoveByOperator {
         #[primary_span]
@@ -454,8 +459,10 @@ pub(crate) enum TypeNoCopy<'a, 'tcx> {
 }
 
 #[derive(Diagnostic)]
-#[diag(borrowck_simd_shuffle_last_const)]
-pub(crate) struct SimdShuffleLastConst {
+#[diag(borrowck_simd_intrinsic_arg_const)]
+pub(crate) struct SimdIntrinsicArgConst {
     #[primary_span]
     pub span: Span,
+    pub arg: usize,
+    pub intrinsic: String,
 }

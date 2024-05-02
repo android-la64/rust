@@ -11,6 +11,7 @@ use std::{
 use ast::HasName;
 use expect_test::expect_file;
 use rayon::prelude::*;
+use stdx::format_to_acc;
 use test_utils::{bench, bench_fixture, project_root};
 
 use crate::{ast, fuzz, AstNode, SourceFile, SyntaxError};
@@ -38,7 +39,7 @@ fn benchmark_parser() {
     let tree = {
         let _b = bench("parsing");
         let p = SourceFile::parse(&data);
-        assert!(p.errors.is_none());
+        assert!(p.errors().is_empty());
         assert_eq!(p.tree().syntax.text_range().len(), 352474.into());
         p.tree()
     };
@@ -56,7 +57,7 @@ fn validation_tests() {
     dir_tests(&test_data_dir(), &["parser/validation"], "rast", |text, path| {
         let parse = SourceFile::parse(text);
         let errors = parse.errors();
-        assert_errors_are_present(errors, path);
+        assert_errors_are_present(&errors, path);
         parse.debug_dump()
     });
 }
@@ -104,10 +105,9 @@ fn self_hosting_parsing() {
         .collect::<Vec<_>>();
 
     if !errors.is_empty() {
-        let errors = errors
-            .into_iter()
-            .map(|(path, err)| format!("{}: {:?}\n", path.display(), err[0]))
-            .collect::<String>();
+        let errors = errors.into_iter().fold(String::new(), |mut acc, (path, err)| {
+            format_to_acc!(acc, "{}: {:?}\n", path.display(), err[0])
+        });
         panic!("Parsing errors:\n{errors}\n");
     }
 }

@@ -38,6 +38,8 @@ impl TypeName {
     pub const CHAR: Self = Self::from_const("Windows.Win32.Foundation", "CHAR");
     pub const BOOL: Self = Self::from_const("Windows.Win32.Foundation", "BOOL");
     pub const WIN32_ERROR: Self = Self::from_const("Windows.Win32.Foundation", "WIN32_ERROR");
+    pub const NTSTATUS: Self = Self::from_const("Windows.Win32.Foundation", "NTSTATUS");
+    pub const RPC_STATUS: Self = Self::from_const("Windows.Win32.System.Rpc", "RPC_STATUS");
 
     pub const D2D_MATRIX_3X2_F: Self = Self::from_const("Windows.Win32.Graphics.Direct2D.Common", "D2D_MATRIX_3X2_F");
     pub const D3DMATRIX: Self = Self::from_const("Windows.Win32.Graphics.Direct3D", "D3DMATRIX");
@@ -46,6 +48,9 @@ impl TypeName {
     pub const IInspectable: Self = Self::from_const("Windows.Win32.System.WinRT", "IInspectable");
     pub const IRestrictedErrorInfo: Self = Self::from_const("Windows.Win32.System.WinRT", "IRestrictedErrorInfo");
     pub const IDispatch: Self = Self::from_const("Windows.Win32.System.Com", "IDispatch");
+
+    pub const VARIANT: Self = Self::from_const("Windows.Win32.System.Variant", "VARIANT");
+    pub const PROPVARIANT: Self = Self::from_const("Windows.Win32.System.Com.StructuredStorage", "PROPVARIANT");
 
     const fn from_const(namespace: &'static str, name: &'static str) -> Self {
         Self { namespace, name }

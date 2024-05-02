@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-bforest"
-version = "0.104.0"
+version = "0.105.2"
 authors = ["The Cranelift Project Developers"]
 description = "A forest of B+-trees"
 documentation = "https://docs.rs/cranelift-bforest"
@@ -28,7 +28,7 @@ license = "Apache-2.0 WITH LLVM-exception"
 repository = "https://github.com/bytecodealliance/wasmtime"
 
 [dependencies.cranelift-entity]
-version = "0.104.0"
+version = "0.105.2"
 
 [lints.clippy]
 all = "allow"

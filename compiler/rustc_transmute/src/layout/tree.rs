@@ -81,7 +81,8 @@ where
         Self::Seq(vec![Self::uninit(); width_in_bytes])
     }
 
-    /// Remove all `Def` nodes, and all branches of the layout for which `f` produces false.
+    /// Remove all `Def` nodes, and all branches of the layout for which `f`
+    /// produces `true`.
     pub(crate) fn prune<F>(self, f: &F) -> Tree<!, R>
     where
         F: Fn(D) -> bool,
@@ -106,7 +107,7 @@ where
             Self::Byte(b) => Tree::Byte(b),
             Self::Ref(r) => Tree::Ref(r),
             Self::Def(d) => {
-                if !f(d) {
+                if f(d) {
                     Tree::uninhabited()
                 } else {
                     Tree::unit()
@@ -185,8 +186,8 @@ pub(crate) mod rustc {
 
     #[derive(Debug, Copy, Clone)]
     pub(crate) enum Err {
-        /// The layout of the type is unspecified.
-        Unspecified,
+        /// The layout of the type is not yet supported.
+        NotYetSupported,
         /// This error will be surfaced elsewhere by rustc, so don't surface it.
         UnknownLayout,
         /// Overflow size
@@ -287,14 +288,14 @@ pub(crate) mod rustc {
                     if members.len() == 0 {
                         Ok(Tree::unit())
                     } else {
-                        Err(Err::Unspecified)
+                        Err(Err::NotYetSupported)
                     }
                 }
 
                 ty::Array(ty, len) => {
                     let len = len
                         .try_eval_target_usize(tcx, ParamEnv::reveal_all())
-                        .ok_or(Err::Unspecified)?;
+                        .ok_or(Err::NotYetSupported)?;
                     let elt = Tree::from_ty(*ty, tcx)?;
                     Ok(std::iter::repeat(elt)
                         .take(len as usize)
@@ -306,7 +307,7 @@ pub(crate) mod rustc {
 
                     // If the layout is ill-specified, halt.
                     if !(adt_def.repr().c() || adt_def.repr().int.is_some()) {
-                        return Err(Err::Unspecified);
+                        return Err(Err::NotYetSupported);
                     }
 
                     // Compute a summary of the type's layout.
@@ -347,7 +348,7 @@ pub(crate) mod rustc {
                         AdtKind::Union => {
                             // is the layout well-defined?
                             if !adt_def.repr().c() {
-                                return Err(Err::Unspecified);
+                                return Err(Err::NotYetSupported);
                             }
 
                             let ty_layout = layout_of(tcx, ty)?;
@@ -371,16 +372,19 @@ pub(crate) mod rustc {
                 }
 
                 ty::Ref(lifetime, ty, mutability) => {
-                    let align = layout_of(tcx, *ty)?.align();
+                    let layout = layout_of(tcx, *ty)?;
+                    let align = layout.align();
+                    let size = layout.size();
                     Ok(Tree::Ref(Ref {
                         lifetime: *lifetime,
                         ty: *ty,
                         mutability: *mutability,
                         align,
+                        size,
                     }))
                 }
 
-                _ => Err(Err::Unspecified),
+                _ => Err(Err::NotYetSupported),
             }
         }
 

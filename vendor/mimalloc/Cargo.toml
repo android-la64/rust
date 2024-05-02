@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "mimalloc"
-version = "0.1.37"
+version = "0.1.39"
 authors = [
     "Octavian Oncescu <octavonce@gmail.com>",
     "Vincent Rouillé <vincent@speedy37.fr>",
@@ -34,13 +34,13 @@ license = "MIT"
 repository = "https://github.com/purpleprotocol/mimalloc_rust"
 
 [dependencies.libmimalloc-sys]
-version = "0.1.33"
+version = "0.1.35"
 default-features = false
 
 [features]
 debug = ["libmimalloc-sys/debug"]
 debug_in_debug = ["libmimalloc-sys/debug_in_debug"]
-default = ["secure"]
+default = []
 local_dynamic_tls = ["libmimalloc-sys/local_dynamic_tls"]
 override = ["libmimalloc-sys/override"]
 secure = ["libmimalloc-sys/secure"]

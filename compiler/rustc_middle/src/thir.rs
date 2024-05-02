@@ -9,7 +9,7 @@
 //! [rustc dev guide]: https://rustc-dev-guide.rust-lang.org/thir.html
 
 use rustc_ast::{InlineAsmOptions, InlineAsmTemplatePiece};
-use rustc_errors::{DiagnosticArgValue, IntoDiagnosticArg};
+use rustc_errors::{DiagArgValue, IntoDiagArg};
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
 use rustc_hir::RangeEnd;
@@ -321,9 +321,13 @@ pub enum ExprKind<'tcx> {
     Cast {
         source: ExprId,
     },
+    /// Forces its contents to be treated as a value expression, not a place
+    /// expression. This is inserted in some places where an operation would
+    /// otherwise be erased completely (e.g. some no-op casts), but we still
+    /// need to ensure that its operand is treated as a value and not a place.
     Use {
         source: ExprId,
-    }, // Use a lexpr to get a vexpr.
+    },
     /// A coercion from `!` to any type.
     NeverToAny {
         source: ExprId,
@@ -338,6 +342,13 @@ pub enum ExprKind<'tcx> {
     Loop {
         body: ExprId,
     },
+    /// Special expression representing the `let` part of an `if let` or similar construct
+    /// (including `if let` guards in match arms, and let-chains formed by `&&`).
+    ///
+    /// This isn't considered a real expression in surface Rust syntax, so it can
+    /// only appear in specific situations, such as within the condition of an `if`.
+    ///
+    /// (Not to be confused with [`StmtKind::Let`], which is a normal `let` statement.)
     Let {
         expr: ExprId,
         pat: Box<Pat<'tcx>>,
@@ -565,6 +576,9 @@ pub enum InlineAsmOperand<'tcx> {
     SymStatic {
         def_id: DefId,
     },
+    Label {
+        block: BlockId,
+    },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, HashStable)]
@@ -673,9 +687,9 @@ impl<'tcx> Pat<'tcx> {
     }
 }
 
-impl<'tcx> IntoDiagnosticArg for Pat<'tcx> {
-    fn into_diagnostic_arg(self) -> DiagnosticArgValue {
-        format!("{self}").into_diagnostic_arg()
+impl<'tcx> IntoDiagArg for Pat<'tcx> {
+    fn into_diag_arg(self) -> DiagArgValue {
+        format!("{self}").into_diag_arg()
     }
 }
 
@@ -815,7 +829,9 @@ pub enum PatKind<'tcx> {
 /// The boundaries must be of the same type and that type must be numeric.
 #[derive(Clone, Debug, PartialEq, HashStable, TypeVisitable)]
 pub struct PatRange<'tcx> {
+    /// Must not be `PosInfinity`.
     pub lo: PatRangeBoundary<'tcx>,
+    /// Must not be `NegInfinity`.
     pub hi: PatRangeBoundary<'tcx>,
     #[type_visitable(ignore)]
     pub end: RangeEnd,
@@ -958,22 +974,6 @@ impl<'tcx> PatRangeBoundary<'tcx> {
             Self::NegInfinity | Self::PosInfinity => None,
         }
     }
-    #[inline]
-    pub fn to_const(self, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) -> mir::Const<'tcx> {
-        match self {
-            Self::Finite(value) => value,
-            Self::NegInfinity => {
-                // Unwrap is ok because the type is known to be numeric.
-                let c = ty.numeric_min_val(tcx).unwrap();
-                mir::Const::from_ty_const(c, tcx)
-            }
-            Self::PosInfinity => {
-                // Unwrap is ok because the type is known to be numeric.
-                let c = ty.numeric_max_val(tcx).unwrap();
-                mir::Const::from_ty_const(c, tcx)
-            }
-        }
-    }
     pub fn eval_bits(self, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>, param_env: ty::ParamEnv<'tcx>) -> u128 {
         match self {
             Self::Finite(value) => value.eval_bits(tcx, param_env),
@@ -1038,7 +1038,6 @@ impl<'tcx> PatRangeBoundary<'tcx> {
                 a.partial_cmp(&b)
             }
             ty::Int(ity) => {
-                use rustc_middle::ty::layout::IntegerExt;
                 let size = rustc_target::abi::Integer::from_int_ty(&tcx, *ity).size();
                 let a = size.sign_extend(a) as i128;
                 let b = size.sign_extend(b) as i128;

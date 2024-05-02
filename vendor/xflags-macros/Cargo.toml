@@ -12,12 +12,11 @@
 [package]
 edition = "2021"
 name = "xflags-macros"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 description = "Private implementation details of xflags."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/matklad/xflags"
-resolver = "1"
 
 [lib]
 proc-macro = true

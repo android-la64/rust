@@ -3,8 +3,8 @@
 use object::read::{Object, ObjectSection, ObjectSymbol};
 use object::{read, write, SectionIndex, SubArchitecture};
 use object::{
-    Architecture, BinaryFormat, Endianness, RelocationEncoding, RelocationKind, SectionKind,
-    SymbolFlags, SymbolKind, SymbolScope, SymbolSection,
+    Architecture, BinaryFormat, Endianness, RelocationEncoding, RelocationFlags, RelocationKind,
+    SectionKind, SymbolFlags, SymbolKind, SymbolScope, SymbolSection,
 };
 
 mod bss;
@@ -65,11 +65,13 @@ fn coff_any() {
                 text,
                 write::Relocation {
                     offset: 8,
-                    size: arch.address_size().unwrap().bytes() * 8,
-                    kind: RelocationKind::Absolute,
-                    encoding: RelocationEncoding::Generic,
                     symbol: func1_symbol,
                     addend: 0,
+                    flags: RelocationFlags::Generic {
+                        kind: RelocationKind::Absolute,
+                        encoding: RelocationEncoding::Generic,
+                        size: arch.address_size().unwrap().bytes() * 8,
+                    },
                 },
             )
             .unwrap();
@@ -102,7 +104,7 @@ fn coff_any() {
         assert_eq!(symbol.kind(), SymbolKind::File);
         assert_eq!(symbol.section(), SymbolSection::None);
         assert_eq!(symbol.scope(), SymbolScope::Compilation);
-        assert_eq!(symbol.is_weak(), false);
+        assert!(!symbol.is_weak());
 
         let decorated_name = |name: &str| {
             if arch == Architecture::I386 {
@@ -120,8 +122,8 @@ fn coff_any() {
         assert_eq!(symbol.kind(), SymbolKind::Text);
         assert_eq!(symbol.section_index(), Some(text_index));
         assert_eq!(symbol.scope(), SymbolScope::Linkage);
-        assert_eq!(symbol.is_weak(), false);
-        assert_eq!(symbol.is_undefined(), false);
+        assert!(!symbol.is_weak());
+        assert!(!symbol.is_undefined());
 
         let symbol = symbols.next().unwrap();
         println!("{:?}", symbol);
@@ -130,8 +132,8 @@ fn coff_any() {
         assert_eq!(symbol.kind(), SymbolKind::Text);
         assert_eq!(symbol.section_index(), Some(text_index));
         assert_eq!(symbol.scope(), SymbolScope::Linkage);
-        assert_eq!(symbol.is_weak(), false);
-        assert_eq!(symbol.is_undefined(), false);
+        assert!(!symbol.is_weak());
+        assert!(!symbol.is_undefined());
 
         let mut relocations = text.relocations();
 
@@ -182,11 +184,13 @@ fn elf_x86_64() {
             text,
             write::Relocation {
                 offset: 8,
-                size: 64,
-                kind: RelocationKind::Absolute,
-                encoding: RelocationEncoding::Generic,
                 symbol: func1_symbol,
                 addend: 0,
+                flags: RelocationFlags::Generic {
+                    kind: RelocationKind::Absolute,
+                    encoding: RelocationEncoding::Generic,
+                    size: 64,
+                },
             },
         )
         .unwrap();
@@ -225,8 +229,8 @@ fn elf_x86_64() {
     assert_eq!(symbol.kind(), SymbolKind::Null);
     assert_eq!(symbol.section_index(), None);
     assert_eq!(symbol.scope(), SymbolScope::Unknown);
-    assert_eq!(symbol.is_weak(), false);
-    assert_eq!(symbol.is_undefined(), true);
+    assert!(!symbol.is_weak());
+    assert!(symbol.is_undefined());
 
     let symbol = symbols.next().unwrap();
     println!("{:?}", symbol);
@@ -235,7 +239,7 @@ fn elf_x86_64() {
     assert_eq!(symbol.kind(), SymbolKind::File);
     assert_eq!(symbol.section(), SymbolSection::None);
     assert_eq!(symbol.scope(), SymbolScope::Compilation);
-    assert_eq!(symbol.is_weak(), false);
+    assert!(!symbol.is_weak());
 
     let symbol = symbols.next().unwrap();
     println!("{:?}", symbol);
@@ -245,8 +249,8 @@ fn elf_x86_64() {
     assert_eq!(symbol.kind(), SymbolKind::Text);
     assert_eq!(symbol.section_index(), Some(text_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert_eq!(symbol.is_weak(), false);
-    assert_eq!(symbol.is_undefined(), false);
+    assert!(!symbol.is_weak());
+    assert!(!symbol.is_undefined());
 
     let mut relocations = text.relocations();
 
@@ -309,11 +313,13 @@ fn elf_any() {
                 section,
                 write::Relocation {
                     offset: 8,
-                    size: 32,
-                    kind: RelocationKind::Absolute,
-                    encoding: RelocationEncoding::Generic,
                     symbol,
                     addend: 0,
+                    flags: RelocationFlags::Generic {
+                        kind: RelocationKind::Absolute,
+                        encoding: RelocationEncoding::Generic,
+                        size: 32,
+                    },
                 },
             )
             .unwrap();
@@ -323,11 +329,13 @@ fn elf_any() {
                     section,
                     write::Relocation {
                         offset: 16,
-                        size: 64,
-                        kind: RelocationKind::Absolute,
-                        encoding: RelocationEncoding::Generic,
                         symbol,
                         addend: 0,
+                        flags: RelocationFlags::Generic {
+                            kind: RelocationKind::Absolute,
+                            encoding: RelocationEncoding::Generic,
+                            size: 64,
+                        },
                     },
                 )
                 .unwrap();
@@ -406,11 +414,13 @@ fn macho_x86_64() {
             text,
             write::Relocation {
                 offset: 8,
-                size: 64,
-                kind: RelocationKind::Absolute,
-                encoding: RelocationEncoding::Generic,
                 symbol: func1_symbol,
                 addend: 0,
+                flags: RelocationFlags::Generic {
+                    kind: RelocationKind::Absolute,
+                    encoding: RelocationEncoding::Generic,
+                    size: 64,
+                },
             },
         )
         .unwrap();
@@ -419,11 +429,13 @@ fn macho_x86_64() {
             text,
             write::Relocation {
                 offset: 16,
-                size: 32,
-                kind: RelocationKind::Relative,
-                encoding: RelocationEncoding::Generic,
                 symbol: func1_symbol,
                 addend: -4,
+                flags: RelocationFlags::Generic {
+                    kind: RelocationKind::Relative,
+                    encoding: RelocationEncoding::Generic,
+                    size: 32,
+                },
             },
         )
         .unwrap();
@@ -457,8 +469,8 @@ fn macho_x86_64() {
     assert_eq!(symbol.kind(), SymbolKind::Text);
     assert_eq!(symbol.section_index(), Some(text_index));
     assert_eq!(symbol.scope(), SymbolScope::Linkage);
-    assert_eq!(symbol.is_weak(), false);
-    assert_eq!(symbol.is_undefined(), false);
+    assert!(!symbol.is_weak());
+    assert!(!symbol.is_undefined());
 
     let mut relocations = text.relocations();
 
@@ -528,11 +540,13 @@ fn macho_any() {
                 section,
                 write::Relocation {
                     offset: 8,
-                    size: 32,
-                    kind: RelocationKind::Absolute,
-                    encoding: RelocationEncoding::Generic,
                     symbol,
                     addend: 0,
+                    flags: RelocationFlags::Generic {
+                        kind: RelocationKind::Absolute,
+                        encoding: RelocationEncoding::Generic,
+                        size: 32,
+                    },
                 },
             )
             .unwrap();
@@ -542,11 +556,13 @@ fn macho_any() {
                     section,
                     write::Relocation {
                         offset: 16,
-                        size: 64,
-                        kind: RelocationKind::Absolute,
-                        encoding: RelocationEncoding::Generic,
                         symbol,
                         addend: 0,
+                        flags: RelocationFlags::Generic {
+                            kind: RelocationKind::Absolute,
+                            encoding: RelocationEncoding::Generic,
+                            size: 64,
+                        },
                     },
                 )
                 .unwrap();
@@ -619,11 +635,13 @@ fn xcoff_powerpc() {
                 text,
                 write::Relocation {
                     offset: 8,
-                    size: 64,
-                    kind: RelocationKind::Absolute,
-                    encoding: RelocationEncoding::Generic,
                     symbol: func1_symbol,
                     addend: 0,
+                    flags: RelocationFlags::Generic {
+                        kind: RelocationKind::Absolute,
+                        encoding: RelocationEncoding::Generic,
+                        size: 64,
+                    },
                 },
             )
             .unwrap();
@@ -655,8 +673,8 @@ fn xcoff_powerpc() {
         assert_eq!(symbol.kind(), SymbolKind::File);
         assert_eq!(symbol.section_index(), None);
         assert_eq!(symbol.scope(), SymbolScope::Compilation);
-        assert_eq!(symbol.is_weak(), false);
-        assert_eq!(symbol.is_undefined(), false);
+        assert!(!symbol.is_weak());
+        assert!(!symbol.is_undefined());
 
         symbol = symbols.next().unwrap();
         println!("{:?}", symbol);
@@ -666,8 +684,8 @@ fn xcoff_powerpc() {
         assert_eq!(symbol.kind(), SymbolKind::Text);
         assert_eq!(symbol.section_index(), Some(SectionIndex(text_index)));
         assert_eq!(symbol.scope(), SymbolScope::Linkage);
-        assert_eq!(symbol.is_weak(), false);
-        assert_eq!(symbol.is_undefined(), false);
+        assert!(!symbol.is_weak());
+        assert!(!symbol.is_undefined());
 
         let mut relocations = text.relocations();
 

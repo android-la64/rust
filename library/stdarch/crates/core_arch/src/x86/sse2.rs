@@ -4,10 +4,9 @@
 use stdarch_test::assert_instr;
 
 use crate::{
-    core_arch::{simd::*, simd_llvm::*, x86::*},
-    intrinsics,
-    mem::{self, transmute},
-    ptr,
+    core_arch::{simd::*, x86::*},
+    intrinsics::simd::*,
+    mem, ptr,
 };
 
 /// Provides a hint to the processor that the code sequence is a spin-wait loop.
@@ -955,7 +954,7 @@ pub unsafe fn _mm_cvtepi32_pd(a: __m128i) -> __m128d {
 #[cfg_attr(test, assert_instr(cvtsi2sd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi32_sd(a: __m128d, b: i32) -> __m128d {
-    simd_insert(a, 0, b as f64)
+    simd_insert!(a, 0, b as f64)
 }
 
 /// Converts packed 32-bit integers in `a` to packed single-precision (32-bit)
@@ -1000,7 +999,7 @@ pub unsafe fn _mm_cvtsi32_si128(a: i32) -> __m128i {
 #[target_feature(enable = "sse2")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsi128_si32(a: __m128i) -> i32 {
-    simd_extract(a.as_i32x4(), 0)
+    simd_extract!(a.as_i32x4(), 0)
 }
 
 /// Sets packed 64-bit integers with the supplied values, from highest to
@@ -1317,6 +1316,15 @@ pub unsafe fn _mm_storel_epi64(mem_addr: *mut __m128i, a: __m128i) {
 /// used again soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_stream_si128)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "sse2")]
 #[cfg_attr(test, assert_instr(movntps))] // FIXME movntdq
@@ -1330,6 +1338,15 @@ pub unsafe fn _mm_stream_si128(mem_addr: *mut __m128i, a: __m128i) {
 /// used again soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_stream_si32)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "sse2")]
 #[cfg_attr(test, assert_instr(movnti))]
@@ -1399,7 +1416,7 @@ pub unsafe fn _mm_packus_epi16(a: __m128i, b: __m128i) -> __m128i {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_extract_epi16<const IMM8: i32>(a: __m128i) -> i32 {
     static_assert_uimm_bits!(IMM8, 3);
-    simd_extract::<_, u16>(a.as_u16x8(), IMM8 as u32) as i32
+    simd_extract!(a.as_u16x8(), IMM8 as u32, u16) as i32
 }
 
 /// Returns a new vector where the `imm8` element of `a` is replaced with `i`.
@@ -1412,7 +1429,7 @@ pub unsafe fn _mm_extract_epi16<const IMM8: i32>(a: __m128i) -> i32 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_insert_epi16<const IMM8: i32>(a: __m128i, i: i32) -> __m128i {
     static_assert_uimm_bits!(IMM8, 3);
-    transmute(simd_insert(a.as_i16x8(), IMM8 as u32, i as i16))
+    transmute(simd_insert!(a.as_i16x8(), IMM8 as u32, i as i16))
 }
 
 /// Returns a mask of the most significant bit of each element in `a`.
@@ -1623,7 +1640,7 @@ pub unsafe fn _mm_unpacklo_epi64(a: __m128i, b: __m128i) -> __m128i {
 #[cfg_attr(test, assert_instr(addsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_add_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(a, 0, _mm_cvtsd_f64(a) + _mm_cvtsd_f64(b))
+    simd_insert!(a, 0, _mm_cvtsd_f64(a) + _mm_cvtsd_f64(b))
 }
 
 /// Adds packed double-precision (64-bit) floating-point elements in `a` and
@@ -1647,7 +1664,7 @@ pub unsafe fn _mm_add_pd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(divsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_div_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(a, 0, _mm_cvtsd_f64(a) / _mm_cvtsd_f64(b))
+    simd_insert!(a, 0, _mm_cvtsd_f64(a) / _mm_cvtsd_f64(b))
 }
 
 /// Divide packed double-precision (64-bit) floating-point elements in `a` by
@@ -1719,7 +1736,7 @@ pub unsafe fn _mm_min_pd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(mulsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_mul_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(a, 0, _mm_cvtsd_f64(a) * _mm_cvtsd_f64(b))
+    simd_insert!(a, 0, _mm_cvtsd_f64(a) * _mm_cvtsd_f64(b))
 }
 
 /// Multiplies packed double-precision (64-bit) floating-point elements in `a`
@@ -1743,7 +1760,7 @@ pub unsafe fn _mm_mul_pd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(sqrtsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_sqrt_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(a, 0, _mm_cvtsd_f64(sqrtsd(b)))
+    simd_insert!(a, 0, _mm_cvtsd_f64(sqrtsd(b)))
 }
 
 /// Returns a new vector with the square root of each of the values in `a`.
@@ -1766,7 +1783,7 @@ pub unsafe fn _mm_sqrt_pd(a: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(subsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_sub_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(a, 0, _mm_cvtsd_f64(a) - _mm_cvtsd_f64(b))
+    simd_insert!(a, 0, _mm_cvtsd_f64(a) - _mm_cvtsd_f64(b))
 }
 
 /// Subtract packed double-precision (64-bit) floating-point elements in `b`
@@ -1879,7 +1896,7 @@ pub unsafe fn _mm_cmple_sd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(cmpltsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmpgt_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(_mm_cmplt_sd(b, a), 1, simd_extract::<_, f64>(a, 1))
+    simd_insert!(_mm_cmplt_sd(b, a), 1, simd_extract!(a, 1, f64))
 }
 
 /// Returns a new vector with the low element of `a` replaced by the
@@ -1891,7 +1908,7 @@ pub unsafe fn _mm_cmpgt_sd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(cmplesd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmpge_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(_mm_cmple_sd(b, a), 1, simd_extract::<_, f64>(a, 1))
+    simd_insert!(_mm_cmple_sd(b, a), 1, simd_extract!(a, 1, f64))
 }
 
 /// Returns a new vector with the low element of `a` replaced by the result
@@ -1966,7 +1983,7 @@ pub unsafe fn _mm_cmpnle_sd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(cmpnltsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmpngt_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(_mm_cmpnlt_sd(b, a), 1, simd_extract::<_, f64>(a, 1))
+    simd_insert!(_mm_cmpnlt_sd(b, a), 1, simd_extract!(a, 1, f64))
 }
 
 /// Returns a new vector with the low element of `a` replaced by the
@@ -1978,7 +1995,7 @@ pub unsafe fn _mm_cmpngt_sd(a: __m128d, b: __m128d) -> __m128d {
 #[cfg_attr(test, assert_instr(cmpnlesd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cmpnge_sd(a: __m128d, b: __m128d) -> __m128d {
-    simd_insert(_mm_cmpnle_sd(b, a), 1, simd_extract::<_, f64>(a, 1))
+    simd_insert!(_mm_cmpnle_sd(b, a), 1, simd_extract!(a, 1, f64))
 }
 
 /// Compares corresponding elements in `a` and `b` for equality.
@@ -2319,7 +2336,7 @@ pub unsafe fn _mm_cvtsd_ss(a: __m128, b: __m128d) -> __m128 {
 #[target_feature(enable = "sse2")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_cvtsd_f64(a: __m128d) -> f64 {
-    simd_extract(a, 0)
+    simd_extract!(a, 0)
 }
 
 /// Converts the lower single-precision (32-bit) floating-point element in `b`
@@ -2493,7 +2510,7 @@ pub unsafe fn _mm_load_sd(mem_addr: *const f64) -> __m128d {
 #[cfg_attr(test, assert_instr(movhps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_loadh_pd(a: __m128d, mem_addr: *const f64) -> __m128d {
-    _mm_setr_pd(simd_extract(a, 0), *mem_addr)
+    _mm_setr_pd(simd_extract!(a, 0), *mem_addr)
 }
 
 /// Loads a double-precision value into the low-order bits of a 128-bit
@@ -2506,7 +2523,7 @@ pub unsafe fn _mm_loadh_pd(a: __m128d, mem_addr: *const f64) -> __m128d {
 #[cfg_attr(test, assert_instr(movlps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_loadl_pd(a: __m128d, mem_addr: *const f64) -> __m128d {
-    _mm_setr_pd(*mem_addr, simd_extract(a, 1))
+    _mm_setr_pd(*mem_addr, simd_extract!(a, 1))
 }
 
 /// Stores a 128-bit floating point vector of `[2 x double]` to a 128-bit
@@ -2515,6 +2532,15 @@ pub unsafe fn _mm_loadl_pd(a: __m128d, mem_addr: *const f64) -> __m128d {
 /// used again soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_stream_pd)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "sse2")]
 #[cfg_attr(test, assert_instr(movntps))] // FIXME movntpd
@@ -2533,7 +2559,7 @@ pub unsafe fn _mm_stream_pd(mem_addr: *mut f64, a: __m128d) {
 #[cfg_attr(all(test, not(target_os = "windows")), assert_instr(movlps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_store_sd(mem_addr: *mut f64, a: __m128d) {
-    *mem_addr = simd_extract(a, 0)
+    *mem_addr = simd_extract!(a, 0)
 }
 
 /// Stores 128-bits (composed of 2 packed double-precision (64-bit)
@@ -2615,7 +2641,7 @@ pub unsafe fn _mm_storer_pd(mem_addr: *mut f64, a: __m128d) {
 #[cfg_attr(all(test, not(target_os = "windows")), assert_instr(movhps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_storeh_pd(mem_addr: *mut f64, a: __m128d) {
-    *mem_addr = simd_extract(a, 1);
+    *mem_addr = simd_extract!(a, 1);
 }
 
 /// Stores the lower 64 bits of a 128-bit vector of `[2 x double]` to a
@@ -2627,7 +2653,7 @@ pub unsafe fn _mm_storeh_pd(mem_addr: *mut f64, a: __m128d) {
 #[cfg_attr(all(test, not(target_os = "windows")), assert_instr(movlps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_storel_pd(mem_addr: *mut f64, a: __m128d) {
-    *mem_addr = simd_extract(a, 0);
+    *mem_addr = simd_extract!(a, 0);
 }
 
 /// Loads a double-precision (64-bit) floating-point element from memory
@@ -2713,7 +2739,7 @@ pub unsafe fn _mm_shuffle_pd<const MASK: i32>(a: __m128d, b: __m128d) -> __m128d
 #[cfg_attr(test, assert_instr(movsd))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_move_sd(a: __m128d, b: __m128d) -> __m128d {
-    _mm_setr_pd(simd_extract(b, 0), simd_extract(a, 1))
+    _mm_setr_pd(simd_extract!(b, 0), simd_extract!(a, 1))
 }
 
 /// Casts a 128-bit floating-point vector of `[2 x double]` into a 128-bit
@@ -3138,6 +3164,32 @@ mod tests {
         let b = _mm_setr_epi16(9, 10, 11, 12, 13, 14, 15, 16);
         let r = _mm_madd_epi16(a, b);
         let e = _mm_setr_epi32(29, 81, 149, 233);
+        assert_eq_m128i(r, e);
+
+        // Test large values.
+        // MIN*MIN+MIN*MIN will overflow into i32::MIN.
+        let a = _mm_setr_epi16(
+            i16::MAX,
+            i16::MAX,
+            i16::MIN,
+            i16::MIN,
+            i16::MIN,
+            i16::MAX,
+            0,
+            0,
+        );
+        let b = _mm_setr_epi16(
+            i16::MAX,
+            i16::MAX,
+            i16::MIN,
+            i16::MIN,
+            i16::MAX,
+            i16::MIN,
+            0,
+            0,
+        );
+        let r = _mm_madd_epi16(a, b);
+        let e = _mm_setr_epi32(0x7FFE0002, i32::MIN, -0x7FFF0000, 0);
         assert_eq_m128i(r, e);
     }
 
@@ -3855,7 +3907,7 @@ mod tests {
     unsafe fn test_mm_store_si128() {
         let a = _mm_set1_epi8(9);
         let mut r = _mm_set1_epi8(0);
-        _mm_store_si128(&mut r as *mut _ as *mut __m128i, a);
+        _mm_store_si128(&mut r, a);
         assert_eq_m128i(r, a);
     }
 
@@ -3863,7 +3915,7 @@ mod tests {
     unsafe fn test_mm_storeu_si128() {
         let a = _mm_set1_epi8(9);
         let mut r = _mm_set1_epi8(0);
-        _mm_storeu_si128(&mut r as *mut _ as *mut __m128i, a);
+        _mm_storeu_si128(&mut r, a);
         assert_eq_m128i(r, a);
     }
 
@@ -3871,7 +3923,7 @@ mod tests {
     unsafe fn test_mm_storel_epi64() {
         let a = _mm_setr_epi64x(2, 9);
         let mut r = _mm_set1_epi8(0);
-        _mm_storel_epi64(&mut r as *mut _ as *mut __m128i, a);
+        _mm_storel_epi64(&mut r, a);
         assert_eq_m128i(r, _mm_setr_epi64x(2, 0));
     }
 

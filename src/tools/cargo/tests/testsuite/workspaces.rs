@@ -14,6 +14,7 @@ fn simple_explicit() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -27,6 +28,7 @@ fn simple_explicit() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = ".."
             "#,
@@ -55,6 +57,7 @@ fn simple_explicit_default_members() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -69,6 +72,7 @@ fn simple_explicit_default_members() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = ".."
             "#,
@@ -90,6 +94,7 @@ fn non_virtual_default_members_build_other_member() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -107,14 +112,14 @@ fn non_virtual_default_members_build_other_member() {
     p.cargo("check")
         .with_stderr(
             "[CHECKING] baz v0.1.0 ([..])\n\
-             [..] Finished dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 
     p.cargo("check --manifest-path bar/Cargo.toml")
         .with_stderr(
             "[CHECKING] bar v0.1.0 ([..])\n\
-             [..] Finished dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -128,6 +133,7 @@ fn non_virtual_default_members_build_root_project() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -143,7 +149,7 @@ fn non_virtual_default_members_build_root_project() {
     p.cargo("check")
         .with_stderr(
             "[CHECKING] foo v0.1.0 ([..])\n\
-             [..] Finished dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -157,6 +163,7 @@ fn inferred_root() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -189,6 +196,7 @@ fn inferred_path_dep() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -224,6 +232,7 @@ fn transitive_path_dep() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -239,6 +248,7 @@ fn transitive_path_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -281,6 +291,7 @@ fn parent_pointer_works() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -296,6 +307,7 @@ fn parent_pointer_works() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../foo"
             "#,
@@ -319,6 +331,7 @@ fn same_names_in_workspace() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -332,6 +345,7 @@ fn same_names_in_workspace() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = ".."
             "#,
@@ -360,6 +374,7 @@ fn parent_doesnt_point_to_child() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -395,6 +410,7 @@ fn invalid_parent_pointer() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "foo"
             "#,
@@ -424,6 +440,7 @@ fn invalid_members() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -438,6 +455,7 @@ fn invalid_members() {
         .with_stderr(
             "\
 [ERROR] failed to load manifest for workspace member `[..]/foo`
+referenced by workspace at `[..]/foo/Cargo.toml`
 
 Caused by:
   failed to read `[..]foo/foo/Cargo.toml`
@@ -458,6 +476,7 @@ fn bare_workspace_ok() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -478,6 +497,7 @@ fn two_roots() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -491,6 +511,7 @@ fn two_roots() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -521,6 +542,7 @@ fn workspace_isnt_root() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "bar"
             "#,
@@ -545,6 +567,7 @@ fn dangling_member() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -558,6 +581,7 @@ fn dangling_member() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../baz"
             "#,
@@ -569,6 +593,7 @@ fn dangling_member() {
                 [package]
                 name = "baz"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../baz"
             "#,
@@ -597,6 +622,7 @@ fn cycle() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "bar"
             "#,
@@ -608,6 +634,7 @@ fn cycle() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = ".."
             "#,
@@ -632,6 +659,7 @@ fn share_dependencies() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -648,6 +676,7 @@ fn share_dependencies() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -668,7 +697,7 @@ fn share_dependencies() {
 [DOWNLOADED] dep1 v0.1.3 ([..])
 [CHECKING] dep1 v0.1.3
 [CHECKING] foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -683,6 +712,7 @@ fn fetch_fetches_all() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -696,6 +726,7 @@ fn fetch_fetches_all() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -727,6 +758,7 @@ fn lock_works_for_everyone() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -743,6 +775,7 @@ fn lock_works_for_everyone() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -769,7 +802,7 @@ fn lock_works_for_everyone() {
 [DOWNLOADED] dep2 v0.1.0 ([..])
 [CHECKING] dep2 v0.1.0
 [CHECKING] foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -782,7 +815,7 @@ fn lock_works_for_everyone() {
 [DOWNLOADED] dep1 v0.1.0 ([..])
 [CHECKING] dep1 v0.1.0
 [CHECKING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -910,8 +943,8 @@ fn virtual_default_member_is_not_a_member() {
         .with_status(101)
         .with_stderr(
             "\
-error: package `[..]something-else` is listed in workspace’s default-members \
-but is not a member.
+error: package `[..]something-else` is listed in default-members but is not a member\n\
+for workspace at [..]Cargo.toml.
 ",
         )
         .run();
@@ -937,7 +970,7 @@ fn virtual_default_members_build_other_member() {
     p.cargo("check --manifest-path bar/Cargo.toml")
         .with_stderr(
             "[CHECKING] bar v0.1.0 ([..])\n\
-             [..] Finished dev [unoptimized + debuginfo] target(s) in [..]\n",
+             [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
         .run();
 }
@@ -971,6 +1004,7 @@ fn include_virtual() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 [workspace]
                 members = ["bar"]
@@ -1005,6 +1039,7 @@ fn members_include_path_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1021,6 +1056,7 @@ fn members_include_path_deps() {
                 [package]
                 name = "p1"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1054,6 +1090,7 @@ fn new_creates_members_list() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1063,7 +1100,11 @@ fn new_creates_members_list() {
     let p = p.build();
 
     p.cargo("new --lib bar")
-        .with_stderr("     Created library `bar` package")
+        .with_stderr("\
+[CREATING] library `bar` package
+[ADDING] `bar` as member of workspace at `[ROOT]/foo`
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+")
         .run();
 }
 
@@ -1073,6 +1114,7 @@ fn new_warning_with_corrupt_ws() {
     p.cargo("new bar")
         .with_stderr(
             "\
+[CREATING] binary (application) `bar` package
 [ERROR] expected `.`, `=`
  --> Cargo.toml:1:5
   |
@@ -1081,7 +1123,7 @@ fn new_warning_with_corrupt_ws() {
   |
 [WARNING] compiling this new package may not work due to invalid workspace configuration
 
-[CREATED] binary (application) `bar` package
+[NOTE] see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 ",
         )
         .run();
@@ -1096,6 +1138,7 @@ fn lock_doesnt_change_depending_on_crate() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1112,6 +1155,7 @@ fn lock_doesnt_change_depending_on_crate() {
                 [package]
                 name = "baz"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1158,6 +1202,7 @@ fn rebuild_please() {
                 [package]
                 name = "bin"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 lib = { path = "../lib" }
@@ -1212,6 +1257,7 @@ fn workspace_in_git() {
                     [package]
                     name = "lib"
                     version = "0.1.0"
+                    edition = "2015"
 
                     [dependencies.foo]
                     git = '{}'
@@ -1288,6 +1334,7 @@ fn workspace_with_transitive_dev_deps() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["mbrubeck@example.com"]
 
                 [dependencies.bar]
@@ -1303,6 +1350,7 @@ fn workspace_with_transitive_dev_deps() {
                 [package]
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["mbrubeck@example.com"]
 
                 [dev-dependencies.baz]
@@ -1363,6 +1411,7 @@ fn relative_path_for_member_works() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1376,6 +1425,7 @@ fn relative_path_for_member_works() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../foo"
             "#,
@@ -1396,6 +1446,7 @@ fn relative_path_for_root_works() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1426,6 +1477,7 @@ fn path_dep_outside_workspace_is_not_member() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1452,6 +1504,7 @@ fn test_in_and_out_of_workspace() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1468,6 +1521,7 @@ fn test_in_and_out_of_workspace() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1485,6 +1539,7 @@ fn test_in_and_out_of_workspace() {
                 workspace = "../ws"
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -1516,6 +1571,7 @@ fn test_path_dependency_under_member() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1532,6 +1588,7 @@ fn test_path_dependency_under_member() {
                 workspace = "../ws"
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1566,6 +1623,7 @@ fn excluded_simple() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1592,6 +1650,7 @@ fn exclude_members_preferred() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1623,6 +1682,7 @@ fn exclude_but_also_depend() {
                 [package]
                 name = "ws"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1667,8 +1727,8 @@ fn excluded_default_members_still_must_be_members() {
         .with_status(101)
         .with_stderr(
             "\
-error: package `[..]bar` is listed in workspace’s default-members \
-but is not a member.
+error: package `[..]bar` is listed in default-members but is not a member\n\
+for workspace at [..]foo/Cargo.toml.
 ",
         )
         .run();
@@ -1746,6 +1806,7 @@ fn glob_syntax() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1760,6 +1821,7 @@ fn glob_syntax() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../.."
             "#,
@@ -1771,6 +1833,7 @@ fn glob_syntax() {
                 [package]
                 name = "baz"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = "../.."
             "#,
@@ -1782,6 +1845,7 @@ fn glob_syntax() {
                 [package]
                 name = "qux"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -1818,6 +1882,7 @@ fn glob_syntax_2() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             authors = []
 
             [workspace]
@@ -1829,6 +1894,7 @@ fn glob_syntax_2() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
             authors = []
             workspace = "../.."
         "#)
@@ -1837,6 +1903,7 @@ fn glob_syntax_2() {
             [package]
             name = "baz"
             version = "0.1.0"
+            edition = "2015"
             authors = []
             workspace = "../.."
         "#)
@@ -1845,6 +1912,7 @@ fn glob_syntax_2() {
             [package]
             name = "qux"
             version = "0.1.0"
+            edition = "2015"
             authors = []
         "#)
         .file("crates/qux/src/main.rs", "fn main() {}");
@@ -1882,6 +1950,7 @@ fn glob_syntax_invalid_members() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -1897,6 +1966,7 @@ fn glob_syntax_invalid_members() {
         .with_stderr(
             "\
 [ERROR] failed to load manifest for workspace member `[..]/crates/bar`
+referenced by workspace at `[..]/Cargo.toml`
 
 Caused by:
   failed to read `[..]foo/crates/bar/Cargo.toml`
@@ -1932,6 +2002,7 @@ fn dep_used_with_separate_features() {
                 [package]
                 name = "feat_lib"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -1945,6 +2016,7 @@ fn dep_used_with_separate_features() {
                 [package]
                 name = "caller1"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1959,6 +2031,7 @@ fn dep_used_with_separate_features() {
                 [package]
                 name = "caller2"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1977,7 +2050,7 @@ fn dep_used_with_separate_features() {
 [..]Compiling feat_lib v0.1.0 ([..])
 [..]Compiling caller1 v0.1.0 ([..])
 [..]Compiling caller2 v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1994,7 +2067,7 @@ fn dep_used_with_separate_features() {
             "\
 [..]Compiling feat_lib v0.1.0 ([..])
 [..]Compiling caller1 v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -2003,15 +2076,15 @@ fn dep_used_with_separate_features() {
     // features are being built separately. Should not rebuild anything.
     p.cargo("build")
         .cwd("caller2")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
     p.cargo("build")
         .cwd("caller1")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
     p.cargo("build")
         .cwd("caller2")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }
 
@@ -2052,6 +2125,7 @@ fn dont_recurse_out_of_cargo_home() {
                     [package]
                     name = "foo"
                     version = "0.1.0"
+                    edition = "2015"
 
                     [dependencies.dep]
                     git = "{}"
@@ -2102,6 +2176,7 @@ fn cargo_home_at_root_works() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["a"]
@@ -2152,6 +2227,7 @@ fn relative_rustc() {
                 [package]
                 name = "lib"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 a = "0.1"
@@ -2259,6 +2335,7 @@ fn ws_warn_unused() {
                     [package]
                     name = "a"
                     version = "0.1.0"
+                    edition = "2015"
 
                     {}
                     "#,
@@ -2298,6 +2375,7 @@ fn ws_warn_path() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             "#,
         )
         .file("a/src/lib.rs", "")
@@ -2318,6 +2396,7 @@ fn invalid_missing() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 x = { path = 'x' }
@@ -2358,6 +2437,7 @@ fn member_dep_missing() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [workspace]
                 members = ["bar"]
@@ -2370,6 +2450,7 @@ fn member_dep_missing() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 baz = { path = "baz" }
@@ -2383,6 +2464,7 @@ fn member_dep_missing() {
         .with_stderr(
             "\
 [ERROR] failed to load manifest for workspace member `[..]/bar`
+referenced by workspace at `[..]/Cargo.toml`
 
 Caused by:
   failed to load manifest for dependency `baz`
@@ -2413,6 +2495,7 @@ fn simple_primary_package_env_var() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [workspace]
@@ -2426,6 +2509,7 @@ fn simple_primary_package_env_var() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 workspace = ".."
             "#,
@@ -2485,6 +2569,7 @@ fn ensure_correct_workspace_when_nested() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -2502,6 +2587,7 @@ fn ensure_correct_workspace_when_nested() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]

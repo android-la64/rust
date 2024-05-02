@@ -13,7 +13,7 @@
 edition = "2018"
 rust-version = "1.69"
 name = "sysinfo"
-version = "0.30.5"
+version = "0.30.6"
 authors = ["Guillaume Gomez <guillaume1.gomez@gmail.com>"]
 exclude = ["/test-unknown"]
 description = "Library to get system information such as processes, CPUs, disks, components and networks"
@@ -76,7 +76,7 @@ version = "0.8"
 version = "1.18"
 
 [target."cfg(not(any(target_os = \"unknown\", target_arch = \"wasm32\")))".dependencies.libc]
-version = "^0.2.150"
+version = "^0.2.153"
 
 [target."cfg(windows)".dependencies.ntapi]
 version = "0.4"

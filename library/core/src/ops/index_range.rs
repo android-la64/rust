@@ -1,6 +1,6 @@
-use crate::intrinsics::{unchecked_add, unchecked_sub};
+use crate::intrinsics::{assert_unsafe_precondition, unchecked_add, unchecked_sub};
 use crate::iter::{FusedIterator, TrustedLen};
-use crate::num::NonZeroUsize;
+use crate::num::NonZero;
 
 /// Like a `Range<usize>`, but with a safety invariant that `start <= end`.
 ///
@@ -19,9 +19,10 @@ impl IndexRange {
     /// - `start <= end`
     #[inline]
     pub const unsafe fn new_unchecked(start: usize, end: usize) -> Self {
-        crate::panic::debug_assert_nounwind!(
-            start <= end,
-            "IndexRange::new_unchecked requires `start <= end`"
+        assert_unsafe_precondition!(
+            check_library_ub,
+            "IndexRange::new_unchecked requires `start <= end`",
+            (start: usize = start, end: usize = end) => start <= end,
         );
         IndexRange { start, end }
     }
@@ -130,9 +131,9 @@ impl Iterator for IndexRange {
     }
 
     #[inline]
-    fn advance_by(&mut self, n: usize) -> Result<(), NonZeroUsize> {
+    fn advance_by(&mut self, n: usize) -> Result<(), NonZero<usize>> {
         let taken = self.take_prefix(n);
-        NonZeroUsize::new(n - taken.len()).map_or(Ok(()), Err)
+        NonZero::new(n - taken.len()).map_or(Ok(()), Err)
     }
 }
 
@@ -148,9 +149,9 @@ impl DoubleEndedIterator for IndexRange {
     }
 
     #[inline]
-    fn advance_back_by(&mut self, n: usize) -> Result<(), NonZeroUsize> {
+    fn advance_back_by(&mut self, n: usize) -> Result<(), NonZero<usize>> {
         let taken = self.take_suffix(n);
-        NonZeroUsize::new(n - taken.len()).map_or(Ok(()), Err)
+        NonZero::new(n - taken.len()).map_or(Ok(()), Err)
     }
 }
 

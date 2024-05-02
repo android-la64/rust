@@ -106,7 +106,7 @@ fn test(path: &Path, failed: &AtomicUsize, abort_after: usize) {
             };
             let after = match librustc_parse(back, &sess) {
                 Ok(after) => after,
-                Err(mut diagnostic) => {
+                Err(diagnostic) => {
                     errorf!("=== {}: librustc failed to parse", path.display());
                     diagnostic.emit();
                     return Err(false);
@@ -166,10 +166,10 @@ fn translate_message(diagnostic: &Diagnostic) -> Cow<'static, str> {
     }
 
     let message = &diagnostic.messages[0].0;
-    let args = translation::to_fluent_args(diagnostic.args());
+    let args = translation::to_fluent_args(diagnostic.args.iter());
 
     let (identifier, attr) = match message {
-        DiagnosticMessage::Str(msg) | DiagnosticMessage::Eager(msg) => return msg.clone(),
+        DiagnosticMessage::Str(msg) | DiagnosticMessage::Translated(msg) => return msg.clone(),
         DiagnosticMessage::FluentIdentifier(identifier, attr) => (identifier, attr),
     };
 

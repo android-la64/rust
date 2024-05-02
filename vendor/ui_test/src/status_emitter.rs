@@ -1,19 +1,15 @@
 //! Variaous schemes for reporting messages during testing or after testing is done.
 
-use annotate_snippets::{
-    display_list::{DisplayList, FormatOptions},
-    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
-};
+use annotate_snippets::{Annotation, AnnotationType, Renderer, Slice, Snippet, SourceAnnotation};
 use bstr::ByteSlice;
 use colored::Colorize;
 use crossbeam_channel::{Sender, TryRecvError};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
+use spanned::Span;
 
 use crate::{
-    github_actions,
-    parser::Pattern,
-    rustc_stderr::{Message, Span},
-    Error, Errored, Errors, Format, TestOk, TestResult,
+    github_actions, parser::Pattern, rustc_stderr::Level, Error, Errored, Errors, Format, Message,
+    TestOk, TestResult,
 };
 use std::{
     collections::HashMap,
@@ -221,7 +217,6 @@ impl TestStatus for TextTest {
                 Ok(TestOk::Ok) => "ok".green(),
                 Err(Errored { .. }) => "FAILED".bright_red().bold(),
                 Ok(TestOk::Ignored) => "ignored (in-test comment)".yellow(),
-                Ok(TestOk::Filtered) => return,
             };
             let old_msg = self.msg();
             let msg = format!("... {result}");
@@ -447,14 +442,31 @@ fn print_error(error: &Error, path: &Path) {
                 path,
             );
         }
+        Error::CodeNotFound {
+            code,
+            expected_line,
+        } => {
+            let line = match expected_line {
+                Some(line) => format!("on line {line}"),
+                None => format!("outside the testfile"),
+            };
+            create_error(
+                format!("diagnostic code `{}` not found {line}", &**code),
+                &[(
+                    &[("expected because of this pattern", Some(code.span()))],
+                    code.line(),
+                )],
+                path,
+            );
+        }
         Error::NoPatternsFound => {
             print_error_header("no error patterns found in fail test");
         }
         Error::PatternFoundInPassTest { mode, span } => {
-            let annot = [("expected because of this annotation", Some(*span))];
+            let annot = [("expected because of this annotation", Some(span.clone()))];
             let mut lines: Vec<(&[_], _)> = vec![(&annot, span.line_start)];
-            let annot = [("expected because of this mode change", *mode)];
-            if let Some(mode) = mode {
+            let annot = [("expected because of this mode change", Some(mode.clone()))];
+            if !mode.is_dummy() {
                 lines.push((&annot, mode.line_start))
             }
             // This will print a suitable error header.
@@ -467,11 +479,13 @@ fn print_error(error: &Error, path: &Path) {
             bless_command,
         } => {
             print_error_header("actual output differed from expected");
-            println!(
-                "Execute `{}` to update `{}` to the actual output",
-                bless_command,
-                output_path.display()
-            );
+            if let Some(bless_command) = bless_command {
+                println!(
+                    "Execute `{}` to update `{}` to the actual output",
+                    bless_command,
+                    output_path.display()
+                );
+            }
             println!("{}", format!("--- {}", output_path.display()).red());
             println!(
                 "{}",
@@ -488,7 +502,15 @@ fn print_error(error: &Error, path: &Path) {
                 let line = path.line();
                 let msgs = msgs
                     .iter()
-                    .map(|msg| (format!("{:?}: {}", msg.level, msg.message), msg.line_col))
+                    .map(|msg| {
+                        let text = match (&msg.code, msg.level) {
+                            (Some(code), Level::Error) => {
+                                format!("Error[{code}]: {}", msg.message)
+                            }
+                            _ => format!("{:?}: {}", msg.level, msg.message),
+                        };
+                        (text, msg.line_col.clone())
+                    })
                     .collect::<Vec<_>>();
                 // This will print a suitable error header.
                 create_error(
@@ -496,7 +518,7 @@ fn print_error(error: &Error, path: &Path) {
                     &[(
                         &msgs
                             .iter()
-                            .map(|(msg, lc)| (msg.as_ref(), *lc))
+                            .map(|(msg, lc)| (msg.as_ref(), lc.clone().map(Into::into)))
                             .collect::<Vec<_>>(),
                         line,
                     )],
@@ -511,6 +533,7 @@ fn print_error(error: &Error, path: &Path) {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     println!("    {level:?}: {message}")
@@ -519,7 +542,7 @@ fn print_error(error: &Error, path: &Path) {
         }
         Error::InvalidComment { msg, span } => {
             // This will print a suitable error header.
-            create_error(msg, &[(&[("", Some(*span))], span.line_start)], path)
+            create_error(msg, &[(&[("", Some(span.clone()))], span.line_start)], path)
         }
         Error::MultipleRevisionsWithResults { kind, lines } => {
             let title = format!("multiple {kind} found");
@@ -558,6 +581,7 @@ fn print_error(error: &Error, path: &Path) {
             println!("{error}");
             println!("Add //@no-rustfix to the test file to ignore rustfix suggestions");
         }
+        Error::ConfigError(msg) => println!("{msg}"),
     }
     println!();
 }
@@ -589,20 +613,20 @@ fn create_error(
                     annotations: label
                         .iter()
                         .map(|(label, lc)| SourceAnnotation {
-                            range: lc.map_or((0, len - 1), |lc| {
+                            range: lc.as_ref().map_or((0, len - 1), |lc| {
                                 assert_eq!(lc.line_start, *line);
                                 if lc.line_end > lc.line_start {
-                                    (lc.column_start.get() - 1, len - 1)
-                                } else if lc.column_start == lc.column_end {
-                                    if lc.column_start.get() - 1 == len {
+                                    (lc.col_start.get() - 1, len - 1)
+                                } else if lc.col_start == lc.col_end {
+                                    if lc.col_start.get() - 1 == len {
                                         // rustc sometimes produces spans pointing *after* the `\n` at the end of the line,
                                         // but we want to render an annotation at the end.
-                                        (lc.column_start.get() - 2, lc.column_start.get() - 1)
+                                        (lc.col_start.get() - 2, lc.col_start.get() - 1)
                                     } else {
-                                        (lc.column_start.get() - 1, lc.column_start.get())
+                                        (lc.col_start.get() - 1, lc.col_start.get())
                                     }
                                 } else {
-                                    (lc.column_start.get() - 1, lc.column_end.get() - 1)
+                                    (lc.col_start.get() - 1, lc.col_end.get() - 1)
                                 }
                             }),
                             label,
@@ -614,13 +638,13 @@ fn create_error(
             })
             .collect(),
         footer: vec![],
-        opt: FormatOptions {
-            color: colored::control::SHOULD_COLORIZE.should_colorize(),
-            anonymized_line_numbers: false,
-            margin: None,
-        },
     };
-    println!("{}", DisplayList::from(msg));
+    let renderer = if colored::control::SHOULD_COLORIZE.should_colorize() {
+        Renderer::styled()
+    } else {
+        Renderer::plain()
+    };
+    println!("{}", renderer.render(msg));
 }
 
 fn gha_error(error: &Error, test_path: &str, revision: &str) {
@@ -641,6 +665,10 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
         Error::PatternNotFound { pattern, .. } => {
             github_actions::error(test_path, format!("Pattern not found{revision}"))
                 .line(pattern.line());
+        }
+        Error::CodeNotFound { code, .. } => {
+            github_actions::error(test_path, format!("Diagnostic code not found{revision}"))
+                .line(code.line());
         }
         Error::NoPatternsFound => {
             github_actions::error(
@@ -665,11 +693,13 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     test_path,
                     "test generated output, but there was no output file",
                 );
-                writeln!(
-                    err,
-                    "you likely need to bless the tests with `{bless_command}`"
-                )
-                .unwrap();
+                if let Some(bless_command) = bless_command {
+                    writeln!(
+                        err,
+                        "you likely need to bless the tests with `{bless_command}`"
+                    )
+                    .unwrap();
+                }
                 return;
             }
 
@@ -724,12 +754,13 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 let line = path.line();
                 let path = path.display();
                 let mut err =
-                    github_actions::error(&path, format!("Unmatched diagnostics{revision}"))
+                    github_actions::error(path, format!("Unmatched diagnostics{revision}"))
                         .line(line);
                 for Message {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     writeln!(err, "{level:?}: {message}").unwrap();
@@ -743,6 +774,7 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                     level,
                     message,
                     line_col: _,
+                    code: _,
                 } in msgs
                 {
                     writeln!(err, "{level:?}: {message}").unwrap();
@@ -773,6 +805,9 @@ fn gha_error(error: &Error, test_path: &str, revision: &str) {
                 test_path,
                 format!("failed to apply suggestions with rustfix: {error}"),
             );
+        }
+        Error::ConfigError(msg) => {
+            github_actions::error(test_path, msg.clone());
         }
     }
 }

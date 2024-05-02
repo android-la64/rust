@@ -41,7 +41,7 @@ use crate::util::{ForeignTypeExt, ForeignTypeRefExt};
 use crate::{cvt, cvt_n, cvt_p, cvt_p_const};
 use openssl_macros::corresponds;
 
-#[cfg(any(ossl102, libressl261))]
+#[cfg(any(ossl102, boringssl, libressl261))]
 pub mod verify;
 
 pub mod extension;
@@ -646,6 +646,24 @@ impl X509Ref {
         unsafe {
             let r = ffi::X509_get_serialNumber(self.as_ptr());
             Asn1IntegerRef::from_const_ptr_opt(r).expect("serial number must not be null")
+        }
+    }
+
+    /// Returns this certificate's "alias". This field is populated by
+    /// OpenSSL in some situations -- specifically OpenSSL will store a
+    /// PKCS#12 `friendlyName` in this field. This is not a part of the X.509
+    /// certificate itself, OpenSSL merely attaches it to this structure in
+    /// memory.
+    #[corresponds(X509_alias_get0)]
+    pub fn alias(&self) -> Option<&[u8]> {
+        unsafe {
+            let mut len = 0;
+            let ptr = ffi::X509_alias_get0(self.as_ptr(), &mut len);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(slice::from_raw_parts(ptr, len as usize))
+            }
         }
     }
 
@@ -2094,10 +2112,7 @@ impl GeneralName {
         }
     }
 
-    pub(crate) fn new_other_name(
-        oid: Asn1Object,
-        value: &Vec<u8>,
-    ) -> Result<GeneralName, ErrorStack> {
+    pub(crate) fn new_other_name(oid: Asn1Object, value: &[u8]) -> Result<GeneralName, ErrorStack> {
         unsafe {
             ffi::init();
 

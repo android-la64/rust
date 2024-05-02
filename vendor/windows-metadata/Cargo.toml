@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.70"
 name = "windows-metadata"
-version = "0.52.0"
+version = "0.55.0"
 authors = ["Microsoft"]
 description = "Windows metadata reader"
 readme = "readme.md"
@@ -23,3 +23,8 @@ repository = "https://github.com/microsoft/windows-rs"
 [package.metadata.docs.rs]
 default-target = "x86_64-pc-windows-msvc"
 targets = []
+
+[lints.rust]
+missing_docs = "warn"
+rust_2018_idioms = "warn"
+unused_qualifications = "warn"

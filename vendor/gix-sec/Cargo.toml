@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-sec"
-version = "0.10.3"
+version = "0.10.4"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -59,9 +59,9 @@ serde = [
 version = "0.2.123"
 
 [target."cfg(windows)".dependencies.gix-path]
-version = "^0.10.3"
+version = "^0.10.4"
 
-[target."cfg(windows)".dependencies.windows]
+[target."cfg(windows)".dependencies.windows-sys]
 version = "0.52.0"
 features = [
     "Win32_Foundation",

@@ -39,7 +39,7 @@ struct CallReturnHandler : public M68kIncomingValueHandler {
 
 private:
   void assignValueToReg(Register ValVReg, Register PhysReg,
-                        const CCValAssign VA) override;
+                        const CCValAssign &VA) override;
 
   MachineInstrBuilder &MIB;
 };
@@ -57,14 +57,15 @@ struct M68kOutgoingArgHandler : public CallLowering::OutgoingValueHandler {
         STI(MIRBuilder.getMF().getSubtarget<M68kSubtarget>()) {}
 
   void assignValueToReg(Register ValVReg, Register PhysReg,
-                        CCValAssign VA) override {
+                        const CCValAssign &VA) override {
     MIB.addUse(PhysReg, RegState::Implicit);
     Register ExtReg = extendRegister(ValVReg, VA);
     MIRBuilder.buildCopy(PhysReg, ExtReg);
   }
 
   void assignValueToAddress(Register ValVReg, Register Addr, LLT MemTy,
-                            MachinePointerInfo &MPO, CCValAssign &VA) override {
+                            const MachinePointerInfo &MPO,
+                            const CCValAssign &VA) override {
     MachineFunction &MF = MIRBuilder.getMF();
     Register ExtReg = extendRegister(ValVReg, VA);
 
@@ -147,17 +148,15 @@ bool M68kCallLowering::lowerFormalArguments(MachineIRBuilder &MIRBuilder,
 
 void M68kIncomingValueHandler::assignValueToReg(Register ValVReg,
                                                 Register PhysReg,
-                                                CCValAssign VA) {
+                                                const CCValAssign &VA) {
   MIRBuilder.getMRI()->addLiveIn(PhysReg);
   MIRBuilder.getMBB().addLiveIn(PhysReg);
   IncomingValueHandler::assignValueToReg(ValVReg, PhysReg, VA);
 }
 
-void M68kIncomingValueHandler::assignValueToAddress(Register ValVReg,
-                                                    Register Addr,
-                                                    LLT MemTy,
-                                                    MachinePointerInfo &MPO,
-                                                    CCValAssign &VA) {
+void M68kIncomingValueHandler::assignValueToAddress(
+    Register ValVReg, Register Addr, LLT MemTy, const MachinePointerInfo &MPO,
+    const CCValAssign &VA) {
   MachineFunction &MF = MIRBuilder.getMF();
   auto *MMO = MF.getMachineMemOperand(MPO, MachineMemOperand::MOLoad, MemTy,
                                       inferAlignFromPtrInfo(MF, MPO));
@@ -182,7 +181,7 @@ Register M68kIncomingValueHandler::getStackAddress(uint64_t Size,
 }
 
 void CallReturnHandler::assignValueToReg(Register ValVReg, Register PhysReg,
-                                         CCValAssign VA) {
+                                         const CCValAssign &VA) {
   MIB.addDef(PhysReg, RegState::Implicit);
   MIRBuilder.buildCopy(ValVReg, PhysReg);
 }

@@ -6,9 +6,9 @@
 
 use tabled::{
     settings::{
-        locator::ByColumnName,
+        location::ByColumnName,
         style::{Border, Style},
-        Disable, Modify,
+        Disable,
     },
     Table, Tabled,
 };
@@ -43,7 +43,7 @@ fn main() {
     table
         .with(Style::markdown())
         .with(Disable::column(ByColumnName::new("is_active")))
-        .with(Modify::new(ByColumnName::new("name")).with(Border::filled('#')));
+        .modify(ByColumnName::new("name"), Border::filled('#'));
 
     println!("{table}");
 }

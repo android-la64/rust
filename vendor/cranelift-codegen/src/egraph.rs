@@ -51,7 +51,8 @@ pub struct EgraphPass<'a> {
     /// Alias analysis, used during optimization.
     alias_analysis: &'a mut AliasAnalysis<'a>,
     /// "Domtree with children": like `domtree`, but with an explicit
-    /// list of children, rather than just parent pointers.
+    /// list of children, complementing the parent pointers stored
+    /// in `domtree`.
     domtree_children: DomTreeWithChildren,
     /// Loop analysis results, used for built-in LICM during
     /// elaboration.
@@ -700,4 +701,5 @@ pub(crate) struct Stats {
     pub(crate) elaborate_func: u64,
     pub(crate) elaborate_func_pre_insts: u64,
     pub(crate) elaborate_func_post_insts: u64,
+    pub(crate) elaborate_best_cost_fixpoint_iters: u64,
 }

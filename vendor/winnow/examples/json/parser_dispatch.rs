@@ -5,12 +5,12 @@ use winnow::prelude::*;
 use winnow::{
     ascii::float,
     combinator::cut_err,
+    combinator::empty,
     combinator::fail,
     combinator::peek,
-    combinator::success,
     combinator::{alt, dispatch},
     combinator::{delimited, preceded, separated_pair, terminated},
-    combinator::{fold_repeat, separated},
+    combinator::{repeat, separated},
     error::{AddContext, ParserError},
     token::{any, none_of, take, take_while},
 };
@@ -59,7 +59,7 @@ fn json_value<'i, E: ParserError<Stream<'i>> + AddContext<Stream<'i>, &'static s
     .parse_next(input)
 }
 
-/// `tag(string)` generates a parser that recognizes the argument string.
+/// `literal(string)` generates a parser that recognizes the argument string.
 ///
 /// This also shows returning a sub-slice of the original input
 fn null<'i, E: ParserError<Stream<'i>>>(input: &mut Stream<'i>) -> PResult<&'i str, E> {
@@ -96,7 +96,7 @@ fn string<'i, E: ParserError<Stream<'i>> + AddContext<Stream<'i>, &'static str>>
         // right branch (since we found the `"` character) but encountered an error when
         // parsing the string
         cut_err(terminated(
-            fold_repeat(0.., character, String::new, |mut string, c| {
+            repeat(0.., character).fold(String::new, |mut string, c| {
                 string.push(c);
                 string
             }),
@@ -115,14 +115,14 @@ fn character<'i, E: ParserError<Stream<'i>>>(input: &mut Stream<'i>) -> PResult<
     let c = none_of('\"').parse_next(input)?;
     if c == '\\' {
         dispatch!(any;
-          '"' => success('"'),
-          '\\' => success('\\'),
-          '/'  => success('/'),
-          'b' => success('\x08'),
-          'f' => success('\x0C'),
-          'n' => success('\n'),
-          'r' => success('\r'),
-          't' => success('\t'),
+          '"' => empty.value('"'),
+          '\\' => empty.value('\\'),
+          '/'  => empty.value('/'),
+          'b' => empty.value('\x08'),
+          'f' => empty.value('\x0C'),
+          'n' => empty.value('\n'),
+          'r' => empty.value('\r'),
+          't' => empty.value('\t'),
           'u' => unicode_escape,
           _ => fail,
         )

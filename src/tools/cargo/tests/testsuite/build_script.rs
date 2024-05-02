@@ -25,6 +25,7 @@ fn custom_build_script_failed() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -37,7 +38,7 @@ fn custom_build_script_failed() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]`
 [RUNNING] `[..]/build-script-build`
 [ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
 
@@ -61,6 +62,7 @@ fn custom_build_script_failed_backtraces_message() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -74,7 +76,7 @@ fn custom_build_script_failed_backtraces_message() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]`
 [RUNNING] `[..]/build-script-build`
 [ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
 note: To improve backtraces for build dependencies, set the \
@@ -115,6 +117,7 @@ fn custom_build_script_failed_backtraces_message_with_debuginfo() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -129,7 +132,7 @@ fn custom_build_script_failed_backtraces_message_with_debuginfo() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]`
 [RUNNING] `[..]/build-script-build`
 [ERROR] failed to run custom build command for `foo v0.5.0 ([CWD])`
 
@@ -149,6 +152,7 @@ fn custom_build_env_vars() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [features]
@@ -166,6 +170,7 @@ fn custom_build_env_vars() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
 
@@ -255,7 +260,7 @@ fn custom_build_env_var_rustflags() {
     let rustflags_alt = "--cfg=notspecial";
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [build]
@@ -300,7 +305,7 @@ fn custom_build_env_var_encoded_rustflags() {
     // thing either way.
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [build]
             rustflags = ["-Clink-arg=-B nope", "--cfg=foo"]
@@ -383,6 +388,7 @@ fn custom_build_env_var_rustc_workspace_wrapper() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
             links = "a"
             "#,
         )
@@ -405,6 +411,7 @@ fn custom_build_env_var_rustc_workspace_wrapper() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             bar = "0.1"
@@ -426,7 +433,7 @@ fn custom_build_env_var_rustc_linker() {
     let target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [target.{}]
@@ -466,7 +473,7 @@ fn custom_build_env_var_rustc_linker_with_target_cfg() {
     let target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [target.'cfg(target_pointer_width = "32")']
             linker = "/path/to/linker"
@@ -495,7 +502,7 @@ fn custom_build_env_var_rustc_linker_bad_host_target() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [target.{}]
@@ -514,7 +521,7 @@ fn custom_build_env_var_rustc_linker_bad_host_target() {
         .with_stderr_contains(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/linker [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/linker [..]`
 [ERROR] linker `[..]/path/to/linker` not found
 "
         )
@@ -526,7 +533,7 @@ fn custom_build_env_var_rustc_linker_host_target() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 target-applies-to-host = false
@@ -562,7 +569,7 @@ fn custom_build_env_var_rustc_linker_host_target_env() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [target.{}]
@@ -598,7 +605,7 @@ fn custom_build_invalid_host_config_feature_flag() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [target.{}]
@@ -629,7 +636,7 @@ fn custom_build_linker_host_target_with_bad_host_config() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [host]
@@ -652,7 +659,7 @@ fn custom_build_linker_host_target_with_bad_host_config() {
             .with_stderr_contains(
                 "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
 [ERROR] linker `[..]/path/to/host/linker` not found
 "
             )
@@ -664,7 +671,7 @@ fn custom_build_linker_bad_host() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [host]
@@ -687,7 +694,7 @@ fn custom_build_linker_bad_host() {
             .with_stderr_contains(
                 "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
 [ERROR] linker `[..]/path/to/host/linker` not found
 "
             )
@@ -699,7 +706,7 @@ fn custom_build_linker_bad_host_with_arch() {
     let target = rustc_host();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [host]
@@ -724,7 +731,7 @@ fn custom_build_linker_bad_host_with_arch() {
             .with_stderr_contains(
                 "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/arch/linker [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/arch/linker [..]`
 [ERROR] linker `[..]/path/to/host/arch/linker` not found
 "
             )
@@ -737,7 +744,7 @@ fn custom_build_env_var_rustc_linker_cross_arch_host() {
     let cross_target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [host.{}]
@@ -775,7 +782,7 @@ fn custom_build_linker_bad_cross_arch_host() {
     let cross_target = cross_compile::alternate();
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                 [host]
@@ -800,7 +807,7 @@ fn custom_build_linker_bad_cross_arch_host() {
             .with_stderr_contains(
                 "\
 [COMPILING] foo v0.0.1 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin [..]-C linker=[..]/path/to/host/linker [..]`
 [ERROR] linker `[..]/path/to/host/linker` not found
 "
             )
@@ -817,6 +824,7 @@ fn custom_build_script_wrong_rustc_flags() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -847,6 +855,7 @@ fn custom_build_script_rustc_flags() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.foo]
@@ -861,6 +870,7 @@ fn custom_build_script_rustc_flags() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -880,17 +890,17 @@ fn custom_build_script_rustc_flags() {
         .with_stderr(
             "\
 [COMPILING] foo [..]
-[RUNNING] `rustc --crate-name build_script_build foo/build.rs [..]
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 foo/build.rs [..]
 [RUNNING] `[..]build-script-build`
-[RUNNING] `rustc --crate-name foo foo/src/lib.rs [..]\
+[RUNNING] `rustc --crate-name foo --edition=2015 foo/src/lib.rs [..]\
     -L dependency=[CWD]/target/debug/deps \
     -L /dummy/path1 -L /dummy/path2 -l nonexistinglib`
 [COMPILING] bar [..]
-[RUNNING] `rustc --crate-name bar src/main.rs [..]\
+[RUNNING] `rustc --crate-name bar --edition=2015 src/main.rs [..]\
     -L dependency=[CWD]/target/debug/deps \
     --extern foo=[..]libfoo-[..] \
     -L /dummy/path1 -L /dummy/path2`
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -906,6 +916,7 @@ fn custom_build_script_rustc_flags_no_space() {
 
                 name = "bar"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
 
                 [dependencies.foo]
@@ -920,6 +931,7 @@ fn custom_build_script_rustc_flags_no_space() {
 
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = ["wycats@example.com"]
                 build = "build.rs"
             "#,
@@ -939,17 +951,17 @@ fn custom_build_script_rustc_flags_no_space() {
         .with_stderr(
             "\
 [COMPILING] foo [..]
-[RUNNING] `rustc --crate-name build_script_build foo/build.rs [..]
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 foo/build.rs [..]
 [RUNNING] `[..]build-script-build`
-[RUNNING] `rustc --crate-name foo foo/src/lib.rs [..]\
+[RUNNING] `rustc --crate-name foo --edition=2015 foo/src/lib.rs [..]\
     -L dependency=[CWD]/target/debug/deps \
     -L /dummy/path1 -L /dummy/path2 -l nonexistinglib`
 [COMPILING] bar [..]
-[RUNNING] `rustc --crate-name bar src/main.rs [..]\
+[RUNNING] `rustc --crate-name bar --edition=2015 src/main.rs [..]\
     -L dependency=[CWD]/target/debug/deps \
     --extern foo=[..]libfoo-[..] \
     -L /dummy/path1 -L /dummy/path2`
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 ",
         )
         .run();
@@ -964,6 +976,7 @@ fn links_no_build_cmd() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
             "#,
@@ -995,6 +1008,7 @@ fn links_duplicates() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -1011,6 +1025,7 @@ fn links_duplicates() {
                 [package]
                 name = "a-sys"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -1044,6 +1059,7 @@ fn links_duplicates_old_registry() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
             links = "a"
             "#,
         )
@@ -1058,6 +1074,7 @@ fn links_duplicates_old_registry() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             links = "a"
 
             [dependencies]
@@ -1099,6 +1116,7 @@ fn links_duplicates_deep_dependency() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -1115,6 +1133,7 @@ fn links_duplicates_deep_dependency() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -1130,6 +1149,7 @@ fn links_duplicates_deep_dependency() {
                 [package]
                 name = "a-sys"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -1165,6 +1185,7 @@ fn overrides_and_links() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -1186,7 +1207,7 @@ fn overrides_and_links() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.foo]
@@ -1203,6 +1224,7 @@ fn overrides_and_links() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -1221,7 +1243,7 @@ fn overrides_and_links() {
 [..]
 [..]
 [RUNNING] `rustc --crate-name foo [..] -L foo -L bar`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1238,6 +1260,7 @@ fn unused_overrides() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1245,7 +1268,7 @@ fn unused_overrides() {
         .file("src/lib.rs", "")
         .file("build.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.foo]
@@ -1270,6 +1293,7 @@ fn links_passes_env_vars() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -1294,6 +1318,7 @@ fn links_passes_env_vars() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -1327,6 +1352,7 @@ fn only_rerun_build_script() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1348,7 +1374,7 @@ fn only_rerun_build_script() {
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc --crate-name foo [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1364,6 +1390,7 @@ fn rebuild_continues_to_pass_env_vars() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -1392,6 +1419,7 @@ fn rebuild_continues_to_pass_env_vars() {
                     [package]
                     name = "foo"
                     version = "0.5.0"
+                    edition = "2015"
                     authors = []
                     build = "build.rs"
 
@@ -1432,6 +1460,7 @@ fn testing_and_such() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1456,7 +1485,7 @@ fn testing_and_such() {
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc --crate-name foo [..]`
 [RUNNING] `rustc --crate-name foo [..]`
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/foo-[..][EXE]`
 [DOCTEST] foo
 [RUNNING] `rustdoc [..]--test [..]`",
@@ -1470,7 +1499,7 @@ fn testing_and_such() {
             "\
 [DOCUMENTING] foo v0.5.0 ([CWD])
 [RUNNING] `rustdoc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -1482,7 +1511,7 @@ fn testing_and_such() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`
 ",
         )
@@ -1499,6 +1528,7 @@ fn propagation_of_l_flags() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies.a]
                 path = "a"
@@ -1511,6 +1541,7 @@ fn propagation_of_l_flags() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "bar"
                 build = "build.rs"
@@ -1530,6 +1561,7 @@ fn propagation_of_l_flags() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -1538,7 +1570,7 @@ fn propagation_of_l_flags() {
         .file("b/src/lib.rs", "")
         .file("b/build.rs", "bad file")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.foo]
@@ -1570,6 +1602,7 @@ fn propagation_of_l_flags_new() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies.a]
                 path = "a"
@@ -1582,6 +1615,7 @@ fn propagation_of_l_flags_new() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "bar"
                 build = "build.rs"
@@ -1605,6 +1639,7 @@ fn propagation_of_l_flags_new() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -1613,7 +1648,7 @@ fn propagation_of_l_flags_new() {
         .file("b/src/lib.rs", "")
         .file("b/build.rs", "bad file")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.foo]
@@ -1644,6 +1679,7 @@ fn build_deps_simple() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 [build-dependencies.a]
@@ -1672,7 +1708,7 @@ fn build_deps_simple() {
 [RUNNING] `rustc [..] build.rs [..] --extern a=[..]`
 [RUNNING] `[..]/foo-[..]/build-script-build`
 [RUNNING] `rustc --crate-name foo [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1688,6 +1724,7 @@ fn build_deps_not_for_normal() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 [build-dependencies.aaaaa]
@@ -1734,6 +1771,7 @@ fn build_cmd_with_a_build_cmd() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -1756,6 +1794,7 @@ fn build_cmd_with_a_build_cmd() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -1786,7 +1825,7 @@ fn build_cmd_with_a_build_cmd() {
     --out-dir [..]target/debug/deps \
     -L [..]target/debug/deps`
 [COMPILING] foo v0.5.0 ([CWD])
-[RUNNING] `rustc --crate-name build_script_build build.rs [..]--crate-type bin \
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 build.rs [..]--crate-type bin \
     --emit=[..]link[..]\
     -C metadata=[..] --out-dir [..] \
     -L [..]target/debug/deps \
@@ -1797,7 +1836,7 @@ fn build_cmd_with_a_build_cmd() {
     -C metadata=[..] \
     --out-dir [..] \
     -L [..]target/debug/deps`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1812,6 +1851,7 @@ fn out_dir_is_preserved() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1894,6 +1934,7 @@ fn output_separate_lines() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1932,6 +1973,7 @@ fn output_separate_lines_new() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -1973,6 +2015,7 @@ fn code_generation() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2012,7 +2055,7 @@ fn code_generation() {
         .with_stderr(
             "\
 [COMPILING] foo v0.5.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `target/debug/foo[EXE]`",
         )
         .with_stdout("Hello, World!")
@@ -2030,6 +2073,7 @@ fn release_with_build_script() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2055,6 +2099,7 @@ fn build_script_only() {
                   [package]
                   name = "foo"
                   version = "0.0.0"
+                  edition = "2015"
                   authors = []
                   build = "build.rs"
             "#,
@@ -2083,6 +2128,7 @@ fn shared_dep_with_a_build_script() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2101,6 +2147,7 @@ fn shared_dep_with_a_build_script() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2113,6 +2160,7 @@ fn shared_dep_with_a_build_script() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies.a]
@@ -2133,6 +2181,7 @@ fn transitive_dep_host() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2148,6 +2197,7 @@ fn transitive_dep_host() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -2161,6 +2211,7 @@ fn transitive_dep_host() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -2185,6 +2236,7 @@ fn test_a_lib_with_a_build_command() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2228,6 +2280,7 @@ fn test_dev_dep_build_script() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dev-dependencies.a]
@@ -2241,6 +2294,7 @@ fn test_dev_dep_build_script() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2262,6 +2316,7 @@ fn build_script_with_dynamic_native_dependency() {
                 [package]
                 name = "builder"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -2279,6 +2334,7 @@ fn build_script_with_dynamic_native_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2294,6 +2350,7 @@ fn build_script_with_dynamic_native_dependency() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2356,6 +2413,7 @@ fn profile_and_opt_level_set_correctly() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2386,6 +2444,7 @@ fn profile_debug_0() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 debug = 0
@@ -2417,6 +2476,7 @@ fn build_script_with_lto() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2439,6 +2499,7 @@ fn test_duplicate_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2479,6 +2540,7 @@ fn cfg_feedback() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2503,6 +2565,7 @@ fn cfg_override() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -2511,7 +2574,7 @@ fn cfg_override() {
         .file("src/main.rs", "#[cfg(foo)] fn main() {}")
         .file("build.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.a]
@@ -2534,6 +2597,7 @@ fn cfg_test() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2575,7 +2639,7 @@ fn cfg_test() {
 [RUNNING] [..] --cfg foo[..]
 [RUNNING] [..] --cfg foo[..]
 [RUNNING] [..] --cfg foo[..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/foo-[..][EXE]`
 [RUNNING] `[..]/test-[..][EXE]`
 [DOCTEST] foo
@@ -2596,6 +2660,7 @@ fn cfg_doc() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -2614,6 +2679,7 @@ fn cfg_doc() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2639,6 +2705,7 @@ fn cfg_override_test() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 links = "a"
@@ -2646,7 +2713,7 @@ fn cfg_override_test() {
         )
         .file("build.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.a]
@@ -2686,7 +2753,7 @@ fn cfg_override_test() {
 [RUNNING] `[..]`
 [RUNNING] `[..]`
 [RUNNING] `[..]`
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/foo-[..][EXE]`
 [RUNNING] `[..]/test-[..][EXE]`
 [DOCTEST] foo
@@ -2707,6 +2774,7 @@ fn cfg_override_doc() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 links = "a"
@@ -2716,7 +2784,7 @@ fn cfg_override_doc() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{target}.a]
@@ -2735,6 +2803,7 @@ fn cfg_override_doc() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 links = "b"
@@ -2758,6 +2827,7 @@ fn env_build() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2789,6 +2859,7 @@ fn env_test() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2822,7 +2893,7 @@ fn env_test() {
 [RUNNING] [..] --crate-name foo[..]
 [RUNNING] [..] --crate-name foo[..]
 [RUNNING] [..] --crate-name test[..]
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/foo-[..][EXE]`
 [RUNNING] `[..]/test-[..][EXE]`
 [DOCTEST] foo
@@ -2842,6 +2913,7 @@ fn env_doc() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2870,6 +2942,7 @@ fn flags_go_into_tests() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -2884,6 +2957,7 @@ fn flags_go_into_tests() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 a = { path = "../a" }
@@ -2896,6 +2970,7 @@ fn flags_go_into_tests() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -2923,7 +2998,7 @@ fn flags_go_into_tests() {
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..] src/lib.rs [..] -L test[..]`
 [RUNNING] `rustc [..] tests/foo.rs [..] -L test[..]`
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/foo-[..][EXE]`",
         )
         .with_stdout_contains("running 0 tests")
@@ -2935,7 +3010,7 @@ fn flags_go_into_tests() {
 [FRESH] a v0.5.0 ([..]
 [COMPILING] b v0.5.0 ([..]
 [RUNNING] `rustc [..] b/src/lib.rs [..] -L test[..]`
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]/b-[..][EXE]`",
         )
         .with_stdout_contains("running 0 tests")
@@ -2951,6 +3026,7 @@ fn diamond_passes_args_only_once() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -2966,6 +3042,7 @@ fn diamond_passes_args_only_once() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 b = { path = "../b" }
@@ -2979,6 +3056,7 @@ fn diamond_passes_args_only_once() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 c = { path = "../c" }
@@ -2991,6 +3069,7 @@ fn diamond_passes_args_only_once() {
                 [package]
                 name = "c"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3019,7 +3098,7 @@ fn diamond_passes_args_only_once() {
 [RUNNING] `rustc [..]`
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `[..]rmeta -L native=test`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3035,13 +3114,14 @@ fn adding_an_override_invalidates() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
             "#,
         )
         .file("src/lib.rs", "")
-        .file(".cargo/config", "")
+        .file(".cargo/config.toml", "")
         .file(
             "build.rs",
             r#"
@@ -3059,13 +3139,13 @@ fn adding_an_override_invalidates() {
 [RUNNING] `rustc [..]`
 [RUNNING] `[..]`
 [RUNNING] `rustc [..] -L native=foo`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         &format!(
             "
                 [target.{}.foo]
@@ -3080,7 +3160,7 @@ fn adding_an_override_invalidates() {
             "\
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..] -L native=bar`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3096,6 +3176,7 @@ fn changing_an_override_invalidates() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -3103,7 +3184,7 @@ fn changing_an_override_invalidates() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 "
             [target.{}.foo]
@@ -3120,13 +3201,13 @@ fn changing_an_override_invalidates() {
             "\
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..] -L native=foo`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         &format!(
             "
                 [target.{}.foo]
@@ -3142,7 +3223,7 @@ fn changing_an_override_invalidates() {
 [DIRTY] foo v0.5.0 ([..]): the precalculated components changed
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..] -L native=bar`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3159,6 +3240,7 @@ fn fresh_builds_possible_with_link_libs() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "nativefoo"
                 build = "build.rs"
@@ -3166,7 +3248,7 @@ fn fresh_builds_possible_with_link_libs() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 "
             [target.{}.nativefoo]
@@ -3185,7 +3267,7 @@ fn fresh_builds_possible_with_link_libs() {
             "\
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3194,7 +3276,7 @@ fn fresh_builds_possible_with_link_libs() {
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3211,6 +3293,7 @@ fn fresh_builds_possible_with_multiple_metadata_overrides() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "foo"
                 build = "build.rs"
@@ -3218,7 +3301,7 @@ fn fresh_builds_possible_with_multiple_metadata_overrides() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 "
             [target.{}.foo]
@@ -3239,7 +3322,7 @@ fn fresh_builds_possible_with_multiple_metadata_overrides() {
             "\
 [COMPILING] foo v0.5.0 ([..]
 [RUNNING] `rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3248,7 +3331,7 @@ fn fresh_builds_possible_with_multiple_metadata_overrides() {
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3266,6 +3349,7 @@ fn generate_good_d_files() {
                 [package]
                 name = "awoo"
                 version = "0.5.0"
+                edition = "2015"
                 build = "build.rs"
             "#,
         )
@@ -3285,6 +3369,7 @@ fn generate_good_d_files() {
                 [package]
                 name = "meow"
                 version = "0.5.0"
+                edition = "2015"
                 [dependencies]
                 awoo = { path = "awoo" }
             "#,
@@ -3345,6 +3430,7 @@ fn generate_good_d_files_for_external_tools() {
                 [package]
                 name = "awoo"
                 version = "0.5.0"
+                edition = "2015"
                 build = "build.rs"
             "#,
         )
@@ -3364,6 +3450,7 @@ fn generate_good_d_files_for_external_tools() {
                 [package]
                 name = "meow"
                 version = "0.5.0"
+                edition = "2015"
                 [dependencies]
                 awoo = { path = "awoo" }
             "#,
@@ -3406,6 +3493,7 @@ fn rebuild_only_on_explicit_paths() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3433,7 +3521,7 @@ fn rebuild_only_on_explicit_paths() {
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc [..] src/lib.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3452,7 +3540,7 @@ fn rebuild_only_on_explicit_paths() {
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc [..] src/lib.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3462,7 +3550,7 @@ fn rebuild_only_on_explicit_paths() {
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3476,7 +3564,7 @@ fn rebuild_only_on_explicit_paths() {
         .with_stderr(
             "\
 [FRESH] foo v0.5.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3491,7 +3579,7 @@ fn rebuild_only_on_explicit_paths() {
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc [..] src/lib.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3506,7 +3594,7 @@ fn rebuild_only_on_explicit_paths() {
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..]/build-script-build`
 [RUNNING] `rustc [..] src/lib.rs [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3521,6 +3609,7 @@ fn doctest_receives_build_link_args() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 [dependencies.a]
                 path = "a"
@@ -3533,6 +3622,7 @@ fn doctest_receives_build_link_args() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "bar"
                 build = "build.rs"
@@ -3565,6 +3655,7 @@ fn please_respect_the_dag() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -3587,6 +3678,7 @@ fn please_respect_the_dag() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "bar"
                 build = "build.rs"
@@ -3617,6 +3709,7 @@ fn non_utf8_output() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3654,6 +3747,7 @@ fn custom_target_dir() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -3662,7 +3756,7 @@ fn custom_target_dir() {
         )
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [build]
                 target-dir = 'test'
@@ -3674,6 +3768,7 @@ fn custom_target_dir() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3694,6 +3789,7 @@ fn panic_abort_with_build_scripts() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [profile.release]
@@ -3714,6 +3810,7 @@ fn panic_abort_with_build_scripts() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -3732,6 +3829,7 @@ fn panic_abort_with_build_scripts() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -3756,6 +3854,7 @@ fn warnings_emitted() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3781,7 +3880,7 @@ fn warnings_emitted() {
 warning: foo@0.5.0: foo
 warning: foo@0.5.0: bar
 [RUNNING] `rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3796,6 +3895,7 @@ fn warnings_emitted_when_build_script_panics() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3838,6 +3938,7 @@ fn warnings_hidden_for_upstream() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3852,6 +3953,7 @@ fn warnings_hidden_for_upstream() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -3873,7 +3975,7 @@ fn warnings_hidden_for_upstream() {
 [RUNNING] `rustc [..]`
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3897,6 +3999,7 @@ fn warnings_printed_on_vv() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3911,6 +4014,7 @@ fn warnings_printed_on_vv() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -3934,7 +4038,7 @@ warning: bar@0.1.0: bar
 [RUNNING] `[..] rustc [..]`
 [COMPILING] foo v0.5.0 ([..])
 [RUNNING] `[..] rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3949,6 +4053,7 @@ fn output_shows_on_vv() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -3976,7 +4081,7 @@ fn output_shows_on_vv() {
 [RUNNING] `[..]`
 [foo 0.5.0] stderr
 [RUNNING] `[..] rustc [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -3993,6 +4098,7 @@ fn links_with_dots() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 links = "a.b"
@@ -4008,7 +4114,7 @@ fn links_with_dots() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.'a.b']
@@ -4033,6 +4139,7 @@ fn rustc_and_rustdoc_set_correctly() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4062,6 +4169,7 @@ fn cfg_env_vars_available() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4095,6 +4203,7 @@ fn switch_features_rerun() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -4176,6 +4285,7 @@ fn if_build_set_to_false_dont_treat_build_rs_as_build_script() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = false
             "#,
@@ -4215,6 +4325,7 @@ fn deterministic_rustc_dependency_flags() {
                 [package]
                 name = "dep1"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4236,6 +4347,7 @@ fn deterministic_rustc_dependency_flags() {
                 [package]
                 name = "dep2"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4257,6 +4369,7 @@ fn deterministic_rustc_dependency_flags() {
                 [package]
                 name = "dep3"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4278,6 +4391,7 @@ fn deterministic_rustc_dependency_flags() {
                 [package]
                 name = "dep4"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -4300,6 +4414,7 @@ fn deterministic_rustc_dependency_flags() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -4332,6 +4447,7 @@ fn links_duplicates_with_cycle() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -4351,6 +4467,7 @@ fn links_duplicates_with_cycle() {
                 [package]
                 name = "a"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -4364,6 +4481,7 @@ fn links_duplicates_with_cycle() {
                 [package]
                 name = "b"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -4418,6 +4536,7 @@ fn _rename_with_link_search_path(cross: bool) {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [lib]
@@ -4559,6 +4678,7 @@ fn optional_build_script_dep() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -4611,6 +4731,7 @@ fn optional_build_dep_and_required_normal_dep() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -4647,7 +4768,7 @@ fn optional_build_dep_and_required_normal_dep() {
             "\
 [COMPILING] bar v0.5.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]foo[EXE]`",
         )
         .run();
@@ -4658,7 +4779,7 @@ fn optional_build_dep_and_required_normal_dep() {
             "\
 [COMPILING] bar v0.5.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `[..]foo[EXE]`",
         )
         .run();
@@ -4673,6 +4794,7 @@ fn using_rerun_if_changed_does_not_rebuild() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -4708,6 +4830,7 @@ fn links_interrupted_can_restart() {
             [package]
             name = "bar"
             version = "0.5.0"
+            edition = "2015"
             authors = []
             links = "foo"
             build = "build.rs"
@@ -4732,6 +4855,7 @@ fn links_interrupted_can_restart() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
 
@@ -4783,6 +4907,7 @@ fn dev_dep_with_links() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 links = "x"
 
@@ -4798,6 +4923,7 @@ fn dev_dep_with_links() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 links = "y"
 
@@ -4957,6 +5083,7 @@ fn rerun_if_published_directory() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 mylib-sys = "1.0.0"
@@ -4975,7 +5102,7 @@ fn rerun_if_published_directory() {
             "\
 [FRESH] mylib-sys v1.0.0
 [FRESH] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -5020,6 +5147,7 @@ fn test_with_dep_metadata() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = 'bar' }
@@ -5040,6 +5168,7 @@ fn test_with_dep_metadata() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 links = 'bar'
             "#,
         )
@@ -5080,6 +5209,7 @@ fn duplicate_script_with_extra_env() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 pm = { path = "../pm" }
@@ -5122,6 +5252,7 @@ fn duplicate_script_with_extra_env() {
                 [package]
                 name = "pm"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 proc-macro = true
@@ -5188,6 +5319,7 @@ fn custom_build_closes_stdin() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 build = "build.rs"
             "#,
         )
@@ -5212,6 +5344,7 @@ fn test_old_syntax() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -5328,6 +5461,7 @@ fn test_new_syntax_with_old_msrv() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 rust-version = "1.60.0"
@@ -5367,6 +5501,7 @@ fn test_old_syntax_with_old_msrv() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
                 rust-version = "1.60.0"

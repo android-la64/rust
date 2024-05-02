@@ -12,6 +12,7 @@ fn profile_override_basic() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -35,7 +36,7 @@ fn profile_override_basic() {
 [RUNNING] `rustc --crate-name bar [..] -C opt-level=3 [..]`
 [CHECKING] foo [..]
 [RUNNING] `rustc --crate-name foo [..] -C opt-level=1 [..]`
-[FINISHED] dev [optimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [optimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -49,6 +50,7 @@ fn profile_override_warnings() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = {path = "bar"}
@@ -110,6 +112,7 @@ fn profile_override_bad_settings() {
                         [package]
                         name = "foo"
                         version = "0.0.1"
+                        edition = "2015"
 
                         [dependencies]
                         bar = {{path = "bar"}}
@@ -162,6 +165,7 @@ fn profile_override_hierarchy() {
             [package]
             name = "m1"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             m2 = { path = "../m2" }
@@ -177,6 +181,7 @@ fn profile_override_hierarchy() {
             [package]
             name = "m2"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             m3 = { path = "../m3" }
@@ -215,18 +220,18 @@ fn profile_override_hierarchy() {
     p.cargo("build -v").with_stderr_unordered("\
 [COMPILING] m3 [..]
 [COMPILING] dep [..]
-[RUNNING] `rustc --crate-name m3 m3/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=4 [..]
-[RUNNING] `rustc --crate-name dep [..]dep/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=3 [..]
-[RUNNING] `rustc --crate-name m3 m3/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=1 [..]
-[RUNNING] `rustc --crate-name build_script_build m1/build.rs [..] --crate-type bin --emit=[..]link[..]-C codegen-units=4 [..]
+[RUNNING] `rustc --crate-name m3 --edition=2015 m3/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=4 [..]
+[RUNNING] `rustc --crate-name dep[..]dep/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=3 [..]
+[RUNNING] `rustc --crate-name m3 --edition=2015 m3/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=1 [..]
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 m1/build.rs [..] --crate-type bin --emit=[..]link[..]-C codegen-units=4 [..]
 [COMPILING] m2 [..]
-[RUNNING] `rustc --crate-name build_script_build m2/build.rs [..] --crate-type bin --emit=[..]link[..]-C codegen-units=2 [..]
+[RUNNING] `rustc --crate-name build_script_build --edition=2015 m2/build.rs [..] --crate-type bin --emit=[..]link[..]-C codegen-units=2 [..]
 [RUNNING] `[..]/m1-[..]/build-script-build`
 [RUNNING] `[..]/m2-[..]/build-script-build`
-[RUNNING] `rustc --crate-name m2 m2/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=2 [..]
+[RUNNING] `rustc --crate-name m2 --edition=2015 m2/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=2 [..]
 [COMPILING] m1 [..]
-[RUNNING] `rustc --crate-name m1 m1/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=1 [..]
-[FINISHED] dev [unoptimized + debuginfo] [..]
+[RUNNING] `rustc --crate-name m1 --edition=2015 m1/src/lib.rs [..] --crate-type lib --emit=[..]link[..]-C codegen-units=1 [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] [..]
 ",
         )
         .run();
@@ -241,6 +246,7 @@ fn profile_override_spec_multiple() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             bar = { path = "bar" }
@@ -276,6 +282,7 @@ fn profile_override_spec_with_version() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             bar = { path = "bar" }
@@ -303,6 +310,7 @@ fn profile_override_spec_with_partial_version() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             bar = { path = "bar" }
@@ -344,6 +352,7 @@ fn profile_override_spec() {
             [package]
             name = "m1"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             dep = { path = "../../dep1" }
@@ -357,6 +366,7 @@ fn profile_override_spec() {
             [package]
             name = "m2"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             dep = {path = "../../dep2" }
@@ -410,6 +420,7 @@ fn override_proc_macro() {
             [package]
             name = "pm"
             version = "0.1.0"
+            edition = "2015"
 
             [lib]
             proc-macro = true
@@ -437,7 +448,7 @@ fn override_proc_macro() {
         .with_stderr_contains("[RUNNING] `rustc [..]--crate-name shared [..]-C codegen-units=4[..]")
         // Shared built for the library.
         .with_stderr_line_without(
-            &["[RUNNING] `rustc --crate-name shared"],
+            &["[RUNNING] `rustc --crate-name shared --edition=2015"],
             &["-C codegen-units"],
         )
         .with_stderr_contains("[RUNNING] `rustc [..]--crate-name pm [..]-C codegen-units=4[..]")

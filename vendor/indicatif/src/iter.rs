@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::convert::TryFrom;
 use std::io::{self, IoSliceMut};
 use std::iter::FusedIterator;
 #[cfg(feature = "tokio")]
@@ -20,9 +19,10 @@ pub trait ProgressIterator
 where
     Self: Sized + Iterator,
 {
-    /// Wrap an iterator with default styling. Uses `Iterator::size_hint` to get length.
-    /// Returns `Some(..)` only if `size_hint.1` is `Some`. If you want to create a progress bar
-    /// even if `size_hint.1` returns `None` use `progress_count` or `progress_with` instead.
+    /// Wrap an iterator with default styling. Uses [`Iterator::size_hint()`] to get length.
+    /// Returns `Some(..)` only if `size_hint.1` is [`Some`]. If you want to create a progress bar
+    /// even if `size_hint.1` returns [`None`] use [`progress_count()`](ProgressIterator::progress_count)
+    /// or [`progress_with()`](ProgressIterator::progress_with) instead.
     fn try_progress(self) -> Option<ProgressBarIter<Self>> {
         self.size_hint()
             .1
@@ -67,7 +67,7 @@ pub struct ProgressBarIter<T> {
 impl<T> ProgressBarIter<T> {
     /// Builder-like function for setting underlying progress bar's style.
     ///
-    /// See [ProgressBar::with_style].
+    /// See [`ProgressBar::with_style()`].
     pub fn with_style(mut self, style: ProgressStyle) -> Self {
         self.progress = self.progress.with_style(style);
         self
@@ -75,7 +75,7 @@ impl<T> ProgressBarIter<T> {
 
     /// Builder-like function for setting underlying progress bar's prefix.
     ///
-    /// See [ProgressBar::with_prefix].
+    /// See [`ProgressBar::with_prefix()`].
     pub fn with_prefix(mut self, prefix: impl Into<Cow<'static, str>>) -> Self {
         self.progress = self.progress.with_prefix(prefix);
         self
@@ -83,7 +83,7 @@ impl<T> ProgressBarIter<T> {
 
     /// Builder-like function for setting underlying progress bar's message.
     ///
-    /// See [ProgressBar::with_message].
+    /// See [`ProgressBar::with_message()`].
     pub fn with_message(mut self, message: impl Into<Cow<'static, str>>) -> Self {
         self.progress = self.progress.with_message(message);
         self
@@ -91,7 +91,7 @@ impl<T> ProgressBarIter<T> {
 
     /// Builder-like function for setting underlying progress bar's position.
     ///
-    /// See [ProgressBar::with_position].
+    /// See [`ProgressBar::with_position()`].
     pub fn with_position(mut self, position: u64) -> Self {
         self.progress = self.progress.with_position(position);
         self
@@ -99,7 +99,7 @@ impl<T> ProgressBarIter<T> {
 
     /// Builder-like function for setting underlying progress bar's elapsed time.
     ///
-    /// See [ProgressBar::with_elapsed].
+    /// See [`ProgressBar::with_elapsed()`].
     pub fn with_elapsed(mut self, elapsed: Duration) -> Self {
         self.progress = self.progress.with_elapsed(elapsed);
         self
@@ -107,7 +107,7 @@ impl<T> ProgressBarIter<T> {
 
     /// Builder-like function for setting underlying progress bar's finish behavior.
     ///
-    /// See [ProgressBar::with_finish].
+    /// See [`ProgressBar::with_finish()`].
     pub fn with_finish(mut self, finish: ProgressFinish) -> Self {
         self.progress = self.progress.with_finish(finish);
         self
@@ -335,7 +335,7 @@ mod test {
 
     #[test]
     fn it_can_wrap_an_iterator() {
-        let v = vec![1, 2, 3];
+        let v = [1, 2, 3];
         let wrap = |it: ProgressBarIter<_>| {
             assert_eq!(it.map(|x| x * 2).collect::<Vec<_>>(), vec![2, 4, 6]);
         };

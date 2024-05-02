@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-ref"
-version = "0.40.1"
+version = "0.41.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -39,33 +39,36 @@ version = "0.2.1"
 optional = true
 
 [dependencies.gix-actor]
-version = "^0.29.1"
+version = "^0.30.0"
 
 [dependencies.gix-date]
 version = "^0.8.3"
 
 [dependencies.gix-features]
-version = "^0.37.1"
+version = "^0.38.0"
 features = ["walkdir"]
 
 [dependencies.gix-fs]
-version = "^0.9.1"
+version = "^0.10.0"
 
 [dependencies.gix-hash]
 version = "^0.14.1"
 
 [dependencies.gix-lock]
-version = "^12.0.0"
+version = "^13.0.0"
 
 [dependencies.gix-object]
-version = "^0.40.1"
+version = "^0.41.0"
 
 [dependencies.gix-path]
-version = "^0.10.3"
+version = "^0.10.4"
 
 [dependencies.gix-tempfile]
-version = "^12.0.0"
+version = "^13.0.0"
 default-features = false
+
+[dependencies.gix-utils]
+version = "^0.1.9"
 
 [dependencies.gix-validate]
 version = "^0.8.3"

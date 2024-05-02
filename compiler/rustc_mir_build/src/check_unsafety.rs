@@ -4,7 +4,7 @@ use crate::build::ExprCategory;
 use crate::errors::*;
 use rustc_middle::thir::visit::Visitor;
 
-use rustc_errors::DiagnosticArgValue;
+use rustc_errors::DiagArgValue;
 use rustc_hir as hir;
 use rustc_middle::mir::BorrowKind;
 use rustc_middle::thir::*;
@@ -33,7 +33,7 @@ struct UnsafetyVisitor<'a, 'tcx> {
     body_target_features: &'tcx [Symbol],
     /// When inside the LHS of an assignment to a field, this is the type
     /// of the LHS and the span of the assignment expression.
-    assignment_info: Option<(Ty<'tcx>, Span)>,
+    assignment_info: Option<Ty<'tcx>>,
     in_union_destructure: bool,
     param_env: ParamEnv<'tcx>,
     inside_adt: bool,
@@ -473,10 +473,15 @@ impl<'a, 'tcx> Visitor<'a, 'tcx> for UnsafetyVisitor<'a, 'tcx> {
                 if let ty::Adt(adt_def, _) = lhs.ty.kind()
                     && adt_def.is_union()
                 {
-                    if let Some((assigned_ty, assignment_span)) = self.assignment_info {
+                    if let Some(assigned_ty) = self.assignment_info {
                         if assigned_ty.needs_drop(self.tcx, self.param_env) {
-                            // This would be unsafe, but should be outright impossible since we reject such unions.
-                            self.tcx.dcx().span_delayed_bug(assignment_span, format!("union fields that need dropping should be impossible: {assigned_ty}"));
+                            // This would be unsafe, but should be outright impossible since we
+                            // reject such unions.
+                            assert!(
+                                self.tcx.dcx().has_errors().is_some(),
+                                "union fields that need dropping should be impossible: \
+                                {assigned_ty}"
+                            );
                         }
                     } else {
                         self.requires_unsafe(expr.span, AccessToUnionField);
@@ -492,14 +497,15 @@ impl<'a, 'tcx> Visitor<'a, 'tcx> for UnsafetyVisitor<'a, 'tcx> {
                     self.requires_unsafe(expr.span, MutationOfLayoutConstrainedField);
                 }
 
-                // Second, check for accesses to union fields
-                // don't have any special handling for AssignOp since it causes a read *and* write to lhs
+                // Second, check for accesses to union fields. Don't have any
+                // special handling for AssignOp since it causes a read *and*
+                // write to lhs.
                 if matches!(expr.kind, ExprKind::Assign { .. }) {
-                    self.assignment_info = Some((lhs.ty, expr.span));
+                    self.assignment_info = Some(lhs.ty);
                     visit::walk_expr(self, lhs);
                     self.assignment_info = None;
                     visit::walk_expr(self, &self.thir()[rhs]);
-                    return; // we have already visited everything by now
+                    return; // We have already visited everything by now.
                 }
             }
             ExprKind::Borrow { borrow_kind, arg } => {
@@ -697,12 +703,12 @@ impl UnsafeOpKind {
                 UnsafeOpInUnsafeFnCallToFunctionWithRequiresUnsafe {
                     span,
                     function: with_no_trimmed_paths!(tcx.def_path_str(*function)),
-                    missing_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    missing_target_features: DiagArgValue::StrListSepByAnd(
                         missing.iter().map(|feature| Cow::from(feature.to_string())).collect(),
                     ),
                     missing_target_features_count: missing.len(),
                     note: if build_enabled.is_empty() { None } else { Some(()) },
-                    build_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    build_target_features: DiagArgValue::StrListSepByAnd(
                         build_enabled
                             .iter()
                             .map(|feature| Cow::from(feature.to_string()))
@@ -862,12 +868,12 @@ impl UnsafeOpKind {
             {
                 dcx.emit_err(CallToFunctionWithRequiresUnsafeUnsafeOpInUnsafeFnAllowed {
                     span,
-                    missing_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    missing_target_features: DiagArgValue::StrListSepByAnd(
                         missing.iter().map(|feature| Cow::from(feature.to_string())).collect(),
                     ),
                     missing_target_features_count: missing.len(),
                     note: if build_enabled.is_empty() { None } else { Some(()) },
-                    build_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    build_target_features: DiagArgValue::StrListSepByAnd(
                         build_enabled
                             .iter()
                             .map(|feature| Cow::from(feature.to_string()))
@@ -881,12 +887,12 @@ impl UnsafeOpKind {
             CallToFunctionWith { function, missing, build_enabled } => {
                 dcx.emit_err(CallToFunctionWithRequiresUnsafe {
                     span,
-                    missing_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    missing_target_features: DiagArgValue::StrListSepByAnd(
                         missing.iter().map(|feature| Cow::from(feature.to_string())).collect(),
                     ),
                     missing_target_features_count: missing.len(),
                     note: if build_enabled.is_empty() { None } else { Some(()) },
-                    build_target_features: DiagnosticArgValue::StrListSepByAnd(
+                    build_target_features: DiagArgValue::StrListSepByAnd(
                         build_enabled
                             .iter()
                             .map(|feature| Cow::from(feature.to_string()))

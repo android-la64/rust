@@ -8,7 +8,7 @@ Windows: [#45067], [#48249], [#52440], [#55812], [#58613], [#59107], [#74327].
 Normalization is usually a better choice unless you specifically need a
 canonical path.
 
-[![GitHub Build Status](https://github.com/dylni/normpath/workflows/build/badge.svg?branch=master)](https://github.com/dylni/normpath/actions?query=branch%3Amaster)
+[![GitHub Build Status](https://github.com/dylni/normpath/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/dylni/normpath/actions/workflows/build.yml?query=branch%3Amaster)
 
 ## Usage
 
@@ -16,14 +16,14 @@ Add the following lines to your "Cargo.toml" file:
 
 ```toml
 [dependencies]
-normpath = "1.1"
+normpath = "1.2"
 ```
 
 See the [documentation] for available functionality and examples.
 
 ## Rust version support
 
-The minimum supported Rust toolchain version is currently Rust 1.57.0.
+The minimum supported Rust toolchain version is currently Rust 1.74.0.
 
 Minor version updates may increase this version requirement. However, the
 previous two Rust releases will always be supported. If the minimum Rust
@@ -32,7 +32,7 @@ crate's minor version:
 
 ```toml
 [dependencies]
-normpath = "~1.1"
+normpath = "~1.2"
 ```
 
 ## License

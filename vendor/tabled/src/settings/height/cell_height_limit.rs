@@ -2,7 +2,7 @@ use crate::{
     grid::{
         config::{ColoredConfig, Entity},
         dimension::CompleteDimensionVecRecords,
-        records::{ExactRecords, PeekableRecords, Records, RecordsMut},
+        records::{ExactRecords, IntoRecords, PeekableRecords, Records, RecordsMut},
         util::string::{count_lines, get_lines},
     },
     settings::{measurement::Measurement, peaker::Peaker, CellOption, Height, TableOption},
@@ -45,6 +45,7 @@ where
     W: Measurement<Height>,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, entity: Entity) {
         let height = self.height.measure(&*records, cfg);
@@ -71,18 +72,18 @@ where
     }
 }
 
-impl<R, W> TableOption<R, CompleteDimensionVecRecords<'static>, ColoredConfig>
-    for CellHeightLimit<W>
+impl<R, W> TableOption<R, ColoredConfig, CompleteDimensionVecRecords<'_>> for CellHeightLimit<W>
 where
     W: Measurement<Height>,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(
         self,
         records: &mut R,
         cfg: &mut ColoredConfig,
-        dims: &mut CompleteDimensionVecRecords<'static>,
+        dims: &mut CompleteDimensionVecRecords<'_>,
     ) {
         let height = self.height.measure(&*records, cfg);
         TableHeightLimit::new(height).change(records, cfg, dims)

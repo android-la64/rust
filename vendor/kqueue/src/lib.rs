@@ -1,6 +1,6 @@
 use kqueue_sys::{kevent, kqueue};
 use libc::{pid_t, uintptr_t};
-use std::convert::{AsRef, Into, TryInto};
+use std::convert::{AsRef, Into, TryFrom, TryInto};
 use std::default::Default;
 use std::fs::File;
 use std::io::{self, Error, Result};
@@ -346,7 +346,7 @@ impl Watcher {
                 kev.as_ptr(),
                 // On NetBSD, this is passed as a usize, not i32
                 #[allow(clippy::useless_conversion)]
-                (kev.len() as i32).try_into().unwrap(),
+                i32::try_from(kev.len()).unwrap().try_into().unwrap(),
                 ptr::null_mut(),
                 0,
                 ptr::null(),
@@ -464,7 +464,7 @@ impl Watcher {
                 kevs.as_ptr(),
                 // On NetBSD, this is passed as a usize, not i32
                 #[allow(clippy::useless_conversion)]
-                (kevs.len() as i32).try_into().unwrap(),
+                i32::try_from(kevs.len()).unwrap().try_into().unwrap(),
                 ptr::null_mut(),
                 0,
                 ptr::null(),

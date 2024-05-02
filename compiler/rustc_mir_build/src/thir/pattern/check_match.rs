@@ -1,7 +1,7 @@
 use rustc_pattern_analysis::errors::Uncovered;
 use rustc_pattern_analysis::rustc::{
-    Constructor, DeconstructedPat, MatchArm, RustcMatchCheckCtxt as MatchCheckCtxt, Usefulness,
-    UsefulnessReport, WitnessPat,
+    Constructor, DeconstructedPat, MatchArm, RustcPatCtxt as PatCtxt, Usefulness, UsefulnessReport,
+    WitnessPat,
 };
 
 use crate::errors::*;
@@ -11,12 +11,13 @@ use rustc_ast::Mutability;
 use rustc_data_structures::fx::FxIndexSet;
 use rustc_data_structures::stack::ensure_sufficient_stack;
 use rustc_errors::{
-    codes::*, struct_span_code_err, Applicability, DiagnosticBuilder, ErrorGuaranteed, MultiSpan,
+    codes::*, struct_span_code_err, Applicability, Diag, ErrorGuaranteed, MultiSpan,
 };
 use rustc_hir as hir;
 use rustc_hir::def::*;
 use rustc_hir::def_id::LocalDefId;
 use rustc_hir::HirId;
+use rustc_middle::middle::limits::get_limit_size;
 use rustc_middle::thir::visit::Visitor;
 use rustc_middle::thir::*;
 use rustc_middle::ty::print::with_no_trimmed_paths;
@@ -26,7 +27,7 @@ use rustc_session::lint::builtin::{
 };
 use rustc_session::Session;
 use rustc_span::hygiene::DesugaringKind;
-use rustc_span::Span;
+use rustc_span::{sym, Span};
 
 pub(crate) fn check_match(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Result<(), ErrorGuaranteed> {
     let typeck_results = tcx.typeck(def_id);
@@ -64,7 +65,7 @@ pub(crate) fn check_match(tcx: TyCtxt<'_>, def_id: LocalDefId) -> Result<(), Err
     visitor.error
 }
 
-fn create_e0004(sess: &Session, sp: Span, error_message: String) -> DiagnosticBuilder<'_> {
+fn create_e0004(sess: &Session, sp: Span, error_message: String) -> Diag<'_> {
     struct_span_code_err!(sess.dcx(), sp, E0004, "{}", &error_message)
 }
 
@@ -275,7 +276,7 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
 
     fn lower_pattern(
         &mut self,
-        cx: &MatchCheckCtxt<'p, 'tcx>,
+        cx: &PatCtxt<'p, 'tcx>,
         pat: &'p Pat<'tcx>,
     ) -> Result<&'p DeconstructedPat<'p, 'tcx>, ErrorGuaranteed> {
         if let Err(err) = pat.pat_error_reported() {
@@ -291,7 +292,7 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
                 err = err.and(check_never_pattern(cx, pat));
             });
             err?;
-            Ok(cx.pattern_arena.alloc(cx.lower_pat(pat)))
+            Ok(self.pattern_arena.alloc(cx.lower_pat(pat)))
         }
     }
 
@@ -374,7 +375,7 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
         whole_match_span: Option<Span>,
         scrutinee: Option<&Expr<'tcx>>,
         scrut_span: Span,
-    ) -> MatchCheckCtxt<'p, 'tcx> {
+    ) -> PatCtxt<'p, 'tcx> {
         let refutable = match refutability {
             Irrefutable => false,
             Refutable => true,
@@ -383,12 +384,11 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
         // require validity.
         let known_valid_scrutinee =
             scrutinee.map(|scrut| self.is_known_valid_scrutinee(scrut)).unwrap_or(true);
-        MatchCheckCtxt {
+        PatCtxt {
             tcx: self.tcx,
             typeck_results: self.typeck_results,
             param_env: self.param_env,
             module: self.tcx.parent_module(self.lint_level).to_def_id(),
-            pattern_arena: self.pattern_arena,
             dropless_arena: self.dropless_arena,
             match_lint_level: self.lint_level,
             whole_match_span,
@@ -400,12 +400,15 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
 
     fn analyze_patterns(
         &mut self,
-        cx: &MatchCheckCtxt<'p, 'tcx>,
+        cx: &PatCtxt<'p, 'tcx>,
         arms: &[MatchArm<'p, 'tcx>],
         scrut_ty: Ty<'tcx>,
     ) -> Result<UsefulnessReport<'p, 'tcx>, ErrorGuaranteed> {
+        let pattern_complexity_limit =
+            get_limit_size(cx.tcx.hir().krate_attrs(), cx.tcx.sess, sym::pattern_complexity);
         let report =
-            rustc_pattern_analysis::analyze_match(&cx, &arms, scrut_ty).map_err(|err| {
+            rustc_pattern_analysis::analyze_match(&cx, &arms, scrut_ty, pattern_complexity_limit)
+                .map_err(|err| {
                 self.error = Err(err);
                 err
             })?;
@@ -417,9 +420,9 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
             {
                 let mut redundant_subpats = redundant_subpats.clone();
                 // Emit lints in the order in which they occur in the file.
-                redundant_subpats.sort_unstable_by_key(|pat| pat.data().unwrap().span);
+                redundant_subpats.sort_unstable_by_key(|pat| pat.data().span);
                 for pat in redundant_subpats {
-                    report_unreachable_pattern(cx, arm.arm_data, pat.data().unwrap().span, None)
+                    report_unreachable_pattern(cx, arm.arm_data, pat.data().span, None)
                 }
             }
         }
@@ -581,7 +584,7 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
         pat: &'p Pat<'tcx>,
         refutability: RefutableFlag,
         scrut: Option<&Expr<'tcx>>,
-    ) -> Result<(MatchCheckCtxt<'p, 'tcx>, UsefulnessReport<'p, 'tcx>), ErrorGuaranteed> {
+    ) -> Result<(PatCtxt<'p, 'tcx>, UsefulnessReport<'p, 'tcx>), ErrorGuaranteed> {
         let cx = self.new_cx(refutability, None, scrut, pat.span);
         let pat = self.lower_pattern(&cx, pat)?;
         let arms = [MatchArm { pat, arm_data: self.lint_level, has_guard: false }];
@@ -666,7 +669,8 @@ impl<'p, 'tcx> MatchVisitor<'p, 'tcx> {
 
         // Emit an extra note if the first uncovered witness would be uninhabited
         // if we disregard visibility.
-        let witness_1_is_privately_uninhabited = if self.tcx.features().exhaustive_patterns
+        let witness_1_is_privately_uninhabited = if (self.tcx.features().exhaustive_patterns
+            || self.tcx.features().min_exhaustive_patterns)
             && let Some(witness_1) = witnesses.get(0)
             && let ty::Adt(adt, args) = witness_1.ty().kind()
             && adt.is_enum()
@@ -845,7 +849,7 @@ fn check_for_bindings_named_same_as_variants(
 
 /// Check that never patterns are only used on inhabited types.
 fn check_never_pattern<'tcx>(
-    cx: &MatchCheckCtxt<'_, 'tcx>,
+    cx: &PatCtxt<'_, 'tcx>,
     pat: &Pat<'tcx>,
 ) -> Result<(), ErrorGuaranteed> {
     if let PatKind::Never = pat.kind {
@@ -880,7 +884,7 @@ fn report_irrefutable_let_patterns(
 
 /// Report unreachable arms, if any.
 fn report_unreachable_pattern<'p, 'tcx>(
-    cx: &MatchCheckCtxt<'p, 'tcx>,
+    cx: &PatCtxt<'p, 'tcx>,
     hir_id: HirId,
     span: Span,
     catchall: Option<Span>,
@@ -894,17 +898,14 @@ fn report_unreachable_pattern<'p, 'tcx>(
 }
 
 /// Report unreachable arms, if any.
-fn report_arm_reachability<'p, 'tcx>(
-    cx: &MatchCheckCtxt<'p, 'tcx>,
-    report: &UsefulnessReport<'p, 'tcx>,
-) {
+fn report_arm_reachability<'p, 'tcx>(cx: &PatCtxt<'p, 'tcx>, report: &UsefulnessReport<'p, 'tcx>) {
     let mut catchall = None;
     for (arm, is_useful) in report.arm_usefulness.iter() {
         if matches!(is_useful, Usefulness::Redundant) {
-            report_unreachable_pattern(cx, arm.arm_data, arm.pat.data().unwrap().span, catchall)
+            report_unreachable_pattern(cx, arm.arm_data, arm.pat.data().span, catchall)
         }
         if !arm.has_guard && catchall.is_none() && pat_is_catchall(arm.pat) {
-            catchall = Some(arm.pat.data().unwrap().span);
+            catchall = Some(arm.pat.data().span);
         }
     }
 }
@@ -913,14 +914,16 @@ fn report_arm_reachability<'p, 'tcx>(
 fn pat_is_catchall(pat: &DeconstructedPat<'_, '_>) -> bool {
     match pat.ctor() {
         Constructor::Wildcard => true,
-        Constructor::Struct | Constructor::Ref => pat.iter_fields().all(|pat| pat_is_catchall(pat)),
+        Constructor::Struct | Constructor::Ref => {
+            pat.iter_fields().all(|ipat| pat_is_catchall(&ipat.pat))
+        }
         _ => false,
     }
 }
 
 /// Report that a match is not exhaustive.
 fn report_non_exhaustive_match<'p, 'tcx>(
-    cx: &MatchCheckCtxt<'p, 'tcx>,
+    cx: &PatCtxt<'p, 'tcx>,
     thir: &Thir<'tcx>,
     scrut_ty: Ty<'tcx>,
     sp: Span,
@@ -1109,7 +1112,7 @@ fn report_non_exhaustive_match<'p, 'tcx>(
 
     let all_arms_have_guards = arms.iter().all(|arm_id| thir[*arm_id].guard.is_some());
     if !is_empty_match && all_arms_have_guards {
-        err.subdiagnostic(NonExhaustiveMatchAllArmsGuarded);
+        err.subdiagnostic(cx.tcx.dcx(), NonExhaustiveMatchAllArmsGuarded);
     }
     if let Some((span, sugg)) = suggestion {
         err.span_suggestion_verbose(span, msg, sugg, Applicability::HasPlaceholders);
@@ -1120,7 +1123,7 @@ fn report_non_exhaustive_match<'p, 'tcx>(
 }
 
 fn joined_uncovered_patterns<'p, 'tcx>(
-    cx: &MatchCheckCtxt<'p, 'tcx>,
+    cx: &PatCtxt<'p, 'tcx>,
     witnesses: &[WitnessPat<'p, 'tcx>],
 ) -> String {
     const LIMIT: usize = 3;
@@ -1141,7 +1144,7 @@ fn joined_uncovered_patterns<'p, 'tcx>(
 }
 
 fn collect_non_exhaustive_tys<'tcx>(
-    cx: &MatchCheckCtxt<'_, 'tcx>,
+    cx: &PatCtxt<'_, 'tcx>,
     pat: &WitnessPat<'_, 'tcx>,
     non_exhaustive_tys: &mut FxIndexSet<Ty<'tcx>>,
 ) {

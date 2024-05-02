@@ -10,7 +10,7 @@ fn pathless_tools() {
         .file("Cargo.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}]
@@ -26,7 +26,7 @@ fn pathless_tools() {
             "\
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `rustc [..] -C linker=nonexistent-linker [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -39,7 +39,7 @@ fn custom_linker_cfg() {
         .file("Cargo.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [target.'cfg(not(target_os = "none"))']
             linker = "nonexistent-linker"
@@ -52,7 +52,7 @@ fn custom_linker_cfg() {
             "\
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `rustc [..] -C linker=nonexistent-linker [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -67,7 +67,7 @@ fn custom_linker_cfg_precedence() {
         .file("Cargo.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.'cfg(not(target_os = "none"))']
@@ -85,7 +85,7 @@ fn custom_linker_cfg_precedence() {
             "\
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `rustc [..] -C linker=nonexistent-linker [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -97,7 +97,7 @@ fn custom_linker_cfg_collision() {
         .file("Cargo.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [target.'cfg(not(target_arch = "avr"))']
             linker = "nonexistent-linker1"
@@ -112,8 +112,8 @@ fn custom_linker_cfg_collision() {
         .with_stderr(&format!(
             "\
 [ERROR] several matching instances of `target.'cfg(..)'.linker` in configurations
-first match `cfg(not(target_arch = \"avr\"))` located in [..]/foo/.cargo/config
-second match `cfg(not(target_os = \"none\"))` located in [..]/foo/.cargo/config
+first match `cfg(not(target_arch = \"avr\"))` located in [..]/foo/.cargo/config.toml
+second match `cfg(not(target_os = \"none\"))` located in [..]/foo/.cargo/config.toml
 ",
         ))
         .run();
@@ -134,7 +134,7 @@ fn absolute_tools() {
         .file("Cargo.toml", &basic_lib_manifest("foo"))
         .file("src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{target}]
@@ -151,7 +151,7 @@ fn absolute_tools() {
             "\
 [COMPILING] foo v0.5.0 ([CWD])
 [RUNNING] `rustc [..] -C linker=[..]bogus/nonexistent-linker [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -175,7 +175,7 @@ fn relative_tools() {
         .file("bar/Cargo.toml", &basic_lib_manifest("bar"))
         .file("bar/src/lib.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{target}]
@@ -195,7 +195,7 @@ fn relative_tools() {
             "\
 [COMPILING] bar v0.5.0 ([CWD])
 [RUNNING] `rustc [..] -C linker={prefix}/./tools/nonexistent-linker [..]`
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
             prefix = prefix,
         ))
@@ -211,7 +211,7 @@ fn custom_runner() {
         .file("tests/test.rs", "")
         .file("benches/bench.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}]
@@ -227,7 +227,7 @@ fn custom_runner() {
         .with_stderr_contains(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `nonexistent-runner -r target/debug/foo[EXE] --param`
 ",
         )
@@ -239,7 +239,7 @@ fn custom_runner() {
             "\
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]`
-[FINISHED] test [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `nonexistent-runner -r [..]/target/debug/deps/test-[..][EXE] --param`
 ",
         )
@@ -252,7 +252,7 @@ fn custom_runner() {
 [COMPILING] foo v0.0.1 ([CWD])
 [RUNNING] `rustc [..]`
 [RUNNING] `rustc [..]`
-[FINISHED] bench [optimized] target(s) in [..]
+[FINISHED] `bench` profile [optimized] target(s) in [..]
 [RUNNING] `nonexistent-runner -r [..]/target/release/deps/bench-[..][EXE] --param --bench`
 ",
         )
@@ -265,7 +265,7 @@ fn custom_runner_cfg() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [target.'cfg(not(target_os = "none"))']
             runner = "nonexistent-runner -r"
@@ -278,7 +278,7 @@ fn custom_runner_cfg() {
         .with_stderr_contains(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `nonexistent-runner -r target/debug/foo[EXE] --param`
 ",
         )
@@ -293,7 +293,7 @@ fn custom_runner_cfg_precedence() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.'cfg(not(target_os = "none"))']
@@ -312,7 +312,7 @@ fn custom_runner_cfg_precedence() {
         .with_stderr_contains(
             "\
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] `nonexistent-runner -r target/debug/foo[EXE] --param`
 ",
         )
@@ -324,7 +324,7 @@ fn custom_runner_cfg_collision() {
     let p = project()
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [target.'cfg(not(target_arch = "avr"))']
             runner = "true"
@@ -340,8 +340,8 @@ fn custom_runner_cfg_collision() {
         .with_stderr(
             "\
 [ERROR] several matching instances of `target.'cfg(..)'.runner` in configurations
-first match `cfg(not(target_arch = \"avr\"))` located in [..]/foo/.cargo/config
-second match `cfg(not(target_os = \"none\"))` located in [..]/foo/.cargo/config
+first match `cfg(not(target_arch = \"avr\"))` located in [..]/foo/.cargo/config.toml
+second match `cfg(not(target_os = \"none\"))` located in [..]/foo/.cargo/config.toml
 ",
         )
         .run();
@@ -362,7 +362,7 @@ fn custom_runner_env() {
         .with_stderr(&format!(
             "\
 [COMPILING] foo [..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [RUNNING] `nonexistent-runner --foo target/debug/foo[EXE]`
 [ERROR] could not execute process `nonexistent-runner --foo target/debug/foo[EXE]` (never executed)
 
@@ -441,7 +441,7 @@ fn target_in_environment_contains_lower_case() {
         .arg(target)
         .env(&env_key, "nonexistent-linker")
         .with_stderr_contains(format!(
-            "warning: Environment variables are expected to use uppercase \
+            "warning: environment variables are expected to use uppercase \
              letters and underscores, the variable `{}` will be ignored and \
              have no effect",
             env_key
@@ -454,7 +454,7 @@ fn cfg_ignored_fields() {
     // Test for some ignored fields in [target.'cfg()'] tables.
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             # Try some empty tables.
             [target.'cfg(not(foo))']

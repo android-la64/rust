@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-module"
-version = "0.104.0"
+version = "0.105.2"
 authors = ["The Cranelift Project Developers"]
 description = "Support for linking functions and data with Cranelift"
 documentation = "https://docs.rs/cranelift-module"
@@ -25,7 +25,7 @@ repository = "https://github.com/bytecodealliance/wasmtime"
 version = "1.0.22"
 
 [dependencies.cranelift-codegen]
-version = "0.104.0"
+version = "0.105.2"
 features = [
     "std",
     "unwind",
@@ -33,7 +33,7 @@ features = [
 default-features = false
 
 [dependencies.cranelift-control]
-version = "0.104.0"
+version = "0.105.2"
 
 [dependencies.hashbrown]
 version = "0.14"

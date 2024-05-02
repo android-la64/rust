@@ -18,17 +18,17 @@ use rustc_data_structures::sync::{
     AtomicU64, DynSend, DynSync, Lock, Lrc, MappedReadGuard, ReadGuard, RwLock,
 };
 use rustc_errors::annotate_snippet_emitter_writer::AnnotateSnippetEmitter;
-use rustc_errors::emitter::{DynEmitter, HumanEmitter, HumanReadableErrorType};
+use rustc_errors::emitter::{stderr_destination, DynEmitter, HumanEmitter, HumanReadableErrorType};
 use rustc_errors::json::JsonEmitter;
 use rustc_errors::registry::Registry;
 use rustc_errors::{
-    codes::*, fallback_fluent_bundle, DiagCtxt, DiagnosticBuilder, DiagnosticMessage, ErrCode,
-    ErrorGuaranteed, FatalAbort, FluentBundle, IntoDiagnostic, LazyFallbackBundle, TerminalUrl,
+    codes::*, fallback_fluent_bundle, Diag, DiagCtxt, DiagMessage, Diagnostic, ErrorGuaranteed,
+    FatalAbort, FluentBundle, LazyFallbackBundle, TerminalUrl,
 };
 use rustc_macros::HashStable_Generic;
 pub use rustc_span::def_id::StableCrateId;
 use rustc_span::edition::Edition;
-use rustc_span::source_map::{FileLoader, RealFileLoader, SourceMap};
+use rustc_span::source_map::{FileLoader, FilePathMapping, RealFileLoader, SourceMap};
 use rustc_span::{SourceFileHashAlgorithm, Span, Symbol};
 use rustc_target::asm::InlineAsmArch;
 use rustc_target::spec::{CodeModel, PanicStrategy, RelocModel, RelroLevel};
@@ -39,6 +39,7 @@ use rustc_target::spec::{
 use std::any::Any;
 use std::env;
 use std::fmt;
+use std::io;
 use std::ops::{Div, Mul};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -110,9 +111,9 @@ impl Mul<usize> for Limit {
     }
 }
 
-impl rustc_errors::IntoDiagnosticArg for Limit {
-    fn into_diagnostic_arg(self) -> rustc_errors::DiagnosticArgValue {
-        self.to_string().into_diagnostic_arg()
+impl rustc_errors::IntoDiagArg for Limit {
+    fn into_diag_arg(self) -> rustc_errors::DiagArgValue {
+        self.to_string().into_diag_arg()
     }
 }
 
@@ -145,7 +146,7 @@ pub struct Session {
     pub opts: config::Options,
     pub host_tlib_path: Lrc<SearchPath>,
     pub target_tlib_path: Lrc<SearchPath>,
-    pub parse_sess: ParseSess,
+    pub psess: ParseSess,
     pub sysroot: PathBuf,
     /// Input, input file path and output file path to this compilation process.
     pub io: CompilerIO,
@@ -258,7 +259,8 @@ impl Session {
         }
     }
 
-    fn check_miri_unleashed_features(&self) {
+    fn check_miri_unleashed_features(&self) -> Option<ErrorGuaranteed> {
+        let mut guar = None;
         let unleashed_features = self.miri_unleashed_features.lock();
         if !unleashed_features.is_empty() {
             let mut must_err = false;
@@ -279,28 +281,22 @@ impl Session {
             // If we should err, make sure we did.
             if must_err && self.dcx().has_errors().is_none() {
                 // We have skipped a feature gate, and not run into other errors... reject.
-                self.dcx().emit_err(errors::NotCircumventFeature);
+                guar = Some(self.dcx().emit_err(errors::NotCircumventFeature));
             }
         }
+        guar
     }
 
     /// Invoked all the way at the end to finish off diagnostics printing.
-    pub fn finish_diagnostics(&self, registry: &Registry) {
-        self.check_miri_unleashed_features();
+    pub fn finish_diagnostics(&self, registry: &Registry) -> Option<ErrorGuaranteed> {
+        let mut guar = None;
+        guar = guar.or(self.check_miri_unleashed_features());
+        guar = guar.or(self.dcx().emit_stashed_diagnostics());
         self.dcx().print_error_count(registry);
-        self.emit_future_breakage();
-    }
-
-    fn emit_future_breakage(&self) {
-        if !self.opts.json_future_incompat {
-            return;
+        if self.opts.json_future_incompat {
+            self.dcx().emit_future_breakage_report();
         }
-
-        let diags = self.dcx().take_future_breakage_diagnostics();
-        if diags.is_empty() {
-            return;
-        }
-        self.dcx().emit_future_breakage_report(diags);
+        guar
     }
 
     /// Returns true if the crate is a testing one.
@@ -309,33 +305,19 @@ impl Session {
     }
 
     #[track_caller]
-    pub fn create_feature_err<'a>(
-        &'a self,
-        err: impl IntoDiagnostic<'a>,
-        feature: Symbol,
-    ) -> DiagnosticBuilder<'a> {
+    pub fn create_feature_err<'a>(&'a self, err: impl Diagnostic<'a>, feature: Symbol) -> Diag<'a> {
         let mut err = self.dcx().create_err(err);
         if err.code.is_none() {
+            #[allow(rustc::diagnostic_outside_of_impl)]
             err.code(E0658);
         }
         add_feature_diagnostics(&mut err, self, feature);
         err
     }
 
-    pub fn compile_status(&self) -> Result<(), ErrorGuaranteed> {
-        // We must include lint errors here.
-        if let Some(reported) = self.dcx().has_errors_or_lint_errors() {
-            let _ = self.dcx().emit_stashed_diagnostics();
-            Err(reported)
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Used for code paths of expensive computations that should only take place when
-    /// warnings or errors are emitted. If no messages are emitted ("good path"), then
-    /// it's likely a bug.
-    pub fn good_path_delayed_bug(&self, msg: impl Into<DiagnosticMessage>) {
+    /// Record the fact that we called `trimmed_def_paths`, and do some
+    /// checking about whether its cost was justified.
+    pub fn record_trimmed_def_paths(&self) {
         if self.opts.unstable_opts.print_type_sizes
             || self.opts.unstable_opts.query_dep_graph
             || self.opts.unstable_opts.dump_mir.is_some()
@@ -346,17 +328,17 @@ impl Session {
             return;
         }
 
-        self.dcx().good_path_delayed_bug(msg)
+        self.dcx().set_must_produce_diag()
     }
 
     #[inline]
     pub fn dcx(&self) -> &DiagCtxt {
-        &self.parse_sess.dcx
+        &self.psess.dcx
     }
 
     #[inline]
     pub fn source_map(&self) -> &SourceMap {
-        self.parse_sess.source_map()
+        self.psess.source_map()
     }
 
     /// Returns `true` if internal lints should be added to the lint store - i.e. if
@@ -367,19 +349,11 @@ impl Session {
     }
 
     pub fn instrument_coverage(&self) -> bool {
-        self.opts.cg.instrument_coverage() != InstrumentCoverage::Off
+        self.opts.cg.instrument_coverage() != InstrumentCoverage::No
     }
 
     pub fn instrument_coverage_branch(&self) -> bool {
-        self.opts.cg.instrument_coverage() == InstrumentCoverage::Branch
-    }
-
-    pub fn instrument_coverage_except_unused_generics(&self) -> bool {
-        self.opts.cg.instrument_coverage() == InstrumentCoverage::ExceptUnusedGenerics
-    }
-
-    pub fn instrument_coverage_except_unused_functions(&self) -> bool {
-        self.opts.cg.instrument_coverage() == InstrumentCoverage::ExceptUnusedFunctions
+        self.instrument_coverage() && self.opts.unstable_opts.coverage_options.branch
     }
 
     pub fn is_sanitizer_cfi_enabled(&self) -> bool {
@@ -556,8 +530,8 @@ impl Session {
                 if fuel.remaining == 0 && !fuel.out_of_fuel {
                     if self.dcx().can_emit_warnings() {
                         // We only call `msg` in case we can actually emit warnings.
-                        // Otherwise, this could cause a `good_path_delayed_bug` to
-                        // trigger (issue #79546).
+                        // Otherwise, this could cause a `must_produce_diag` ICE
+                        // (issue #79546).
                         self.dcx().emit_warn(errors::OptimisationFuelExhausted { msg: msg() });
                     }
                     fuel.out_of_fuel = true;
@@ -777,6 +751,13 @@ impl Session {
         self.opts.unstable_opts.tls_model.unwrap_or(self.target.tls_model)
     }
 
+    pub fn direct_access_external_data(&self) -> Option<bool> {
+        self.opts
+            .unstable_opts
+            .direct_access_external_data
+            .or(self.target.direct_access_external_data)
+    }
+
     pub fn split_debuginfo(&self) -> SplitDebuginfo {
         self.opts.cg.split_debuginfo.unwrap_or(self.target.split_debuginfo)
     }
@@ -906,19 +887,6 @@ impl Session {
     }
 
     pub fn should_prefer_remapped_for_codegen(&self) -> bool {
-        // bail out, if any of the requested crate types aren't:
-        // "compiled executables or libraries"
-        for crate_type in &self.opts.crate_types {
-            match crate_type {
-                CrateType::Executable
-                | CrateType::Dylib
-                | CrateType::Rlib
-                | CrateType::Staticlib
-                | CrateType::Cdylib => continue,
-                CrateType::ProcMacro => return false,
-            }
-        }
-
         let has_split_debuginfo = match self.split_debuginfo() {
             SplitDebuginfo::Off => false,
             SplitDebuginfo::Packed => true,
@@ -991,7 +959,7 @@ fn default_emitter(
                 );
                 Box::new(emitter.ui_testing(sopts.unstable_opts.ui_testing))
             } else {
-                let emitter = HumanEmitter::stderr(color_config, fallback_bundle)
+                let emitter = HumanEmitter::new(stderr_destination(color_config), fallback_bundle)
                     .fluent_bundle(bundle)
                     .sm(Some(source_map))
                     .short_message(short)
@@ -1007,28 +975,30 @@ fn default_emitter(
             }
         }
         config::ErrorOutputType::Json { pretty, json_rendered } => Box::new(
-            JsonEmitter::stderr(
-                Some(registry),
+            JsonEmitter::new(
+                Box::new(io::BufWriter::new(io::stderr())),
                 source_map,
-                bundle,
                 fallback_bundle,
                 pretty,
                 json_rendered,
-                sopts.diagnostic_width,
-                macro_backtrace,
-                track_diagnostics,
-                terminal_url,
             )
+            .registry(Some(registry))
+            .fluent_bundle(bundle)
             .ui_testing(sopts.unstable_opts.ui_testing)
             .ignored_directories_in_source_blocks(
                 sopts.unstable_opts.ignore_directory_in_diagnostics_source_blocks.clone(),
-            ),
+            )
+            .diagnostic_width(sopts.diagnostic_width)
+            .macro_backtrace(macro_backtrace)
+            .track_diagnostics(track_diagnostics)
+            .terminal_url(terminal_url),
         ),
     }
 }
 
 // JUSTIFICATION: literally session construction
 #[allow(rustc::bad_opt_access)]
+#[allow(rustc::untranslatable_diagnostic)] // FIXME: make this translatable
 pub fn build_session(
     early_dcx: EarlyDiagCtxt,
     sopts: config::Options,
@@ -1038,7 +1008,8 @@ pub fn build_session(
     fluent_resources: Vec<&'static str>,
     driver_lint_caps: FxHashMap<lint::LintId, lint::Level>,
     file_loader: Option<Box<dyn FileLoader + Send + Sync + 'static>>,
-    target_override: Option<Target>,
+    target_cfg: Target,
+    sysroot: PathBuf,
     cfg_version: &'static str,
     ice_file: Option<PathBuf>,
     using_internal_features: Arc<AtomicBool>,
@@ -1055,12 +1026,6 @@ pub fn build_session(
     let cap_lints_allow = sopts.lint_cap.is_some_and(|cap| cap == lint::Allow);
     let can_emit_warnings = !(warnings_allow || cap_lints_allow);
 
-    let sysroot = match &sopts.maybe_sysroot {
-        Some(sysroot) => sysroot.clone(),
-        None => filesearch::get_or_default_sysroot().expect("Failed finding sysroot"),
-    };
-
-    let target_cfg = config::build_target_config(&early_dcx, &sopts, target_override, &sysroot);
     let host_triple = TargetTriple::from_triple(config::host_triple());
     let (host, target_warnings) = Target::search(&host_triple, &sysroot).unwrap_or_else(|e| {
         early_dcx.early_fatal(format!("Error loading host specification: {e}"))
@@ -1089,8 +1054,8 @@ pub fn build_session(
     );
     let emitter = default_emitter(&sopts, registry, source_map.clone(), bundle, fallback_bundle);
 
-    let mut dcx = DiagCtxt::with_emitter(emitter)
-        .with_flags(sopts.unstable_opts.dcx_flags(can_emit_warnings));
+    let mut dcx =
+        DiagCtxt::new(emitter).with_flags(sopts.unstable_opts.dcx_flags(can_emit_warnings));
     if let Some(ice_file) = ice_file {
         dcx = dcx.with_ice_file(ice_file);
     }
@@ -1121,8 +1086,8 @@ pub fn build_session(
         None
     };
 
-    let mut parse_sess = ParseSess::with_dcx(dcx, source_map);
-    parse_sess.assume_incomplete_release = sopts.unstable_opts.assume_incomplete_release;
+    let mut psess = ParseSess::with_dcx(dcx, source_map);
+    psess.assume_incomplete_release = sopts.unstable_opts.assume_incomplete_release;
 
     let host_triple = config::host_triple();
     let target_triple = sopts.target_triple.triple();
@@ -1161,7 +1126,7 @@ pub fn build_session(
         opts: sopts,
         host_tlib_path,
         target_tlib_path,
-        parse_sess,
+        psess,
         sysroot,
         io,
         incr_comp_session: RwLock::new(IncrCompSession::NotInitialized),
@@ -1273,7 +1238,7 @@ fn validate_commandline_args_with_session_available(sess: &Session) {
     // LLVM CFI using rustc LTO requires a single codegen unit.
     if sess.is_sanitizer_cfi_enabled()
         && sess.lto() == config::Lto::Fat
-        && !(sess.codegen_units().as_usize() == 1)
+        && (sess.codegen_units().as_usize() != 1)
     {
         sess.dcx().emit_err(errors::SanitizerCfiRequiresSingleCodegenUnit);
     }
@@ -1411,11 +1376,7 @@ pub struct EarlyDiagCtxt {
 impl EarlyDiagCtxt {
     pub fn new(output: ErrorOutputType) -> Self {
         let emitter = mk_emitter(output);
-        Self { dcx: DiagCtxt::with_emitter(emitter) }
-    }
-
-    pub fn abort_if_errors(&self) {
-        self.dcx.abort_if_errors()
+        Self { dcx: DiagCtxt::new(emitter) }
     }
 
     /// Swap out the underlying dcx once we acquire the user's preference on error emission
@@ -1425,46 +1386,43 @@ impl EarlyDiagCtxt {
         self.dcx.abort_if_errors();
 
         let emitter = mk_emitter(output);
-        self.dcx = DiagCtxt::with_emitter(emitter);
+        self.dcx = DiagCtxt::new(emitter);
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
-    pub fn early_note(&self, msg: impl Into<DiagnosticMessage>) {
+    pub fn early_note(&self, msg: impl Into<DiagMessage>) {
         self.dcx.note(msg)
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
-    pub fn early_help(&self, msg: impl Into<DiagnosticMessage>) {
+    pub fn early_help(&self, msg: impl Into<DiagMessage>) {
         self.dcx.struct_help(msg).emit()
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
     #[must_use = "ErrorGuaranteed must be returned from `run_compiler` in order to exit with a non-zero status code"]
-    pub fn early_err(&self, msg: impl Into<DiagnosticMessage>) -> ErrorGuaranteed {
+    pub fn early_err(&self, msg: impl Into<DiagMessage>) -> ErrorGuaranteed {
         self.dcx.err(msg)
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
-    pub fn early_fatal(&self, msg: impl Into<DiagnosticMessage>) -> ! {
+    pub fn early_fatal(&self, msg: impl Into<DiagMessage>) -> ! {
         self.dcx.fatal(msg)
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
-    pub fn early_struct_fatal(
-        &self,
-        msg: impl Into<DiagnosticMessage>,
-    ) -> DiagnosticBuilder<'_, FatalAbort> {
+    pub fn early_struct_fatal(&self, msg: impl Into<DiagMessage>) -> Diag<'_, FatalAbort> {
         self.dcx.struct_fatal(msg)
     }
 
     #[allow(rustc::untranslatable_diagnostic)]
     #[allow(rustc::diagnostic_outside_of_impl)]
-    pub fn early_warn(&self, msg: impl Into<DiagnosticMessage>) {
+    pub fn early_warn(&self, msg: impl Into<DiagMessage>) {
         self.dcx.warn(msg)
     }
 
@@ -1489,17 +1447,17 @@ fn mk_emitter(output: ErrorOutputType) -> Box<DynEmitter> {
     let emitter: Box<DynEmitter> = match output {
         config::ErrorOutputType::HumanReadable(kind) => {
             let (short, color_config) = kind.unzip();
-            Box::new(HumanEmitter::stderr(color_config, fallback_bundle).short_message(short))
+            Box::new(
+                HumanEmitter::new(stderr_destination(color_config), fallback_bundle)
+                    .short_message(short),
+            )
         }
-        config::ErrorOutputType::Json { pretty, json_rendered } => Box::new(JsonEmitter::basic(
+        config::ErrorOutputType::Json { pretty, json_rendered } => Box::new(JsonEmitter::new(
+            Box::new(io::BufWriter::new(io::stderr())),
+            Lrc::new(SourceMap::new(FilePathMapping::empty())),
+            fallback_bundle,
             pretty,
             json_rendered,
-            None,
-            fallback_bundle,
-            None,
-            false,
-            false,
-            TerminalUrl::No,
         )),
     };
     emitter

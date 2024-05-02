@@ -25,13 +25,15 @@
 //! }
 //! ```
 
+#![allow(clippy::uninlined_format_args)]
+
 use crate::error::Result;
 use crate::std::str;
 use crate::{fmt, ops, raw};
 
 /// A `Name` in the _MALLCTL NAMESPACE_.
 #[repr(transparent)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 pub struct Name([u8]);
 
 /// Converts a null-terminated byte-string into a [`Name`].
@@ -132,12 +134,12 @@ impl fmt::Display for Name {
 
 /// Management Information Base of a non-string value.
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Mib<T: MibArg>(T);
 
 /// Management Information Base of a string value.
 #[repr(transparent)]
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct MibStr<T: MibArg>(T);
 
 impl<T: MibArg> AsRef<[usize]> for Mib<T> {

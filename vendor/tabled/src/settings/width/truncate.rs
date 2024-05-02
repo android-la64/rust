@@ -6,9 +6,9 @@ use std::{borrow::Cow, iter, marker::PhantomData};
 
 use crate::{
     grid::{
-        config::{ColoredConfig, SpannedConfig},
+        config::{ColoredConfig, Entity, SpannedConfig},
         dimension::CompleteDimensionVecRecords,
-        records::{EmptyRecords, ExactRecords, PeekableRecords, Records, RecordsMut},
+        records::{EmptyRecords, ExactRecords, IntoRecords, PeekableRecords, Records, RecordsMut},
         util::string::{string_width, string_width_multiline},
     },
     settings::{
@@ -18,7 +18,8 @@ use crate::{
     },
 };
 
-use super::util::{cut_str, get_table_widths, get_table_widths_with_total};
+use super::util::{get_table_widths, get_table_widths_with_total};
+use crate::util::string::cut_str;
 
 /// Truncate cut the string to a given width if its length exceeds it.
 /// Otherwise keeps the content of a cell untouched.
@@ -45,7 +46,8 @@ pub struct Truncate<'a, W = usize, P = PriorityNone> {
     multiline: bool,
     _priority: PhantomData<P>,
 }
-#[cfg(feature = "color")]
+
+#[cfg(feature = "ansi")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct TruncateSuffix<'a> {
     text: Cow<'a, str>,
@@ -53,7 +55,7 @@ struct TruncateSuffix<'a> {
     try_color: bool,
 }
 
-#[cfg(not(feature = "color"))]
+#[cfg(not(feature = "ansi"))]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct TruncateSuffix<'a> {
     text: Cow<'a, str>,
@@ -65,7 +67,7 @@ impl Default for TruncateSuffix<'_> {
         Self {
             text: Cow::default(),
             limit: SuffixLimit::Cut,
-            #[cfg(feature = "color")]
+            #[cfg(feature = "ansi")]
             try_color: false,
         }
     }
@@ -141,7 +143,7 @@ impl<'a, W, P> Truncate<'a, W, P> {
         }
     }
 
-    #[cfg(feature = "color")]
+    #[cfg(feature = "ansi")]
     /// Sets a optional logic to try to colorize a suffix.
     pub fn suffix_try_color(self, color: bool) -> Truncate<'a, W, P> {
         let mut suff = self.suffix.unwrap_or_default();
@@ -187,8 +189,9 @@ where
     W: Measurement<Width>,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
-    fn change(self, records: &mut R, cfg: &mut ColoredConfig, entity: papergrid::config::Entity) {
+    fn change(self, records: &mut R, cfg: &mut ColoredConfig, entity: Entity) {
         let available = self.width.measure(&*records, cfg);
 
         let mut width = available;
@@ -270,11 +273,11 @@ fn make_text_truncated<'a>(
 }
 
 fn need_suffix_color_preservation(_suffix: &Option<TruncateSuffix<'_>>) -> bool {
-    #[cfg(not(feature = "color"))]
+    #[cfg(not(feature = "ansi"))]
     {
         false
     }
-    #[cfg(feature = "color")]
+    #[cfg(feature = "ansi")]
     {
         _suffix.as_ref().map_or(false, |s| s.try_color)
     }
@@ -299,19 +302,19 @@ fn make_suffix<'a>(suffix: &'a TruncateSuffix<'_>, width: usize) -> (Cow<'a, str
     }
 }
 
-impl<W, P, R> TableOption<R, CompleteDimensionVecRecords<'static>, ColoredConfig>
-    for Truncate<'_, W, P>
+impl<W, P, R> TableOption<R, ColoredConfig, CompleteDimensionVecRecords<'_>> for Truncate<'_, W, P>
 where
     W: Measurement<Width>,
     P: Peaker,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(
         self,
         records: &mut R,
         cfg: &mut ColoredConfig,
-        dims: &mut CompleteDimensionVecRecords<'static>,
+        dims: &mut CompleteDimensionVecRecords<'_>,
     ) {
         if records.count_rows() == 0 || records.count_columns() == 0 {
             return;
@@ -326,7 +329,7 @@ where
         let suffix = self.suffix.as_ref().map(|s| TruncateSuffix {
             text: Cow::Borrowed(&s.text),
             limit: s.limit,
-            #[cfg(feature = "color")]
+            #[cfg(feature = "ansi")]
             try_color: s.try_color,
         });
 
@@ -336,7 +339,7 @@ where
             records, cfg, widths, total, width, priority, suffix, multiline,
         );
 
-        let _ = dims.set_widths(widths);
+        dims.set_widths(widths);
     }
 }
 
@@ -352,9 +355,10 @@ fn truncate_total_width<P, R>(
     multiline: bool,
 ) -> Vec<usize>
 where
-    for<'a> &'a R: Records,
     P: Peaker,
     R: Records + PeekableRecords + ExactRecords + RecordsMut<String>,
+    for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     let count_rows = records.count_rows();
     let count_columns = records.count_columns();
@@ -386,7 +390,7 @@ fn truncate_text<'a>(
         return content;
     }
 
-    #[cfg(feature = "color")]
+    #[cfg(feature = "ansi")]
     {
         if _suffix_color {
             if let Some(block) = ansi_str::get_blocks(text).last() {
@@ -416,7 +420,7 @@ fn truncate_text<'a>(
         }
     }
 
-    #[cfg(not(feature = "color"))]
+    #[cfg(not(feature = "ansi"))]
     {
         let mut content = content.into_owned();
         content.push_str(suffix);

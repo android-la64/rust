@@ -1,7 +1,4 @@
 use super::Error;
-use crate::parser::Comments;
-use crate::parser::MaybeSpanned;
-use crate::Errored;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
@@ -49,6 +46,7 @@ pub enum Mode {
 }
 
 impl Mode {
+    #[allow(clippy::result_large_err)]
     pub(crate) fn ok(self, status: ExitStatus) -> Result<(), Error> {
         let expected = match self {
             Mode::Run { exit_code } => exit_code,
@@ -66,14 +64,6 @@ impl Mode {
                 expected,
             })
         }
-    }
-    pub(crate) fn maybe_override(
-        self,
-        comments: &Comments,
-        revision: &str,
-    ) -> Result<MaybeSpanned<Self>, Errored> {
-        let mode = comments.find_one_for_revision(revision, "mode changes", |r| r.mode)?;
-        Ok(mode.map_or(MaybeSpanned::new_config(self), Into::into))
     }
 }
 

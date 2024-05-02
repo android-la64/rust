@@ -1,7 +1,5 @@
-use crate::settings::TableOption;
+use crate::{grid::config::Entity, settings::TableOption};
 
-#[cfg(feature = "std")]
-use crate::grid::config::Entity;
 #[cfg(feature = "std")]
 use crate::settings::CellOption;
 
@@ -44,16 +42,34 @@ where
         self.0.change(records, cfg, entity);
         self.1.change(records, cfg, entity);
     }
+
+    fn hint_change(&self) -> Option<Entity> {
+        match (self.0.hint_change(), self.1.hint_change()) {
+            (None, None) => None,
+            (Some(a), Some(b)) => Some(combine_entity(a, b)),
+            (None, value) => value,
+            (value, None) => value,
+        }
+    }
 }
 
-impl<R, D, C, A, B> TableOption<R, D, C> for Settings<A, B>
+impl<R, D, C, A, B> TableOption<R, C, D> for Settings<A, B>
 where
-    A: TableOption<R, D, C>,
-    B: TableOption<R, D, C>,
+    A: TableOption<R, C, D>,
+    B: TableOption<R, C, D>,
 {
     fn change(self, records: &mut R, cfg: &mut C, dims: &mut D) {
         self.0.change(records, cfg, dims);
         self.1.change(records, cfg, dims);
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        match (self.0.hint_change(), self.1.hint_change()) {
+            (None, None) => None,
+            (Some(a), Some(b)) => Some(combine_entity(a, b)),
+            (None, value) => value,
+            (value, None) => value,
+        }
     }
 }
 
@@ -66,6 +82,23 @@ impl<R, C> CellOption<R, C> for EmptySettings {
     fn change(self, _: &mut R, _: &mut C, _: Entity) {}
 }
 
-impl<R, D, C> TableOption<R, D, C> for EmptySettings {
+impl<R, D, C> TableOption<R, C, D> for EmptySettings {
     fn change(self, _: &mut R, _: &mut C, _: &mut D) {}
+}
+
+fn combine_entity(x1: Entity, x2: Entity) -> Entity {
+    use Entity::*;
+    match (x1, x2) {
+        (_, Global) => Global,
+        (Global, _) => Global,
+        (Column(_), Row(_)) => Global,
+        (Column(a), Column(_)) => Column(a),
+        (Column(a), Cell(_, _)) => Column(a),
+        (Row(_), Column(_)) => Global,
+        (Row(a), Row(_)) => Row(a),
+        (Row(a), Cell(_, _)) => Row(a),
+        (Cell(_, _), Column(a)) => Column(a),
+        (Cell(_, _), Row(a)) => Row(a),
+        (Cell(a, b), Cell(_, _)) => Cell(a, b),
+    }
 }

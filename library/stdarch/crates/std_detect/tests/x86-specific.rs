@@ -1,5 +1,6 @@
-#![feature(stdsimd)]
 #![cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+#![allow(internal_features)]
+#![feature(stdarch_internal)]
 
 extern crate cupid;
 #[macro_use]

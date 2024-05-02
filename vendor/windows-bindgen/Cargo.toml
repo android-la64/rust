@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.70"
 name = "windows-bindgen"
-version = "0.52.0"
+version = "0.55.0"
 authors = ["Microsoft"]
 description = "Windows metadata compiler"
 readme = "readme.md"
@@ -31,6 +31,13 @@ features = ["span-locations"]
 [dependencies.rayon]
 version = "1.7"
 
+[dependencies.serde]
+version = "1.0.196"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1.0.113"
+
 [dependencies.syn]
 version = "2.0"
 features = [
@@ -39,8 +46,13 @@ features = [
 ]
 
 [dependencies.windows-metadata]
-version = "0.52.0"
+version = "0.55.0"
 
 [features]
 default = ["metadata"]
 metadata = []
+
+[lints.rust]
+missing_docs = "warn"
+rust_2018_idioms = "warn"
+unused_qualifications = "warn"

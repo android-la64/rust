@@ -4,7 +4,7 @@
 //! * [`CompactTable`] is a [`Table`] alternative that trades off reduced
 //! flexibility for improved performance.
 
-use tabled::{settings::Style, tables::CompactTable};
+use tabled::{settings::style::Style, tables::CompactTable};
 
 fn main() {
     let data = [

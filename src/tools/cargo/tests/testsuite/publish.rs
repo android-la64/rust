@@ -99,6 +99,7 @@ fn simple() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -118,7 +119,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting for `foo v0.0.1` to be available at registry `crates-io`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `crates-io`
 ",
@@ -144,6 +145,7 @@ fn simple_publish_with_http() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -162,7 +164,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `dummy-registry`
-note: Waiting for `foo v0.0.1` to be available at registry `dummy-registry`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `dummy-registry`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `dummy-registry`
 ",
@@ -186,6 +188,7 @@ fn simple_publish_with_asymmetric() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -205,7 +208,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `dummy-registry`
-note: Waiting for `foo v0.0.1` to be available at registry `dummy-registry`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `dummy-registry`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 at registry `dummy-registry`
 ",
@@ -225,6 +228,7 @@ fn old_token_location() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -259,7 +263,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -282,6 +286,7 @@ fn simple_with_index() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -304,7 +309,7 @@ fn simple_with_index() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `[ROOT]/registry`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -327,6 +332,7 @@ fn git_deps() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -365,6 +371,7 @@ fn path_dependency_no_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -405,6 +412,7 @@ fn unpublishable_crate() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -440,6 +448,7 @@ fn dont_publish_dirty() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -482,6 +491,7 @@ fn publish_clean() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -505,7 +515,7 @@ fn publish_clean() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -530,6 +540,7 @@ fn publish_in_sub_repo() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -554,7 +565,7 @@ fn publish_in_sub_repo() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -579,6 +590,7 @@ fn publish_when_ignored() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -603,7 +615,7 @@ fn publish_when_ignored() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -629,6 +641,7 @@ fn ignore_when_crate_ignored() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -651,7 +664,7 @@ fn ignore_when_crate_ignored() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -676,6 +689,7 @@ fn new_crate_rejected() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -707,6 +721,7 @@ fn dry_run() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -725,7 +740,7 @@ See [..]
 [PACKAGING] foo v0.0.1 ([CWD])
 [VERIFYING] foo v0.0.1 ([CWD])
 [COMPILING] foo v0.0.1 [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.0.1 ([CWD])
 [WARNING] aborting upload due to dry run
@@ -747,6 +762,7 @@ fn registry_not_in_publish_list() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -780,6 +796,7 @@ fn publish_empty_list() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -817,6 +834,7 @@ fn publish_allowed_registry() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -840,7 +858,7 @@ fn publish_allowed_registry() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `alternative`
-note: Waiting for `foo v0.0.1` to be available at registry `alternative`.
+[NOTE] waiting for `foo v0.0.1` to be available at registry `alternative`.
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 at registry `alternative`
 ",
@@ -877,6 +895,7 @@ fn publish_implicitly_to_only_allowed_registry() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -892,7 +911,7 @@ fn publish_implicitly_to_only_allowed_registry() {
     p.cargo("publish")
         .with_stderr(
             "\
-[NOTE] Found `alternative` as only allowed registry. Publishing to it automatically.
+[NOTE] found `alternative` as only allowed registry. Publishing to it automatically.
 [UPDATING] `alternative` index
 [..]
 [VERIFYING] foo v0.0.1 ([CWD])
@@ -901,7 +920,7 @@ fn publish_implicitly_to_only_allowed_registry() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `alternative`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -938,6 +957,7 @@ fn publish_failed_with_index_and_only_allowed_registry() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -956,7 +976,7 @@ fn publish_failed_with_index_and_only_allowed_registry() {
         .with_status(101)
         .with_stderr(
             "\
-[NOTE] Found `alternative` as only allowed registry. Publishing to it automatically.
+[NOTE] found `alternative` as only allowed registry. Publishing to it automatically.
 [ERROR] command-line argument --index requires --token to be specified
 ",
         )
@@ -974,6 +994,7 @@ fn publish_fail_with_no_registry_specified() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1006,6 +1027,7 @@ fn block_publish_no_registry() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1039,6 +1061,7 @@ fn publish_with_crates_io_explicit() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1072,7 +1095,7 @@ The registry `alternative` is not listed in the `package.publish` value in Cargo
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -1092,6 +1115,7 @@ fn publish_with_select_features() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1123,7 +1147,7 @@ fn publish_with_select_features() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -1143,6 +1167,7 @@ fn publish_with_all_features() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1174,7 +1199,7 @@ fn publish_with_all_features() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -1194,6 +1219,7 @@ fn publish_with_no_default_features() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1230,6 +1256,7 @@ fn publish_with_patch() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1279,7 +1306,7 @@ fn publish_with_patch() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -1337,6 +1364,7 @@ fn publish_checks_for_token_before_verify() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1377,7 +1405,7 @@ fn publish_checks_for_token_before_verify() {
 fn publish_with_bad_source() {
     let p = project()
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
             [source.crates-io]
             replace-with = 'local-registry'
@@ -1400,7 +1428,7 @@ include `--registry crates-io` to use crates.io
         .run();
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
         [source.crates-io]
         replace-with = "vendored-sources"
@@ -1479,7 +1507,7 @@ fn publish_git_with_version() {
 [..]
 [UPLOADING] foo v0.1.0 ([CWD])
 [UPLOADED] foo v0.1.0 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.1.0 [..]
 ",
@@ -1577,6 +1605,7 @@ fn publish_dev_dep_no_version() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             authors = []
             license = "MIT"
             description = "foo"
@@ -1602,7 +1631,7 @@ fn publish_dev_dep_no_version() {
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] foo v0.1.0 [..]
 [UPLOADED] foo v0.1.0 [..]
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.1.0 [..]
 ",
@@ -1639,6 +1668,7 @@ You may press ctrl-c [..]
             &format!(
                 r#"{}
 [package]
+edition = "2015"
 name = "foo"
 version = "0.1.0"
 authors = []
@@ -1657,6 +1687,304 @@ repository = "foo"
 }
 
 #[cargo_test]
+fn publish_with_feature_point_diff_kinds_dep() {
+    let registry = RegistryBuilder::new().http_api().http_index().build();
+    Package::new("normal-only", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    Package::new("build-only", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    Package::new("normal-and-dev", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    Package::new("target-normal-only", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    Package::new("target-build-only", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    Package::new("target-normal-and-dev", "1.0.0")
+        .feature("cat", &[])
+        .publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "0.1.0"
+            edition = "2015"
+            authors = []
+            license = "MIT"
+            description = "foo"
+            documentation = "foo"
+            homepage = "foo"
+            repository = "foo"
+
+
+            [features]
+            foo_feature = [
+                "normal-only/cat",
+                "build-only/cat",
+                "dev-only/cat",
+                "normal-and-dev/cat",
+                "target-normal-only/cat",
+                "target-build-only/cat",
+                "target-dev-only/cat",
+                "target-normal-and-dev/cat",
+            ]
+
+            [dependencies]
+            normal-only = { version = "1.0", features = ["cat"] }
+            normal-and-dev = { version = "1.0", features = ["cat"] }
+
+            [build-dependencies]
+            build-only = { version = "1.0", features = ["cat"] }
+
+            [dev-dependencies]
+            dev-only = { path = "../dev-only", features = ["cat"] }
+            normal-and-dev = { version = "1.0", features = ["cat"] }
+
+            [target.'cfg(unix)'.dependencies]
+            target-normal-only = { version = "1.0", features = ["cat"] }
+            target-normal-and-dev = { version = "1.0", features = ["cat"] }
+
+            [target.'cfg(unix)'.build-dependencies]
+            target-build-only = { version = "1.0", features = ["cat"] }
+
+            [target.'cfg(unix)'.dev-dependencies]
+            target-dev-only = { path = "../dev-only", features = ["cat"] }
+            target-normal-and-dev = { version = "1.0", features = ["cat"] }
+            "#,
+        )
+        .file("src/main.rs", "")
+        .file(
+            "dev-only/Cargo.toml",
+            r#"
+            [package]
+            name = "dev-only"
+            version = "0.1.0"
+            edition = "2015"
+            authors = []
+
+            [features]
+            cat = []
+            "#,
+        )
+        .file(
+            "dev-only/src/lib.rs",
+            r#"
+                #[cfg(feature = "cat")]
+                pub fn cat() {}
+            "#,
+        )
+        .build();
+
+    p.cargo("publish --no-verify")
+        .env("RUSTFLAGS", "--cfg unix")
+        .replace_crates_io(registry.index_url())
+        .with_stderr(
+            "\
+[UPDATING] [..]
+[PACKAGING] foo v0.1.0 [..]
+[UPDATING] [..]
+[PACKAGED] [..] files, [..] ([..] compressed)
+[UPLOADING] foo v0.1.0 [..]
+[UPLOADED] foo v0.1.0 [..]
+[NOTE] waiting [..]
+You may press ctrl-c [..]
+[PUBLISHED] foo v0.1.0 [..]
+",
+        )
+        .run();
+
+    publish::validate_upload_with_contents(
+        r#"
+        {
+          "authors": [],
+          "badges": {},
+          "categories": [],
+          "deps": [
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "normal",
+              "name": "normal-and-dev",
+              "optional": false,
+              "target": null,
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "normal",
+              "name": "normal-only",
+              "optional": false,
+              "target": null,
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "dev",
+              "name": "normal-and-dev",
+              "optional": false,
+              "target": null,
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "build",
+              "name": "build-only",
+              "optional": false,
+              "target": null,
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "normal",
+              "name": "target-normal-and-dev",
+              "optional": false,
+              "target": "cfg(unix)",
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "normal",
+              "name": "target-normal-only",
+              "optional": false,
+              "target": "cfg(unix)",
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "build",
+              "name": "target-build-only",
+              "optional": false,
+              "target": "cfg(unix)",
+              "version_req": "^1.0"
+            },
+            {
+              "default_features": true,
+              "features": [
+                "cat"
+              ],
+              "kind": "dev",
+              "name": "target-normal-and-dev",
+              "optional": false,
+              "target": "cfg(unix)",
+              "version_req": "^1.0"
+            }
+          ],
+          "description": "foo",
+          "documentation": "foo",
+          "features": {
+            "foo_feature": [
+              "normal-only/cat",
+              "build-only/cat",
+              "normal-and-dev/cat",
+              "target-normal-only/cat",
+              "target-build-only/cat",
+              "target-normal-and-dev/cat"
+            ]
+          },
+          "homepage": "foo",
+          "keywords": [],
+          "license": "MIT",
+          "license_file": null,
+          "links": null,
+          "name": "foo",
+          "readme": null,
+          "readme_file": null,
+          "repository": "foo",
+          "rust_version": null,
+          "vers": "0.1.0"
+        }
+        "#,
+        "foo-0.1.0.crate",
+        &["Cargo.lock", "Cargo.toml", "Cargo.toml.orig", "src/main.rs"],
+        &[(
+            "Cargo.toml",
+            &format!(
+                r#"{}
+[package]
+edition = "2015"
+name = "foo"
+version = "0.1.0"
+authors = []
+description = "foo"
+homepage = "foo"
+documentation = "foo"
+license = "MIT"
+repository = "foo"
+
+[dependencies.normal-and-dev]
+version = "1.0"
+features = ["cat"]
+
+[dependencies.normal-only]
+version = "1.0"
+features = ["cat"]
+
+[dev-dependencies.normal-and-dev]
+version = "1.0"
+features = ["cat"]
+
+[build-dependencies.build-only]
+version = "1.0"
+features = ["cat"]
+
+[features]
+foo_feature = [
+    "normal-only/cat",
+    "build-only/cat",
+    "normal-and-dev/cat",
+    "target-normal-only/cat",
+    "target-build-only/cat",
+    "target-normal-and-dev/cat",
+]
+
+[target."cfg(unix)".dependencies.target-normal-and-dev]
+version = "1.0"
+features = ["cat"]
+
+[target."cfg(unix)".dependencies.target-normal-only]
+version = "1.0"
+features = ["cat"]
+
+[target."cfg(unix)".build-dependencies.target-build-only]
+version = "1.0"
+features = ["cat"]
+
+[target."cfg(unix)".dev-dependencies.target-normal-and-dev]
+version = "1.0"
+features = ["cat"]
+"#,
+                cargo::core::package::MANIFEST_PREAMBLE
+            ),
+        )],
+    );
+}
+#[cargo_test]
 fn credentials_ambiguous_filename() {
     // `publish` generally requires a remote registry
     let registry = registry::RegistryBuilder::new().http_api().build();
@@ -1672,6 +2000,7 @@ fn credentials_ambiguous_filename() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1695,14 +2024,14 @@ fn credentials_ambiguous_filename() {
         .with_stderr(
             "\
 [..]
-[WARNING] Both `[..]/credentials` and `[..]/credentials.toml` exist. Using `[..]/credentials`
+[WARNING] both `[..]/credentials` and `[..]/credentials.toml` exist. Using `[..]/credentials`
 [..]
 [..]
 [..]
 [..]
 [UPLOADING] foo v0.0.1 [..]
 [UPLOADED] foo v0.0.1 [..]
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -1727,6 +2056,7 @@ fn index_requires_token() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
             license = "MIT"
             description = "foo"
@@ -1757,6 +2087,7 @@ fn cratesio_source_replacement() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1788,6 +2119,7 @@ fn publish_with_missing_readme() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1843,6 +2175,7 @@ fn api_error_json() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1891,6 +2224,7 @@ fn api_error_200() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1939,6 +2273,7 @@ fn api_error_code() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -1991,6 +2326,7 @@ fn api_curl_error() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2044,6 +2380,7 @@ fn api_other_error() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2098,6 +2435,7 @@ fn in_package_workspace() {
                 [package]
                 name = "li"
                 version = "0.0.1"
+                edition = "2015"
                 rust-version = "1.69"
                 description = "li"
                 license = "MIT"
@@ -2117,7 +2455,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPLOADED] li v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] li v0.0.1 [..]
 ",
@@ -2139,6 +2477,7 @@ fn with_duplicate_spec_in_members() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [workspace]
                 resolver = "2"
                 members = ["li","bar"]
@@ -2152,6 +2491,7 @@ fn with_duplicate_spec_in_members() {
                 [package]
                 name = "li"
                 version = "0.0.1"
+                edition = "2015"
                 description = "li"
                 license = "MIT"
             "#,
@@ -2163,6 +2503,7 @@ fn with_duplicate_spec_in_members() {
                 [package]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 description = "bar"
                 license = "MIT"
             "#,
@@ -2190,6 +2531,7 @@ fn in_package_workspace_with_members_with_features_old() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 [workspace]
                 members = ["li"]
             "#,
@@ -2201,6 +2543,7 @@ fn in_package_workspace_with_members_with_features_old() {
                 [package]
                 name = "li"
                 version = "0.0.1"
+                edition = "2015"
                 rust-version = "1.69"
                 description = "li"
                 license = "MIT"
@@ -2220,7 +2563,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPLOADED] li v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] li v0.0.1 [..]
 ",
@@ -2249,6 +2592,7 @@ fn in_virtual_workspace() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2285,6 +2629,7 @@ fn in_virtual_workspace_with_p() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2297,6 +2642,7 @@ fn in_virtual_workspace_with_p() {
                 [package]
                 name = "li"
                 version = "0.0.1"
+                edition = "2015"
                 rust-version = "1.69"
                 description = "li"
                 license = "MIT"
@@ -2316,7 +2662,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] li v0.0.1 ([CWD]/li)
 [UPLOADED] li v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] li v0.0.1 [..]
 ",
@@ -2484,6 +2830,7 @@ fn http_api_not_noop() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2506,7 +2853,7 @@ fn http_api_not_noop() {
 [..]
 [UPLOADING] foo v0.0.1 ([CWD])
 [UPLOADED] foo v0.0.1 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 You may press ctrl-c [..]
 [PUBLISHED] foo v0.0.1 [..]
 ",
@@ -2520,6 +2867,7 @@ You may press ctrl-c [..]
                 [project]
                 name = "bar"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2562,6 +2910,7 @@ fn wait_for_first_publish() {
                 [package]
                 name = "delay"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2583,7 +2932,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay v0.0.1 ([CWD])
 [UPLOADED] delay v0.0.1 to registry `crates-io`
-note: Waiting for `delay v0.0.1` to be available at registry `crates-io`.
+[NOTE] waiting for `delay v0.0.1` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] delay v0.0.1 at registry `crates-io`
 ",
@@ -2602,6 +2951,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 delay = "0.0.1"
@@ -2654,6 +3004,7 @@ fn wait_for_first_publish_underscore() {
                 [package]
                 name = "delay_with_underscore"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2675,7 +3026,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay_with_underscore v0.0.1 ([CWD])
 [UPLOADED] delay_with_underscore v0.0.1 to registry `crates-io`
-note: Waiting for `delay_with_underscore v0.0.1` to be available at registry `crates-io`.
+[NOTE] waiting for `delay_with_underscore v0.0.1` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] delay_with_underscore v0.0.1 at registry `crates-io`
 ",
@@ -2701,6 +3052,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 delay_with_underscore = "0.0.1"
@@ -2753,6 +3105,7 @@ fn wait_for_subsequent_publish() {
                 [package]
                 name = "delay"
                 version = "0.0.2"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2774,7 +3127,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay v0.0.2 ([CWD])
 [UPLOADED] delay v0.0.2 to registry `crates-io`
-note: Waiting for `delay v0.0.2` to be available at registry `crates-io`.
+[NOTE] waiting for `delay v0.0.2` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] delay v0.0.2 at registry `crates-io`
 ",
@@ -2793,6 +3146,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 delay = "0.0.2"
@@ -2816,6 +3170,7 @@ fn skip_wait_for_publish() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2823,7 +3178,7 @@ fn skip_wait_for_publish() {
         )
         .file("src/main.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             "
                 [publish]
                 timeout = 0
@@ -2862,6 +3217,7 @@ fn timeout_waiting_for_publish() {
                 [package]
                 name = "delay"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2890,10 +3246,10 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay v0.0.1 ([CWD])
 [UPLOADED] delay v0.0.1 to registry `crates-io`
-note: Waiting for `delay v0.0.1` to be available at registry `crates-io`.
+[NOTE] waiting for `delay v0.0.1` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 warning: timed out waiting for `delay v0.0.1` to be available in registry `crates-io`
-note: The registry may have a backlog that is delaying making the crate available. The crate should be available soon.
+[NOTE] the registry may have a backlog that is delaying making the crate available. The crate should be available soon.
 ",
         )
         .run();
@@ -2919,6 +3275,7 @@ fn wait_for_git_publish() {
                 [package]
                 name = "delay"
                 version = "0.0.2"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"
@@ -2939,7 +3296,7 @@ See [..]
 [PACKAGED] [..] files, [..] ([..] compressed)
 [UPLOADING] delay v0.0.2 ([CWD])
 [UPLOADED] delay v0.0.2 to registry `crates-io`
-note: Waiting for `delay v0.0.2` to be available at registry `crates-io`.
+[NOTE] waiting for `delay v0.0.2` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] delay v0.0.2 at registry `crates-io`
 ",
@@ -2953,6 +3310,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 [dependencies]
                 delay = "0.0.2"
@@ -2976,6 +3334,7 @@ fn invalid_token() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 license = "MIT"
                 description = "foo"

@@ -22,6 +22,7 @@ fn override_simple() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -46,7 +47,7 @@ fn override_simple() {
 [UPDATING] git repository `[..]`
 [CHECKING] bar v0.1.0 (file://[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -69,6 +70,7 @@ fn override_with_features() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -95,7 +97,7 @@ fn override_with_features() {
 will not take effect because the replacement dependency does not support this mechanism
 [CHECKING] bar v0.1.0 (file://[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -118,6 +120,7 @@ fn override_with_setting_default_features() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -144,7 +147,7 @@ fn override_with_setting_default_features() {
 will not take effect because the replacement dependency does not support this mechanism
 [CHECKING] bar v0.1.0 (file://[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -159,6 +162,7 @@ fn missing_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -193,6 +197,7 @@ fn invalid_semver_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -230,6 +235,7 @@ fn different_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -276,6 +282,7 @@ fn transitive() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -300,7 +307,7 @@ fn transitive() {
 [CHECKING] bar v0.1.0 (file://[..])
 [CHECKING] baz v0.2.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -325,6 +332,7 @@ fn persists_across_rebuilds() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -349,7 +357,7 @@ fn persists_across_rebuilds() {
 [UPDATING] git repository `file://[..]`
 [CHECKING] bar v0.1.0 (file://[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -374,6 +382,7 @@ fn replace_registry_with_path() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -395,7 +404,7 @@ fn replace_registry_with_path() {
 [UPDATING] `dummy-registry` index
 [CHECKING] bar v0.1.0 ([ROOT][..]/bar)
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -428,6 +437,7 @@ fn use_a_spec_to_select() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -466,7 +476,7 @@ fn use_a_spec_to_select() {
 [CHECKING] [..]
 [CHECKING] [..]
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -484,6 +494,7 @@ fn override_adds_some_deps() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -501,6 +512,7 @@ fn override_adds_some_deps() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -525,7 +537,7 @@ fn override_adds_some_deps() {
 [CHECKING] baz v0.1.1
 [CHECKING] bar v0.1.0 ([..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -539,6 +551,7 @@ fn override_adds_some_deps() {
             "\
 [UPDATING] git repository `file://[..]`
 [UPDATING] `dummy-registry` index
+[NOTE] pass `--verbose` to see 1 unchanged dependencies behind latest
 ",
         )
         .run();
@@ -546,6 +559,7 @@ fn override_adds_some_deps() {
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
+[NOTE] pass `--verbose` to see 1 unchanged dependencies behind latest
 ",
         )
         .run();
@@ -567,6 +581,7 @@ fn locked_means_locked_yes_no_seriously_i_mean_locked() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -584,6 +599,7 @@ fn locked_means_locked_yes_no_seriously_i_mean_locked() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -622,6 +638,7 @@ fn override_wrong_name() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -669,6 +686,7 @@ fn override_with_nothing() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -713,6 +731,7 @@ fn override_wrong_version() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [replace]
@@ -752,6 +771,7 @@ fn multiple_specs() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -806,6 +826,7 @@ fn test_override_dep() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -850,6 +871,7 @@ fn update() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -888,6 +910,7 @@ fn no_override_self() {
                 [package]
                 name = "near"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -905,6 +928,7 @@ fn no_override_self() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -941,6 +965,7 @@ fn override_an_override() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1010,6 +1035,7 @@ fn override_an_override() {
                 [package]
                 name = "chrono"
                 version = "0.2.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1044,6 +1070,7 @@ fn overriding_nonexistent_no_spurious() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1063,6 +1090,7 @@ fn overriding_nonexistent_no_spurious() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -1112,6 +1140,7 @@ fn no_warnings_when_replace_is_used_in_another_workspace_member() {
                 [package]
                 name = "first_crate"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.1.0"
@@ -1162,6 +1191,7 @@ fn replace_to_path_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1178,6 +1208,7 @@ fn replace_to_path_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1208,6 +1239,7 @@ fn override_with_default_feature() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1226,6 +1258,7 @@ fn override_with_default_feature() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [features]
@@ -1245,6 +1278,7 @@ fn override_with_default_feature() {
                 [package]
                 name = "another2"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1268,6 +1302,7 @@ fn override_plus_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1284,6 +1319,7 @@ fn override_plus_dep() {
                 [package]
                 name = "bar"
                 version = "0.1.0"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -1316,6 +1352,7 @@ fn override_generic_matching_other_versions() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -1366,6 +1403,7 @@ fn override_respects_spec_metadata() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -1423,6 +1461,7 @@ fn override_spec_metadata_is_optional() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -1447,7 +1486,7 @@ fn override_spec_metadata_is_optional() {
 [UPDATING] git repository `[..]`
 [CHECKING] bar v0.1.0+a (file://[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();

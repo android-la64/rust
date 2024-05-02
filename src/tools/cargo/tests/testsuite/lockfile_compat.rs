@@ -55,6 +55,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -101,6 +102,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -128,6 +130,7 @@ fn totally_wild_checksums_works() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -194,6 +197,7 @@ fn wrong_checksum_is_an_error() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -257,6 +261,7 @@ fn unlisted_checksum_is_bad_if_we_calculate() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -323,6 +328,7 @@ fn listed_checksum_bad_if_we_cannot_compute() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -389,6 +395,7 @@ fn current_lockfile_format() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -449,6 +456,7 @@ dependencies = [
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -496,6 +504,7 @@ fn locked_correct_error() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -548,6 +557,7 @@ dependencies = [
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -607,6 +617,7 @@ dependencies = [
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -622,6 +633,7 @@ dependencies = [
                 [package]
                 name = "a"
                 version = "0.2.0"
+                edition = "2015"
             "#,
         )
         .file("a/src/lib.rs", "")
@@ -673,6 +685,7 @@ dependencies = [
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                     authors = []
 
                     [dependencies]
@@ -700,6 +713,7 @@ fn lock_from_the_future() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
             "#,
         )
@@ -752,6 +766,7 @@ dependencies = [
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies]
@@ -776,6 +791,7 @@ fn same_name_version_different_sources() {
                     [package]
                     name = "foo"
                     version = "0.1.0"
+                    edition = "2015"
                 "#,
             )
             .file("src/lib.rs", "")
@@ -820,6 +836,7 @@ source = "git+{url}#{sha}"
                     [package]
                     name = "foo"
                     version = "0.1.0"
+                    edition = "2015"
 
                     [dependencies]
                     foo = "0.1.0"
@@ -848,6 +865,7 @@ fn bad_data_in_lockfile_error_meg() {
                 [package]
                 name = "test"
                 version = "0.0.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "*"
@@ -890,7 +908,7 @@ perhaps a crate was updated and forgotten to be re-vendored?
 }
 
 #[cargo_test]
-fn v4_is_unstable() {
+fn next_version_is_always_unstable() {
     let p = project()
         .file(
             "Cargo.toml",
@@ -899,11 +917,12 @@ fn v4_is_unstable() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                 "#,
             ),
         )
         .file("src/lib.rs", "")
-        .file("Cargo.lock", "version = 4")
+        .file("Cargo.lock", "version = 5")
         .build();
 
     p.cargo("fetch")
@@ -913,7 +932,7 @@ fn v4_is_unstable() {
 error: failed to parse lock file at: [CWD]/Cargo.lock
 
 Caused by:
-  lock file version `4` was found, but this version of Cargo does not \
+  lock file version `5` was found, but this version of Cargo does not \
   understand this lock file, perhaps Cargo needs to be updated?
 ",
         )
@@ -928,7 +947,7 @@ Caused by:
 error: failed to parse lock file at: [CWD]/Cargo.lock
 
 Caused by:
-  lock file version 4 requires `-Znext-lockfile-bump`
+  lock file version `5` requires `-Znext-lockfile-bump`
 ",
         )
         .run();
@@ -944,15 +963,14 @@ fn v4_cannot_be_created_from_scratch() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
                 "#,
             ),
         )
         .file("src/lib.rs", "")
         .build();
 
-    p.cargo("fetch -Znext-lockfile-bump")
-        .masquerade_as_nightly_cargo(&["-Znext-lockfile-bump"])
-        .run();
+    p.cargo("fetch").run();
 
     let lockfile = r#"# This file is automatically @generated by Cargo.
 # It is not intended for manual editing.
@@ -1022,6 +1040,7 @@ dependencies = [
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
 
                     [dependencies]
                     dep1 = {{ git = '{url}', {ref_kind} = '{git_ref}' }}
@@ -1038,7 +1057,7 @@ dependencies = [
 [UPDATING] git repository `{url}`
 [CHECKING] dep1 v0.5.0 ({url}?{ref_kind}={git_ref}#[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 "
         ))
         .run();
@@ -1053,7 +1072,7 @@ dependencies = [
         .with_stderr(format!(
             "\
 [UPDATING] git repository `{url}`
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 "
         ))
         .run();
@@ -1114,6 +1133,7 @@ dependencies = [
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
 
                     [dependencies]
                     dep1 = {{ git = '{url}', {ref_kind} = '{git_ref}' }}
@@ -1124,14 +1144,13 @@ dependencies = [
         .file("Cargo.lock", "version = 4")
         .build();
 
-    p.cargo("check -Znext-lockfile-bump")
-        .masquerade_as_nightly_cargo(&["-Znext-lockfile-bump"])
+    p.cargo("check")
         .with_stderr(format!(
             "\
 [UPDATING] git repository `{url}`
 [CHECKING] dep1 v0.5.0 ({url}?{ref_kind}={git_ref}#[..])
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 "
         ))
         .run();
@@ -1141,9 +1160,8 @@ dependencies = [
 
     // Unlike v3_and_git_url_encoded, v4 encodes URL parameters so no git
     // repository re-clone happen.
-    p.cargo("check -Znext-lockfile-bump")
-        .masquerade_as_nightly_cargo(&["-Znext-lockfile-bump"])
-        .with_stderr("[FINISHED] dev [..]")
+    p.cargo("check")
+        .with_stderr("[FINISHED] `dev` profile [..]")
         .run();
 }
 
@@ -1160,4 +1178,143 @@ fn v4_and_git_url_encoded_tag() {
 #[cargo_test]
 fn v4_and_git_url_encoded_rev() {
     v4_and_git_url_encoded("rev", create_tag)
+}
+
+#[cargo_test]
+fn with_msrv() {
+    let cksum = Package::new("bar", "0.1.0").publish();
+    let v2_lockfile = format!(
+        r#"# This file is automatically @generated by Cargo.
+# It is not intended for manual editing.
+[[package]]
+name = "bar"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "{cksum}"
+
+[[package]]
+name = "foo"
+version = "0.0.1"
+dependencies = [
+ "bar",
+]
+"#
+    );
+
+    let v1_lockfile = format!(
+        r#"# This file is automatically @generated by Cargo.
+# It is not intended for manual editing.
+[[package]]
+name = "bar"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "foo"
+version = "0.0.1"
+dependencies = [
+ "bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[metadata]
+"checksum bar 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "{cksum}"
+"#
+    );
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "0.0.1"
+            edition = "2015"
+
+            [dependencies]
+            bar = "0.1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    let cases = [
+        // v1 is the default
+        ("1.37", None, 1),
+        ("1.37", Some(1), 1),
+        ("1.37", Some(2), 2),
+        ("1.37", Some(3), 3),
+        ("1.37", Some(4), 4),
+        // v2 introduced
+        ("1.38", None, 1),
+        // last version of v1 as the default
+        ("1.40", None, 1),
+        // v2 is the default
+        ("1.41", None, 2),
+        ("1.41", Some(1), 1),
+        ("1.41", Some(2), 2),
+        ("1.41", Some(3), 3),
+        ("1.41", Some(4), 4),
+        // v3 introduced
+        ("1.47", None, 2),
+        // last version of v2 as the default
+        ("1.48", None, 2),
+        // v3 is the default
+        ("1.53", None, 3),
+        ("1.53", Some(1), 1),
+        ("1.53", Some(2), 2),
+        ("1.53", Some(3), 3),
+        ("1.53", Some(4), 4),
+        // v4 introduced
+        ("1.78", None, 3),
+    ];
+
+    for (msrv, existing_lockfile, expected_version) in cases {
+        // Clean previous lockfile.
+        _ = std::fs::remove_file(p.root().join("Cargo.lock"));
+
+        p.change_file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2015"
+                rust-version = "{msrv}"
+
+                [dependencies]
+                bar = "0.1.0"
+                "#,
+            ),
+        );
+
+        if let Some(existing_lockfile) = existing_lockfile {
+            let existing_lockfile = match existing_lockfile {
+                1 => v1_lockfile.as_str().into(),
+                2 => v2_lockfile.as_str().into(),
+                v => std::borrow::Cow::from(format!("version = {v}")),
+            };
+            p.change_file("Cargo.lock", &existing_lockfile);
+        }
+
+        p.cargo("fetch").run();
+
+        let lock = p.read_lockfile();
+        let toml = lock.parse::<toml::Table>().unwrap();
+        // get `version = <n>` from Cargo.lock
+        let version_field = toml.get("version").and_then(|v| v.as_integer());
+
+        let actual_version = if let Some(ver) = version_field {
+            ver
+        } else if lock.find("\nchecksum = ").is_some() {
+            2
+        } else {
+            1
+        };
+
+        assert_eq!(
+            expected_version, actual_version,
+            "msrv: {msrv}, existing lockfile: {existing_lockfile:?}"
+        );
+    }
 }

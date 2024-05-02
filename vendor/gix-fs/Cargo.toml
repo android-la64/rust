@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-fs"
-version = "0.9.1"
+version = "0.10.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -27,7 +27,11 @@ repository = "https://github.com/Byron/gitoxide"
 doctest = false
 
 [dependencies.gix-features]
-version = "^0.37.1"
+version = "^0.38.0"
+features = ["fs-read-dir"]
+
+[dependencies.gix-utils]
+version = "^0.1.9"
 
 [dependencies.serde]
 version = "1.0.114"

@@ -12,11 +12,11 @@
 [package]
 edition = "2021"
 name = "ra-ap-rustc_index"
-version = "0.33.0"
+version = "0.42.0"
 description = """
 
 Automatically published version of the package `rustc_index`
-in the rust-lang/rust repository from commit 8b94152af68a0ed6d6af0b5ba57491e40481008e
+in the rust-lang/rust repository from commit 8c9a75b3238b66592779d6b240dbf78eacefebb8
 
 The publishing script for this crate lives at:
 https://github.com/rust-analyzer/rustc-auto-publish
@@ -29,17 +29,17 @@ version = "0.7"
 default-features = false
 
 [dependencies.rustc_index_macros]
-version = "0.33.0"
+version = "0.42.0"
 default-features = false
 package = "ra-ap-rustc_index_macros"
 
 [dependencies.rustc_macros]
-version = "0.33.0"
+version = "0.42.0"
 optional = true
 package = "ra-ap-rustc_macros"
 
 [dependencies.rustc_serialize]
-version = "0.33.0"
+version = "0.42.0"
 optional = true
 package = "ra-ap-rustc_serialize"
 

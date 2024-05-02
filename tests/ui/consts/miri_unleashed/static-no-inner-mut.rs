@@ -1,5 +1,5 @@
-// stderr-per-bitwidth
-// compile-flags: -Zunleash-the-miri-inside-of-you
+//@ stderr-per-bitwidth
+//@ compile-flags: -Zunleash-the-miri-inside-of-you
 #![feature(const_refs_to_cell, const_mut_refs)]
 // All "inner" allocations that come with a `static` are interned immutably. This means it is
 // crucial that we do not accept any form of (interior) mutability there.
@@ -9,7 +9,6 @@ use std::sync::atomic::*;
 static REF: &AtomicI32 = &AtomicI32::new(42);
 //~^ ERROR mutable pointer in final value
 //~| WARNING this was previously accepted by the compiler
-//~| ERROR it is undefined behavior to use this value
 
 static REFMUT: &mut i32 = &mut 0;
 //~^ ERROR mutable pointer in final value
@@ -20,7 +19,6 @@ static REFMUT: &mut i32 = &mut 0;
 static REF2: &AtomicI32 = {let x = AtomicI32::new(42); &{x}};
 //~^ ERROR mutable pointer in final value
 //~| WARNING this was previously accepted by the compiler
-//~| ERROR it is undefined behavior to use this value
 
 static REFMUT2: &mut i32 = {let mut x = 0; &mut {x}};
 //~^ ERROR mutable pointer in final value

@@ -18,6 +18,7 @@ fn exported_priv_warning() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 priv_dep = "0.1.0"
@@ -57,6 +58,7 @@ fn exported_pub_dep() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 pub_dep = {version = "0.1.0", public = true}
@@ -80,7 +82,7 @@ fn exported_pub_dep() {
 [DOWNLOADED] pub_dep v0.1.0 ([..])
 [CHECKING] pub_dep v0.1.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -126,6 +128,7 @@ fn requires_feature() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 pub_dep = { version = "0.1.0", public = true }
@@ -136,20 +139,15 @@ fn requires_feature() {
 
     p.cargo("check --message-format=short")
         .masquerade_as_nightly_cargo(&["public-dependency"])
-        .with_status(101)
         .with_stderr(
             "\
-error: failed to parse manifest at `[..]`
-
-Caused by:
-  feature `public-dependency` is required
-
-  The package requires the Cargo feature called `public-dependency`, \
-  but that feature is not stabilized in this version of Cargo (1.[..]).
-  Consider adding `cargo-features = [\"public-dependency\"]` to the top of Cargo.toml \
-  (above the [package] table) to tell Cargo you are opting in to use this unstable feature.
-  See https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#public-dependency \
-  for more information about the status of this feature.
+[WARNING] ignoring `public` on dependency pub_dep, pass `-Zpublic-dependency` to enable support for it
+[UPDATING] `[..]` index
+[DOWNLOADING] crates ...
+[DOWNLOADED] pub_dep v0.1.0 ([..])
+[CHECKING] pub_dep v0.1.0
+[CHECKING] foo v0.0.1 ([CWD])
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -170,6 +168,7 @@ fn pub_dev_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dev-dependencies]
                 pub_dep = {version = "0.1.0", public = true}
@@ -192,7 +191,47 @@ fn pub_dev_dependency() {
 error: failed to parse manifest at `[..]`
 
 Caused by:
-  'public' specifier can only be used on regular dependencies, not Development dependencies
+  'public' specifier can only be used on regular dependencies, not dev-dependencies
+",
+        )
+        .run()
+}
+
+#[cargo_test]
+fn pub_dev_dependency_without_feature() {
+    Package::new("pub_dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromPub;")
+        .publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2015"
+
+                [dev-dependencies]
+                pub_dep = {version = "0.1.0", public = true}
+            "#,
+        )
+        .file(
+            "tests/mod.rs",
+            "
+            extern crate pub_dep;
+            pub fn use_pub(_: pub_dep::FromPub) {}
+        ",
+        )
+        .build();
+
+    p.cargo("check --message-format=short")
+        .masquerade_as_nightly_cargo(&["public-dependency"])
+        .with_stderr(
+            "\
+[WARNING] 'public' specifier can only be used on regular dependencies, not dev-dependencies
+[UPDATING] `[..]` index
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -219,6 +258,7 @@ fn workspace_pub_disallowed() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [workspace.dependencies]
                 foo1 = "0.1.0"
@@ -271,6 +311,7 @@ fn allow_priv_in_tests() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 priv_dep = {version = "0.1.0", public = false}
@@ -294,7 +335,7 @@ fn allow_priv_in_tests() {
 [DOWNLOADED] priv_dep v0.1.0 ([..])
 [CHECKING] priv_dep v0.1.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -315,6 +356,7 @@ fn allow_priv_in_benchs() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 priv_dep = {version = "0.1.0", public = false}
@@ -338,7 +380,7 @@ fn allow_priv_in_benchs() {
 [DOWNLOADED] priv_dep v0.1.0 ([..])
 [CHECKING] priv_dep v0.1.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -359,6 +401,7 @@ fn allow_priv_in_bins() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 priv_dep = {version = "0.1.0", public = false}
@@ -383,7 +426,7 @@ fn allow_priv_in_bins() {
 [DOWNLOADED] priv_dep v0.1.0 ([..])
 [CHECKING] priv_dep v0.1.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -404,6 +447,7 @@ fn allow_priv_in_examples() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 priv_dep = {version = "0.1.0", public = false}
@@ -428,7 +472,7 @@ fn allow_priv_in_examples() {
 [DOWNLOADED] priv_dep v0.1.0 ([..])
 [CHECKING] priv_dep v0.1.0
 [CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -449,6 +493,7 @@ fn allow_priv_in_custom_build() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [build-dependencies]
                 priv_dep = "0.1.0"
@@ -474,7 +519,7 @@ fn allow_priv_in_custom_build() {
 [DOWNLOADED] priv_dep v0.1.0 ([..])
 [COMPILING] priv_dep v0.1.0
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
@@ -505,6 +550,7 @@ fn publish_package_with_public_dependency() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             [dependencies]
             bar = {version = "0.1.0", public = true}
         "#,
@@ -529,8 +575,109 @@ fn publish_package_with_public_dependency() {
 [CHECKING] pub_bar v0.1.0
 [CHECKING] bar v0.1.0
 [CHECKING] foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run()
+}
+
+#[cargo_test(nightly, reason = "exported_private_dependencies lint is unstable")]
+fn verify_mix_cargo_feature_z() {
+    Package::new("dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromDep;")
+        .publish();
+    Package::new("priv_dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromPriv;")
+        .publish();
+    Package::new("pub_dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromPub;")
+        .publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["public-dependency"]
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2015"
+
+                [dependencies]
+                dep = "0.1.0"
+                priv_dep = {version = "0.1.0", public = false}
+                pub_dep = {version = "0.1.0", public = true}
+            "#,
+        )
+        .file(
+            "src/lib.rs",
+            "
+            extern crate dep;
+            extern crate priv_dep;
+            extern crate pub_dep;
+            pub fn use_dep(_: dep::FromDep) {}
+            pub fn use_priv(_: priv_dep::FromPriv) {}
+            pub fn use_pub(_: pub_dep::FromPub) {}
+        ",
+        )
+        .build();
+
+    p.cargo("check -Zpublic-dependency --message-format=short")
+        .masquerade_as_nightly_cargo(&["public-dependency"])
+        .with_stderr_contains(
+            "\
+src/lib.rs:5:13: warning: type `FromDep` from private dependency 'dep' in public interface
+src/lib.rs:6:13: warning: type `FromPriv` from private dependency 'priv_dep' in public interface
+",
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "exported_private_dependencies lint is unstable")]
+fn verify_z_public_dependency() {
+    Package::new("dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromDep;")
+        .publish();
+    Package::new("priv_dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromPriv;")
+        .publish();
+    Package::new("pub_dep", "0.1.0")
+        .file("src/lib.rs", "pub struct FromPub;")
+        .publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.0.1"
+                edition = "2015"
+
+                [dependencies]
+                dep = "0.1.0"
+                priv_dep = {version = "0.1.0", public = false}
+                pub_dep = {version = "0.1.0", public = true}
+            "#,
+        )
+        .file(
+            "src/lib.rs",
+            "
+            extern crate dep;
+            extern crate priv_dep;
+            extern crate pub_dep;
+            pub fn use_dep(_: dep::FromDep) {}
+            pub fn use_priv(_: priv_dep::FromPriv) {}
+            pub fn use_pub(_: pub_dep::FromPub) {}
+        ",
+        )
+        .build();
+
+    p.cargo("check -Zpublic-dependency --message-format=short")
+        .masquerade_as_nightly_cargo(&["public-dependency"])
+        .with_stderr_contains(
+            "\
+src/lib.rs:5:13: warning: type `FromDep` from private dependency 'dep' in public interface
+src/lib.rs:6:13: warning: type `FromPriv` from private dependency 'priv_dep' in public interface
+",
+        )
+        .run();
 }

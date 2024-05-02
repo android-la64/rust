@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-path"
-version = "0.10.3"
+version = "0.10.5"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -32,7 +32,7 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-trace]
-version = "^0.1.6"
+version = "^0.1.7"
 
 [dependencies.once_cell]
 version = "1.17.1"

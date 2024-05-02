@@ -4,7 +4,7 @@ use std::{cell::Cell, marker, sync::Arc};
 
 use cargo_util::ProcessBuilder;
 
-use crate::core::compiler::context::OutputFile;
+use crate::core::compiler::build_runner::OutputFile;
 use crate::core::compiler::future_incompat::FutureBreakageItem;
 use crate::util::Queue;
 use crate::CargoResult;
@@ -16,7 +16,7 @@ use super::{Artifact, DiagDedupe, Job, JobId, Message};
 ///
 /// The job may execute on either a dedicated thread or the main thread. If the job executes on the
 /// main thread, the `output` field must be set to prevent a deadlock.
-pub struct JobState<'a, 'cfg> {
+pub struct JobState<'a, 'gctx> {
     /// Channel back to the main thread to coordinate messages and such.
     ///
     /// When the `output` field is `Some`, care must be taken to avoid calling `push_bounded` on
@@ -28,12 +28,15 @@ pub struct JobState<'a, 'cfg> {
     /// output messages are processed on the same thread as they are sent from. `output`
     /// defines where to output in this case.
     ///
-    /// Currently the `Shell` inside `Config` is wrapped in a `RefCell` and thus can't be passed
-    /// between threads. This means that it isn't possible for multiple output messages to be
-    /// interleaved. In the future, it may be wrapped in a `Mutex` instead. In this case
+    /// Currently the [`Shell`] inside [`GlobalContext`] is wrapped in a `RefCell` and thus can't
+    /// be passed between threads. This means that it isn't possible for multiple output messages
+    /// to be interleaved. In the future, it may be wrapped in a `Mutex` instead. In this case
     /// interleaving is still prevented as the lock would be held for the whole printing of an
     /// output message.
-    output: Option<&'a DiagDedupe<'cfg>>,
+    ///
+    /// [`Shell`]: crate::core::Shell
+    /// [`GlobalContext`]: crate::GlobalContext
+    output: Option<&'a DiagDedupe<'gctx>>,
 
     /// The job id that this state is associated with, used when sending
     /// messages back to the main thread.
@@ -49,11 +52,11 @@ pub struct JobState<'a, 'cfg> {
     _marker: marker::PhantomData<&'a ()>,
 }
 
-impl<'a, 'cfg> JobState<'a, 'cfg> {
+impl<'a, 'gctx> JobState<'a, 'gctx> {
     pub(super) fn new(
         id: JobId,
         messages: Arc<Queue<Message>>,
-        output: Option<&'a DiagDedupe<'cfg>>,
+        output: Option<&'a DiagDedupe<'gctx>>,
         rmeta_required: bool,
     ) -> Self {
         Self {
@@ -81,7 +84,7 @@ impl<'a, 'cfg> JobState<'a, 'cfg> {
 
     pub fn stdout(&self, stdout: String) -> CargoResult<()> {
         if let Some(dedupe) = self.output {
-            writeln!(dedupe.config.shell().out(), "{}", stdout)?;
+            writeln!(dedupe.gctx.shell().out(), "{}", stdout)?;
         } else {
             self.messages.push_bounded(Message::Stdout(stdout));
         }
@@ -90,7 +93,7 @@ impl<'a, 'cfg> JobState<'a, 'cfg> {
 
     pub fn stderr(&self, stderr: String) -> CargoResult<()> {
         if let Some(dedupe) = self.output {
-            let mut shell = dedupe.config.shell();
+            let mut shell = dedupe.gctx.shell();
             shell.print_ansi_stderr(stderr.as_bytes())?;
             shell.err().write_all(b"\n")?;
         } else {

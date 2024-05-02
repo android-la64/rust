@@ -1,6 +1,6 @@
 use crate::ffi::CStr;
 use crate::io;
-use crate::num::NonZeroUsize;
+use crate::num::NonZero;
 use crate::os::windows::io::AsRawHandle;
 use crate::os::windows::io::HandleOrNull;
 use crate::ptr;
@@ -9,7 +9,6 @@ use crate::sys::handle::Handle;
 use crate::sys::stack_overflow;
 use crate::sys_common::FromInner;
 use crate::time::Duration;
-
 use core::ffi::c_void;
 
 use super::time::WaitableTimer;
@@ -26,11 +25,8 @@ impl Thread {
     pub unsafe fn new(stack: usize, p: Box<dyn FnOnce()>) -> io::Result<Thread> {
         let p = Box::into_raw(Box::new(p));
 
-        // FIXME On UNIX, we guard against stack sizes that are too small but
-        // that's because pthreads enforces that stacks are at least
-        // PTHREAD_STACK_MIN bytes big. Windows has no such lower limit, it's
-        // just that below a certain threshold you can't do anything useful.
-        // That threshold is application and architecture-specific, however.
+        // CreateThread rounds up values for the stack size to the nearest page size (at least 4kb).
+        // If a value of zero is given then the default stack size is used instead.
         let ret = c::CreateThread(
             ptr::null_mut(),
             stack,
@@ -110,7 +106,7 @@ impl Thread {
     }
 }
 
-pub fn available_parallelism() -> io::Result<NonZeroUsize> {
+pub fn available_parallelism() -> io::Result<NonZero<usize>> {
     let res = unsafe {
         let mut sysinfo: c::SYSTEM_INFO = crate::mem::zeroed();
         c::GetSystemInfo(&mut sysinfo);
@@ -121,7 +117,7 @@ pub fn available_parallelism() -> io::Result<NonZeroUsize> {
             io::ErrorKind::NotFound,
             "The number of hardware threads is not known for the target platform",
         )),
-        cpus => Ok(unsafe { NonZeroUsize::new_unchecked(cpus) }),
+        cpus => Ok(unsafe { NonZero::new_unchecked(cpus) }),
     }
 }
 

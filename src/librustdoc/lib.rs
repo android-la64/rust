@@ -18,7 +18,9 @@
 #![recursion_limit = "256"]
 #![warn(rustc::internal)]
 #![allow(clippy::collapsible_if, clippy::collapsible_else_if)]
+#![allow(rustc::diagnostic_outside_of_impl)]
 #![allow(rustc::potential_query_instability)]
+#![allow(rustc::untranslatable_diagnostic)]
 
 extern crate thin_vec;
 #[macro_use]
@@ -76,8 +78,7 @@ use std::io::{self, IsTerminal};
 use std::process;
 use std::sync::{atomic::AtomicBool, Arc};
 
-use rustc_driver::abort_on_err;
-use rustc_errors::ErrorGuaranteed;
+use rustc_errors::{ErrorGuaranteed, FatalError};
 use rustc_interface::interface;
 use rustc_middle::ty::TyCtxt;
 use rustc_session::config::{make_crate_type_option, ErrorOutputType, RustcOptGroup};
@@ -177,19 +178,15 @@ pub fn main() {
     init_logging(&early_dcx);
     rustc_driver::init_logger(&early_dcx, rustc_log::LoggerConfig::from_env("RUSTDOC_LOG"));
 
-    let exit_code = rustc_driver::catch_with_exit_code(|| match get_args(&early_dcx) {
-        Some(args) => main_args(&mut early_dcx, &args, using_internal_features),
-        _ =>
-        {
-            #[allow(deprecated)]
-            Err(ErrorGuaranteed::unchecked_claim_error_was_emitted())
-        }
+    let exit_code = rustc_driver::catch_with_exit_code(|| {
+        let at_args = rustc_driver::args::raw_args(&early_dcx)?;
+        main_args(&mut early_dcx, &at_args, using_internal_features)
     });
     process::exit(exit_code);
 }
 
 fn init_logging(early_dcx: &EarlyDiagCtxt) {
-    let color_logs = match std::env::var("RUSTDOC_LOG_COLOR").as_deref() {
+    let color_logs = match env::var("RUSTDOC_LOG_COLOR").as_deref() {
         Ok("always") => true,
         Ok("never") => false,
         Ok("auto") | Err(VarError::NotPresent) => io::stdout().is_terminal(),
@@ -217,19 +214,6 @@ fn init_logging(early_dcx: &EarlyDiagCtxt) {
     use tracing_subscriber::layer::SubscriberExt;
     let subscriber = tracing_subscriber::Registry::default().with(filter).with(layer);
     tracing::subscriber::set_global_default(subscriber).unwrap();
-}
-
-fn get_args(early_dcx: &EarlyDiagCtxt) -> Option<Vec<String>> {
-    env::args_os()
-        .enumerate()
-        .map(|(i, arg)| {
-            arg.into_string()
-                .map_err(|arg| {
-                    early_dcx.early_warn(format!("Argument {i} is not valid Unicode: {arg:?}"));
-                })
-                .ok()
-        })
-        .collect()
 }
 
 fn opts() -> Vec<RustcOptGroup> {
@@ -546,6 +530,14 @@ fn opts() -> Vec<RustcOptGroup> {
         unstable("test-builder", |o| {
             o.optopt("", "test-builder", "The rustc-like binary to use as the test builder", "PATH")
         }),
+        unstable("test-builder-wrapper", |o| {
+            o.optmulti(
+                "",
+                "test-builder-wrapper",
+                "Wrapper program to pass test-builder and arguments",
+                "PATH",
+            )
+        }),
         unstable("check", |o| o.optflagmulti("", "check", "Run rustdoc checks")),
         unstable("generate-redirect-map", |o| {
             o.optflagmulti(
@@ -714,7 +706,7 @@ fn main_args(
     // the compiler with @empty_file as argv[0] and no more arguments.
     let at_args = at_args.get(1..).unwrap_or_default();
 
-    let args = rustc_driver::args::arg_expand_all(early_dcx, at_args);
+    let args = rustc_driver::args::arg_expand_all(early_dcx, at_args)?;
 
     let mut options = getopts::Options::new();
     for option in opts() {
@@ -730,15 +722,8 @@ fn main_args(
     // Note that we discard any distinction between different non-zero exit
     // codes from `from_matches` here.
     let (options, render_options) = match config::Options::from_matches(early_dcx, &matches, args) {
-        Ok(opts) => opts,
-        Err(code) => {
-            return if code == 0 {
-                Ok(())
-            } else {
-                #[allow(deprecated)]
-                Err(ErrorGuaranteed::unchecked_claim_error_was_emitted())
-            };
-        }
+        Some(opts) => opts,
+        None => return Ok(()),
     };
 
     let diag =
@@ -794,7 +779,7 @@ fn main_args(
         }
 
         compiler.enter(|queries| {
-            let mut gcx = abort_on_err(queries.global_ctxt(), sess);
+            let Ok(mut gcx) = queries.global_ctxt() else { FatalError.raise() };
             if sess.dcx().has_errors().is_some() {
                 sess.dcx().fatal("Compilation failed, aborting rustdoc");
             }
@@ -802,7 +787,7 @@ fn main_args(
             gcx.enter(|tcx| {
                 let (krate, render_opts, mut cache) = sess.time("run_global_ctxt", || {
                     core::run_global_ctxt(tcx, show_coverage, render_options, output_format)
-                });
+                })?;
                 info!("finished with rustc");
 
                 if let Some(options) = scrape_examples_options {

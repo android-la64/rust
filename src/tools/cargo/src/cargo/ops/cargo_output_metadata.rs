@@ -130,7 +130,7 @@ fn build_resolve_graph(
     // TODO: Without --filter-platform, features are being resolved for `host` only.
     // How should this work?
     let requested_kinds =
-        CompileKind::from_requested_targets(ws.config(), &metadata_opts.filter_platforms)?;
+        CompileKind::from_requested_targets(ws.gctx(), &metadata_opts.filter_platforms)?;
     let mut target_data = RustcTargetData::new(ws, &requested_kinds)?;
     // Resolve entire workspace.
     let specs = Packages::All.to_package_id_specs(ws)?;
@@ -139,8 +139,6 @@ fn build_resolve_graph(
     } else {
         crate::core::resolver::features::ForceAllTargets::No
     };
-
-    let max_rust_version = ws.rust_version();
 
     // Note that even with --filter-platform we end up downloading host dependencies as well,
     // as that is the behavior of download_accessible.
@@ -152,7 +150,6 @@ fn build_resolve_graph(
         &specs,
         HasDevUnits::Yes,
         force_all,
-        max_rust_version,
     )?;
 
     let package_map: BTreeMap<PackageId, Package> = ws_resolve

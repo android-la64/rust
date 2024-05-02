@@ -9,8 +9,8 @@ use tabled::{
 use crate::matrix::Matrix;
 use testing_table::test_table;
 
-#[cfg(feature = "color")]
-use tabled::grid::color::StaticColor;
+#[cfg(feature = "ansi")]
+use tabled::grid::ansi::ANSIStr;
 
 test_table!(
     pool_table,
@@ -309,17 +309,17 @@ test_table!(
     "+------+------+------+"
 );
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 test_table!(
     pool_table_padding_2,
     PoolTable::new(Matrix::with_no_frame(3, 3).to_vec())
         .with(Padding::new(1, 2, 3, 4)
             .fill('!', '@', '#', '$')
             .colorize(
-                StaticColor::new("\u{1b}[34m", "\u{1b}[39m"),
-                StaticColor::new("\u{1b}[34m", "\u{1b}[39m"),
-                StaticColor::new("\u{1b}[34m", "\u{1b}[39m"),
-                StaticColor::new("\u{1b}[34m", "\u{1b}[39m"),
+                ANSIStr::new("\u{1b}[34m", "\u{1b}[39m"),
+                ANSIStr::new("\u{1b}[34m", "\u{1b}[39m"),
+                ANSIStr::new("\u{1b}[34m", "\u{1b}[39m"),
+                ANSIStr::new("\u{1b}[34m", "\u{1b}[39m"),
             )
         ),
     "+------+------+------+"

@@ -19,19 +19,9 @@ pub fn cli() -> Command {
         ))
 }
 
-pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
-    let opts = args.new_options(config)?;
+pub fn exec(gctx: &mut GlobalContext, args: &ArgMatches) -> CliResult {
+    let opts = args.new_options(gctx)?;
 
-    ops::new(&opts, config)?;
-    let path = args.get_one::<String>("path").unwrap();
-    let package_name = if let Some(name) = args.get_one::<String>("name") {
-        name
-    } else {
-        path
-    };
-    config.shell().status(
-        "Created",
-        format!("{} `{}` package", opts.kind, package_name),
-    )?;
+    ops::new(&opts, gctx)?;
     Ok(())
 }

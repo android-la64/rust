@@ -1,5 +1,5 @@
 // Regression test for issue #89342 and for part of #119924.
-// check-pass
+//@ check-pass
 
 struct Expr<const N: u32>;
 

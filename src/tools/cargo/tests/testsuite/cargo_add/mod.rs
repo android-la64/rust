@@ -1,5 +1,7 @@
 mod add_basic;
 mod add_multiple;
+mod add_no_vendored_package_with_alter_registry;
+mod add_no_vendored_package_with_vendor;
 mod add_normalized_name_external;
 mod add_toolchain;
 mod build;
@@ -121,6 +123,10 @@ mod rust_version_ignore;
 mod rust_version_incompatible;
 mod rust_version_latest;
 mod rust_version_older;
+mod rustc_ignore;
+mod rustc_incompatible;
+mod rustc_latest;
+mod rustc_older;
 mod sorted_table_with_dotted_item;
 mod target;
 mod target_cfg;

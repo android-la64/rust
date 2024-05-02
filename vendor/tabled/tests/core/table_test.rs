@@ -259,7 +259,9 @@ test_table!(
 
 test_table!(
     table_tuple_vec,
+    #[allow(unknown_lints)]
     #[allow(clippy::needless_borrow)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
     Table::new(&[(0, "Monday"), (1, "Thursday")]),
     "+-----+----------+"
     "| i32 | &str     |"
@@ -341,7 +343,7 @@ mod derived {
 
     use std::collections::{BTreeMap, BTreeSet};
 
-    use tabled::Tabled;
+    use tabled::{settings::style::Style, Tabled};
 
     #[derive(Tabled)]
     struct TestType {
@@ -747,7 +749,7 @@ mod derived {
     );
 }
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 #[test]
 fn multiline_table_test2() {
     use testing_table::assert_table;
@@ -844,4 +846,17 @@ test_table!(
     "│││"
     "├┼┤"
     "└┴┘"
+);
+
+test_table!(
+    table_modify_test,
+    Matrix::new(3, 3)
+        .with(Style::markdown())
+        .modify((1, 0), "Hello World")
+        .modify((0, 1), "Hello World 2"),
+    "|      N      | Hello World 2 | column 1 | column 2 |"
+    "|-------------|---------------|----------|----------|"
+    "| Hello World |      0-0      |   0-1    |   0-2    |"
+    "|      1      |      1-0      |   1-1    |   1-2    |"
+    "|      2      |      2-0      |   2-1    |   2-2    |"
 );

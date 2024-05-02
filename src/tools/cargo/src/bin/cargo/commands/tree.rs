@@ -69,8 +69,7 @@ pub fn cli() -> Command {
         .arg(
             opt("charset", "Character set to use in output")
                 .value_name("CHARSET")
-                .value_parser(["utf8", "ascii"])
-                .default_value("utf8"),
+                .value_parser(["utf8", "ascii"]),
         )
         .arg(
             opt("format", "Format string used for printing dependencies")
@@ -101,21 +100,37 @@ pub fn cli() -> Command {
         ))
 }
 
-pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
+#[derive(Copy, Clone)]
+pub enum Charset {
+    Utf8,
+    Ascii,
+}
+
+impl FromStr for Charset {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Charset, &'static str> {
+        match s {
+            "utf8" => Ok(Charset::Utf8),
+            "ascii" => Ok(Charset::Ascii),
+            _ => Err("invalid charset"),
+        }
+    }
+}
+
+pub fn exec(gctx: &mut GlobalContext, args: &ArgMatches) -> CliResult {
     if args.flag("version") {
         let verbose = args.verbose() > 0;
         let version = cli::get_version_string(verbose);
-        cargo::drop_print!(config, "{}", version);
+        cargo::drop_print!(gctx, "{}", version);
         return Ok(());
     }
     let prefix = if args.flag("no-indent") {
-        config
-            .shell()
+        gctx.shell()
             .warn("the --no-indent flag has been changed to --prefix=none")?;
         "none"
     } else if args.flag("prefix-depth") {
-        config
-            .shell()
+        gctx.shell()
             .warn("the --prefix-depth flag has been changed to --prefix=depth")?;
         "depth"
     } else {
@@ -125,7 +140,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
 
     let no_dedupe = args.flag("no-dedupe") || args.flag("all");
     if args.flag("all") {
-        config.shell().warn(
+        gctx.shell().warn(
             "The `cargo tree` --all flag has been changed to --no-dedupe, \
              and may be removed in a future version.\n\
              If you are looking to display all workspace members, use the --workspace flag.",
@@ -133,8 +148,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     }
 
     let targets = if args.flag("all-targets") {
-        config
-            .shell()
+        gctx.shell()
             .warn("the --all-targets flag has been changed to --target=all")?;
         vec!["all".to_string()]
     } else {
@@ -142,7 +156,7 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     };
     let target = tree::Target::from_cli(targets);
 
-    let (edge_kinds, no_proc_macro) = parse_edge_kinds(config, args)?;
+    let (edge_kinds, no_proc_macro) = parse_edge_kinds(gctx, args)?;
     let graph_features = edge_kinds.contains(&EdgeKind::Feature);
 
     let pkgs_to_prune = args._values_of("prune");
@@ -178,14 +192,23 @@ subtree of the package given to -p.\n\
         }
     }
 
-    let ws = args.workspace(config)?;
+    let ws = args.workspace(gctx)?;
 
     if args.is_present_with_zero_values("package") {
         print_available_packages(&ws)?;
     }
 
-    let charset = tree::Charset::from_str(args.get_one::<String>("charset").unwrap())
-        .map_err(|e| anyhow::anyhow!("{}", e))?;
+    let charset = args.get_one::<String>("charset");
+    if let Some(charset) = charset
+        .map(|c| Charset::from_str(c))
+        .transpose()
+        .map_err(|e| anyhow::anyhow!("{}", e))?
+    {
+        match charset {
+            Charset::Utf8 => gctx.shell().set_unicode(true)?,
+            Charset::Ascii => gctx.shell().set_unicode(false)?,
+        }
+    }
     let opts = tree::TreeOptions {
         cli_features: args.cli_features()?,
         packages,
@@ -196,7 +219,6 @@ subtree of the package given to -p.\n\
         prefix,
         no_dedupe,
         duplicates: args.flag("duplicates"),
-        charset,
         format: args.get_one::<String>("format").cloned().unwrap(),
         graph_features,
         max_display_depth: args.value_of_u32("depth")?.unwrap_or(u32::MAX),
@@ -214,7 +236,10 @@ subtree of the package given to -p.\n\
 /// Parses `--edges` option.
 ///
 /// Returns a tuple of `EdgeKind` map and `no_proc_marco` flag.
-fn parse_edge_kinds(config: &Config, args: &ArgMatches) -> CargoResult<(HashSet<EdgeKind>, bool)> {
+fn parse_edge_kinds(
+    gctx: &GlobalContext,
+    args: &ArgMatches,
+) -> CargoResult<(HashSet<EdgeKind>, bool)> {
     let (kinds, no_proc_macro) = {
         let mut no_proc_macro = false;
         let mut kinds = args.get_many::<String>("edges").map_or_else(
@@ -230,8 +255,7 @@ fn parse_edge_kinds(config: &Config, args: &ArgMatches) -> CargoResult<(HashSet<
         );
 
         if args.flag("no-dev-dependencies") {
-            config
-                .shell()
+            gctx.shell()
                 .warn("the --no-dev-dependencies flag has changed to -e=no-dev")?;
             kinds.push("no-dev");
         }

@@ -17,18 +17,20 @@ pub struct File {
 // Opens a std File and returns it or an error generator which only needs the path to produce the error.
 // Exists for the `crate::read*` functions so they don't unconditionally build a PathBuf.
 pub(crate) fn open(path: &Path) -> Result<std::fs::File, impl FnOnce(PathBuf) -> io::Error> {
-    fs::File::open(&path).map_err(|err| |path| Error::build(err, ErrorKind::OpenFile, path))
+    fs::File::open(path).map_err(|err| |path| Error::build(err, ErrorKind::OpenFile, path))
 }
 
 // like `open()` but for `crate::write`
 pub(crate) fn create(path: &Path) -> Result<std::fs::File, impl FnOnce(PathBuf) -> io::Error> {
-    fs::File::create(&path).map_err(|err| |path| Error::build(err, ErrorKind::CreateFile, path))
+    fs::File::create(path).map_err(|err| |path| Error::build(err, ErrorKind::CreateFile, path))
 }
 
 /// Wrappers for methods from [`std::fs::File`][std::fs::File].
 ///
 /// [std::fs::File]: https://doc.rust-lang.org/stable/std/fs/struct.File.html
 impl File {
+    /// Attempts to open a file in read-only mode.
+    ///
     /// Wrapper for [`File::open`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.open).
     pub fn open<P>(path: P) -> Result<Self, io::Error>
     where
@@ -41,6 +43,8 @@ impl File {
         }
     }
 
+    /// Opens a file in write-only mode.
+    ///
     /// Wrapper for [`File::create`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.create).
     pub fn create<P>(path: P) -> Result<Self, io::Error>
     where
@@ -69,6 +73,8 @@ impl File {
         }
     }
 
+    /// Attempts to sync all OS-internal metadata to disk.
+    ///
     /// Wrapper for [`File::sync_all`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.sync_all).
     pub fn sync_all(&self) -> Result<(), io::Error> {
         self.file
@@ -76,6 +82,8 @@ impl File {
             .map_err(|source| self.error(source, ErrorKind::SyncFile))
     }
 
+    /// This function is similar to [`sync_all`], except that it might not synchronize file metadata to the filesystem.
+    ///
     /// Wrapper for [`File::sync_data`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.sync_data).
     pub fn sync_data(&self) -> Result<(), io::Error> {
         self.file
@@ -83,6 +91,8 @@ impl File {
             .map_err(|source| self.error(source, ErrorKind::SyncFile))
     }
 
+    /// Truncates or extends the underlying file, updating the size of this file to become `size`.
+    ///
     /// Wrapper for [`File::set_len`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.set_len).
     pub fn set_len(&self, size: u64) -> Result<(), io::Error> {
         self.file
@@ -90,6 +100,8 @@ impl File {
             .map_err(|source| self.error(source, ErrorKind::SetLen))
     }
 
+    /// Queries metadata about the underlying file.
+    ///
     /// Wrapper for [`File::metadata`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.metadata).
     pub fn metadata(&self) -> Result<fs::Metadata, io::Error> {
         self.file
@@ -97,6 +109,10 @@ impl File {
             .map_err(|source| self.error(source, ErrorKind::Metadata))
     }
 
+    /// Creates a new `File` instance that shares the same underlying file handle as the
+    /// existing `File` instance. Reads, writes, and seeks will affect both `File`
+    /// instances simultaneously.
+    ///
     /// Wrapper for [`File::try_clone`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.try_clone).
     pub fn try_clone(&self) -> Result<Self, io::Error> {
         self.file
@@ -108,6 +124,8 @@ impl File {
             .map_err(|source| self.error(source, ErrorKind::Clone))
     }
 
+    /// Changes the permissions on the underlying file.
+    ///
     /// Wrapper for [`File::set_permissions`](https://doc.rust-lang.org/stable/std/fs/struct.File.html#method.set_permissions).
     pub fn set_permissions(&self, perm: fs::Permissions) -> Result<(), io::Error> {
         self.file
@@ -178,13 +196,13 @@ impl Read for File {
 
 impl<'a> Read for &'a File {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        (&(**self).file)
+        (&self.file)
             .read(buf)
             .map_err(|source| self.error(source, ErrorKind::Read))
     }
 
     fn read_vectored(&mut self, bufs: &mut [std::io::IoSliceMut<'_>]) -> std::io::Result<usize> {
-        (&(**self).file)
+        (&self.file)
             .read_vectored(bufs)
             .map_err(|source| self.error(source, ErrorKind::Read))
     }
@@ -206,7 +224,7 @@ impl Seek for File {
 
 impl<'a> Seek for &'a File {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
-        (&(**self).file)
+        (&self.file)
             .seek(pos)
             .map_err(|source| self.error(source, ErrorKind::Seek))
     }
@@ -234,19 +252,19 @@ impl Write for File {
 
 impl<'a> Write for &'a File {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        (&(**self).file)
+        (&self.file)
             .write(buf)
             .map_err(|source| self.error(source, ErrorKind::Write))
     }
 
     fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
-        (&(**self).file)
+        (&self.file)
             .write_vectored(bufs)
             .map_err(|source| self.error(source, ErrorKind::Write))
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
-        (&(**self).file)
+        (&self.file)
             .flush()
             .map_err(|source| self.error(source, ErrorKind::Flush))
     }

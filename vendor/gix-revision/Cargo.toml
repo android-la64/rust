@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-revision"
-version = "0.25.1"
+version = "0.26.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -51,13 +51,13 @@ version = "^0.14.1"
 version = "^0.5.1"
 
 [dependencies.gix-object]
-version = "^0.40.1"
+version = "^0.41.0"
 
 [dependencies.gix-revwalk]
-version = "^0.11.1"
+version = "^0.12.0"
 
 [dependencies.gix-trace]
-version = "^0.1.6"
+version = "^0.1.7"
 
 [dependencies.serde]
 version = "1.0.114"

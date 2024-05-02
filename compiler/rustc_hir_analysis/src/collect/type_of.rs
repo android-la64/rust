@@ -1,3 +1,4 @@
+use core::ops::ControlFlow;
 use rustc_errors::{Applicability, StashKey};
 use rustc_hir as hir;
 use rustc_hir::def_id::{DefId, LocalDefId};
@@ -5,9 +6,11 @@ use rustc_hir::HirId;
 use rustc_middle::query::plumbing::CyclePlaceholder;
 use rustc_middle::ty::print::with_forced_trimmed_paths;
 use rustc_middle::ty::util::IntTypeExt;
-use rustc_middle::ty::{self, ImplTraitInTraitData, IsSuggestable, Ty, TyCtxt, TypeVisitableExt};
+use rustc_middle::ty::{self, IsSuggestable, Ty, TyCtxt, TypeVisitableExt};
 use rustc_span::symbol::Ident;
 use rustc_span::{Span, DUMMY_SP};
+
+use crate::errors::TypeofReservedKeywordUsed;
 
 use super::bad_placeholder;
 use super::ItemCtxt;
@@ -28,7 +31,7 @@ fn anon_const_type_of<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> Ty<'tcx> {
         );
     };
 
-    let parent_node_id = tcx.hir().parent_id(hir_id);
+    let parent_node_id = tcx.parent_hir_id(hir_id);
     let parent_node = tcx.hir_node(parent_node_id);
 
     let (generics, arg_idx) = match parent_node {
@@ -39,8 +42,18 @@ fn anon_const_type_of<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> Ty<'tcx> {
         {
             return tcx.types.usize;
         }
-        Node::Ty(&hir::Ty { kind: TyKind::Typeof(ref e), .. }) if e.hir_id == hir_id => {
-            return tcx.typeck(def_id).node_type(e.hir_id);
+        Node::Ty(&hir::Ty { kind: TyKind::Typeof(ref e), span, .. }) if e.hir_id == hir_id => {
+            let ty = tcx.typeck(def_id).node_type(e.hir_id);
+            let ty = tcx.fold_regions(ty, |r, _| {
+                if r.is_erased() { ty::Region::new_error_misc(tcx) } else { r }
+            });
+            let (ty, opt_sugg) = if let Some(ty) = ty.make_suggestable(tcx, false) {
+                (ty, Some((span, Applicability::MachineApplicable)))
+            } else {
+                (ty, None)
+            };
+            tcx.dcx().emit_err(TypeofReservedKeywordUsed { span, ty, opt_sugg });
+            return ty;
         }
         Node::Expr(&Expr { kind: ExprKind::InlineAsm(asm), .. })
         | Node::Item(&Item { kind: ItemKind::GlobalAsm(asm), .. })
@@ -64,37 +77,6 @@ fn anon_const_type_of<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> Ty<'tcx> {
                 .type_of(param_def_id)
                 .no_bound_vars()
                 .expect("const parameter types cannot be generic");
-        }
-
-        Node::TypeBinding(binding @ &TypeBinding { hir_id: binding_id, .. })
-            if let Node::TraitRef(trait_ref) = tcx.hir_node(tcx.hir().parent_id(binding_id)) =>
-        {
-            let Some(trait_def_id) = trait_ref.trait_def_id() else {
-                return Ty::new_error_with_message(
-                    tcx,
-                    tcx.def_span(def_id),
-                    "Could not find trait",
-                );
-            };
-            let assoc_items = tcx.associated_items(trait_def_id);
-            let assoc_item = assoc_items.find_by_name_and_kind(
-                tcx,
-                binding.ident,
-                ty::AssocKind::Const,
-                def_id.to_def_id(),
-            );
-            return if let Some(assoc_item) = assoc_item {
-                tcx.type_of(assoc_item.def_id)
-                    .no_bound_vars()
-                    .expect("const parameter types cannot be generic")
-            } else {
-                // FIXME(associated_const_equality): add a useful error message here.
-                Ty::new_error_with_message(
-                    tcx,
-                    tcx.def_span(def_id),
-                    "Could not find associated const on trait",
-                )
-            };
         }
 
         // This match arm is for when the def_id appears in a GAT whose
@@ -126,8 +108,7 @@ fn anon_const_type_of<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> Ty<'tcx> {
                 .unwrap()
                 .0
                 .def_id;
-            let item_ctxt = &ItemCtxt::new(tcx, item_def_id) as &dyn crate::astconv::AstConv<'_>;
-            let ty = item_ctxt.ast_ty_to_ty(hir_ty);
+            let ty = ItemCtxt::new(tcx, item_def_id).to_ty(hir_ty);
 
             // Iterate through the generics of the projection to find the one that corresponds to
             // the def_id that this query was called with. We filter to only type and const args here
@@ -338,22 +319,31 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::EarlyBinder<Ty
     // If we are computing `type_of` the synthesized associated type for an RPITIT in the impl
     // side, use `collect_return_position_impl_trait_in_trait_tys` to infer the value of the
     // associated type in the impl.
-    if let Some(ImplTraitInTraitData::Impl { fn_def_id, .. }) =
-        tcx.opt_rpitit_info(def_id.to_def_id())
-    {
-        match tcx.collect_return_position_impl_trait_in_trait_tys(fn_def_id) {
-            Ok(map) => {
-                let assoc_item = tcx.associated_item(def_id);
-                return map[&assoc_item.trait_item_def_id.unwrap()];
-            }
-            Err(_) => {
-                return ty::EarlyBinder::bind(Ty::new_error_with_message(
-                    tcx,
-                    DUMMY_SP,
-                    "Could not collect return position impl trait in trait tys",
-                ));
+    match tcx.opt_rpitit_info(def_id.to_def_id()) {
+        Some(ty::ImplTraitInTraitData::Impl { fn_def_id }) => {
+            match tcx.collect_return_position_impl_trait_in_trait_tys(fn_def_id) {
+                Ok(map) => {
+                    let assoc_item = tcx.associated_item(def_id);
+                    return map[&assoc_item.trait_item_def_id.unwrap()];
+                }
+                Err(_) => {
+                    return ty::EarlyBinder::bind(Ty::new_error_with_message(
+                        tcx,
+                        DUMMY_SP,
+                        "Could not collect return position impl trait in trait tys",
+                    ));
+                }
             }
         }
+        // For an RPITIT in a trait, just return the corresponding opaque.
+        Some(ty::ImplTraitInTraitData::Trait { opaque_def_id, .. }) => {
+            return ty::EarlyBinder::bind(Ty::new_opaque(
+                tcx,
+                opaque_def_id,
+                ty::GenericArgs::identity_for_item(tcx, opaque_def_id),
+            ));
+        }
+        None => {}
     }
 
     let hir_id = tcx.local_def_id_to_hir_id(def_id);
@@ -509,6 +499,8 @@ pub(super) fn type_of(tcx: TyCtxt<'_>, def_id: LocalDefId) -> ty::EarlyBinder<Ty
             x => bug!("unexpected non-type Node::GenericParam: {:?}", x),
         },
 
+        Node::ArrayLenInfer(_) => tcx.types.usize,
+
         x => {
             bug!("unexpected sort of node in type_of(): {:?}", x);
         }
@@ -530,11 +522,11 @@ pub(super) fn type_of_opaque(
         Ok(ty::EarlyBinder::bind(match tcx.hir_node_by_def_id(def_id) {
             Node::Item(item) => match item.kind {
                 ItemKind::OpaqueTy(OpaqueTy {
-                    origin: hir::OpaqueTyOrigin::TyAlias { in_assoc_ty: false },
+                    origin: hir::OpaqueTyOrigin::TyAlias { in_assoc_ty: false, .. },
                     ..
                 }) => opaque::find_opaque_ty_constraints_for_tait(tcx, def_id),
                 ItemKind::OpaqueTy(OpaqueTy {
-                    origin: hir::OpaqueTyOrigin::TyAlias { in_assoc_ty: true },
+                    origin: hir::OpaqueTyOrigin::TyAlias { in_assoc_ty: true, .. },
                     ..
                 }) => opaque::find_opaque_ty_constraints_for_impl_trait_in_assoc_type(tcx, def_id),
                 // Opaque types desugared from `impl Trait`.
@@ -582,15 +574,15 @@ fn infer_placeholder_type<'a>(
     // then the user may have written e.g. `const A = 42;`.
     // In this case, the parser has stashed a diagnostic for
     // us to improve in typeck so we do that now.
-    match tcx.dcx().steal_diagnostic(span, StashKey::ItemNoType) {
-        Some(mut err) => {
+    let guar = tcx
+        .dcx()
+        .try_steal_modify_and_emit_err(span, StashKey::ItemNoType, |err| {
             if !ty.references_error() {
-                // Only suggest adding `:` if it was missing (and suggested by parsing diagnostic)
+                // Only suggest adding `:` if it was missing (and suggested by parsing diagnostic).
                 let colon = if span == item_ident.span.shrink_to_hi() { ":" } else { "" };
 
                 // The parser provided a sub-optimal `HasPlaceholders` suggestion for the type.
                 // We are typeck and have the real type, so remove that and suggest the actual type.
-                // FIXME(eddyb) this looks like it should be functionality on `Diagnostic`.
                 if let Ok(suggestions) = &mut err.suggestions {
                     suggestions.clear();
                 }
@@ -609,12 +601,8 @@ fn infer_placeholder_type<'a>(
                     ));
                 }
             }
-
-            err.emit();
-            // diagnostic stashing loses the information of whether something is a hard error.
-            Ty::new_error_with_message(tcx, span, "ItemNoType is a hard error")
-        }
-        None => {
+        })
+        .unwrap_or_else(|| {
             let mut diag = bad_placeholder(tcx, vec![span], kind);
 
             if !ty.references_error() {
@@ -632,10 +620,9 @@ fn infer_placeholder_type<'a>(
                     ));
                 }
             }
-
-            Ty::new_error(tcx, diag.emit())
-        }
-    }
+            diag.emit()
+        });
+    Ty::new_error(tcx, guar)
 }
 
 fn check_feature_inherent_assoc_ty(tcx: TyCtxt<'_>, span: Span) {
@@ -657,19 +644,16 @@ pub fn type_alias_is_lazy<'tcx>(tcx: TyCtxt<'tcx>, def_id: LocalDefId) -> bool {
     if tcx.features().lazy_type_alias {
         return true;
     }
-    struct HasTait {
-        has_type_alias_impl_trait: bool,
-    }
+    struct HasTait;
     impl<'tcx> Visitor<'tcx> for HasTait {
-        fn visit_ty(&mut self, t: &'tcx hir::Ty<'tcx>) {
+        type Result = ControlFlow<()>;
+        fn visit_ty(&mut self, t: &'tcx hir::Ty<'tcx>) -> Self::Result {
             if let hir::TyKind::OpaqueDef(..) = t.kind {
-                self.has_type_alias_impl_trait = true;
+                ControlFlow::Break(())
             } else {
-                hir::intravisit::walk_ty(self, t);
+                hir::intravisit::walk_ty(self, t)
             }
         }
     }
-    let mut has_tait = HasTait { has_type_alias_impl_trait: false };
-    has_tait.visit_ty(tcx.hir().expect_item(def_id).expect_ty_alias().0);
-    has_tait.has_type_alias_impl_trait
+    HasTait.visit_ty(tcx.hir().expect_item(def_id).expect_ty_alias().0).is_break()
 }

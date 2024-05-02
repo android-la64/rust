@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "spdx-rs"
-version = "0.5.3"
+version = "0.5.5"
 authors = ["Mikko Murto <mikko.murto@hhpartners.fi>"]
 exclude = [
     "/tests/",

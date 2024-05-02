@@ -18,10 +18,8 @@
 //! [wiki_avx]: https://en.wikipedia.org/wiki/Advanced_Vector_Extensions
 //! [wiki_fma]: https://en.wikipedia.org/wiki/Fused_multiply-accumulate
 
-use crate::{
-    core_arch::{simd::*, simd_llvm::*, x86::*},
-    mem::transmute,
-};
+use crate::core_arch::{simd::*, x86::*};
+use crate::intrinsics::simd::*;
 
 #[cfg(test)]
 use stdarch_test::assert_instr;
@@ -3586,7 +3584,7 @@ pub unsafe fn _mm256_xor_si256(a: __m256i, b: __m256i) -> __m256i {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_extract_epi8<const INDEX: i32>(a: __m256i) -> i32 {
     static_assert_uimm_bits!(INDEX, 5);
-    simd_extract::<_, u8>(a.as_u8x32(), INDEX as u32) as i32
+    simd_extract!(a.as_u8x32(), INDEX as u32, u8) as i32
 }
 
 /// Extracts a 16-bit integer from `a`, selected with `INDEX`. Returns a 32-bit
@@ -3602,7 +3600,7 @@ pub unsafe fn _mm256_extract_epi8<const INDEX: i32>(a: __m256i) -> i32 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_extract_epi16<const INDEX: i32>(a: __m256i) -> i32 {
     static_assert_uimm_bits!(INDEX, 4);
-    simd_extract::<_, u16>(a.as_u16x16(), INDEX as u32) as i32
+    simd_extract!(a.as_u16x16(), INDEX as u32, u16) as i32
 }
 
 /// Extracts a 32-bit integer from `a`, selected with `INDEX`.
@@ -3615,7 +3613,7 @@ pub unsafe fn _mm256_extract_epi16<const INDEX: i32>(a: __m256i) -> i32 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_extract_epi32<const INDEX: i32>(a: __m256i) -> i32 {
     static_assert_uimm_bits!(INDEX, 3);
-    simd_extract(a.as_i32x8(), INDEX as u32)
+    simd_extract!(a.as_i32x8(), INDEX as u32)
 }
 
 /// Returns the first element of the input vector of `[4 x double]`.
@@ -3626,7 +3624,7 @@ pub unsafe fn _mm256_extract_epi32<const INDEX: i32>(a: __m256i) -> i32 {
 //#[cfg_attr(test, assert_instr(movsd))] FIXME
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cvtsd_f64(a: __m256d) -> f64 {
-    simd_extract(a, 0)
+    simd_extract!(a, 0)
 }
 
 /// Returns the first element of the input vector of `[8 x i32]`.
@@ -3636,7 +3634,7 @@ pub unsafe fn _mm256_cvtsd_f64(a: __m256d) -> f64 {
 #[target_feature(enable = "avx2")]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cvtsi256_si32(a: __m256i) -> i32 {
-    simd_extract(a.as_i32x8(), 0)
+    simd_extract!(a.as_i32x8(), 0)
 }
 
 #[allow(improper_ctypes)]
@@ -4211,16 +4209,16 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_broadcastsd_pd() {
-        let a = _mm_setr_pd(6.28, 3.14);
+        let a = _mm_setr_pd(6.88, 3.44);
         let res = _mm_broadcastsd_pd(a);
-        assert_eq_m128d(res, _mm_set1_pd(6.28f64));
+        assert_eq_m128d(res, _mm_set1_pd(6.88));
     }
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_broadcastsd_pd() {
-        let a = _mm_setr_pd(6.28, 3.14);
+        let a = _mm_setr_pd(6.88, 3.44);
         let res = _mm256_broadcastsd_pd(a);
-        assert_eq_m256d(res, _mm256_set1_pd(6.28f64));
+        assert_eq_m256d(res, _mm256_set1_pd(6.88f64));
     }
 
     #[simd_test(enable = "avx2")]
@@ -4238,16 +4236,16 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_broadcastss_ps() {
-        let a = _mm_setr_ps(6.28, 3.14, 0.0, 0.0);
+        let a = _mm_setr_ps(6.88, 3.44, 0.0, 0.0);
         let res = _mm_broadcastss_ps(a);
-        assert_eq_m128(res, _mm_set1_ps(6.28f32));
+        assert_eq_m128(res, _mm_set1_ps(6.88));
     }
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_broadcastss_ps() {
-        let a = _mm_setr_ps(6.28, 3.14, 0.0, 0.0);
+        let a = _mm_setr_ps(6.88, 3.44, 0.0, 0.0);
         let res = _mm256_broadcastss_ps(a);
-        assert_eq_m256(res, _mm256_set1_ps(6.28f32));
+        assert_eq_m256(res, _mm256_set1_ps(6.88));
     }
 
     #[simd_test(enable = "avx2")]
@@ -5399,10 +5397,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i32gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm_i32gather_epi32::<4>(arr.as_ptr(), _mm_setr_epi32(0, 16, 32, 48));
         assert_eq_m128i(r, _mm_setr_epi32(0, 16, 32, 48));
@@ -5410,10 +5405,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i32gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm_mask_i32gather_epi32::<4>(
             _mm_set1_epi32(256),
@@ -5426,10 +5418,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i32gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r =
             _mm256_i32gather_epi32::<4>(arr.as_ptr(), _mm256_setr_epi32(0, 16, 32, 48, 1, 2, 3, 4));
@@ -5438,10 +5427,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i32gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm256_mask_i32gather_epi32::<4>(
             _mm256_set1_epi32(256),
@@ -5454,12 +5440,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i32gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm_i32gather_ps::<4>(arr.as_ptr(), _mm_setr_epi32(0, 16, 32, 48));
         assert_eq_m128(r, _mm_setr_ps(0.0, 16.0, 32.0, 48.0));
@@ -5467,12 +5448,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i32gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm_mask_i32gather_ps::<4>(
             _mm_set1_ps(256.0),
@@ -5485,12 +5461,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i32gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r =
             _mm256_i32gather_ps::<4>(arr.as_ptr(), _mm256_setr_epi32(0, 16, 32, 48, 1, 2, 3, 4));
@@ -5499,12 +5470,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i32gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm256_mask_i32gather_ps::<4>(
             _mm256_set1_ps(256.0),
@@ -5520,10 +5486,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i32gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm_i32gather_epi64::<8>(arr.as_ptr(), _mm_setr_epi32(0, 16, 0, 0));
         assert_eq_m128i(r, _mm_setr_epi64x(0, 16));
@@ -5531,10 +5494,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i32gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm_mask_i32gather_epi64::<8>(
             _mm_set1_epi64x(256),
@@ -5547,10 +5507,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i32gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm256_i32gather_epi64::<8>(arr.as_ptr(), _mm_setr_epi32(0, 16, 32, 48));
         assert_eq_m256i(r, _mm256_setr_epi64x(0, 16, 32, 48));
@@ -5558,10 +5515,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i32gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm256_mask_i32gather_epi64::<8>(
             _mm256_set1_epi64x(256),
@@ -5574,12 +5528,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i32gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm_i32gather_pd::<8>(arr.as_ptr(), _mm_setr_epi32(0, 16, 0, 0));
         assert_eq_m128d(r, _mm_setr_pd(0.0, 16.0));
@@ -5587,12 +5536,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i32gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm_mask_i32gather_pd::<8>(
             _mm_set1_pd(256.0),
@@ -5605,12 +5549,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i32gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm256_i32gather_pd::<8>(arr.as_ptr(), _mm_setr_epi32(0, 16, 32, 48));
         assert_eq_m256d(r, _mm256_setr_pd(0.0, 16.0, 32.0, 48.0));
@@ -5618,12 +5557,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i32gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm256_mask_i32gather_pd::<8>(
             _mm256_set1_pd(256.0),
@@ -5636,10 +5570,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i64gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm_i64gather_epi32::<4>(arr.as_ptr(), _mm_setr_epi64x(0, 16));
         assert_eq_m128i(r, _mm_setr_epi32(0, 16, 0, 0));
@@ -5647,10 +5578,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i64gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm_mask_i64gather_epi32::<4>(
             _mm_set1_epi32(256),
@@ -5663,10 +5591,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i64gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm256_i64gather_epi32::<4>(arr.as_ptr(), _mm256_setr_epi64x(0, 16, 32, 48));
         assert_eq_m128i(r, _mm_setr_epi32(0, 16, 32, 48));
@@ -5674,10 +5599,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i64gather_epi32() {
-        let mut arr = [0i32; 128];
-        for i in 0..128i32 {
-            arr[i as usize] = i;
-        }
+        let arr: [i32; 128] = core::array::from_fn(|i| i as i32);
         // A multiplier of 4 is word-addressing
         let r = _mm256_mask_i64gather_epi32::<4>(
             _mm_set1_epi32(256),
@@ -5690,12 +5612,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i64gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm_i64gather_ps::<4>(arr.as_ptr(), _mm_setr_epi64x(0, 16));
         assert_eq_m128(r, _mm_setr_ps(0.0, 16.0, 0.0, 0.0));
@@ -5703,12 +5620,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i64gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm_mask_i64gather_ps::<4>(
             _mm_set1_ps(256.0),
@@ -5721,12 +5633,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i64gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm256_i64gather_ps::<4>(arr.as_ptr(), _mm256_setr_epi64x(0, 16, 32, 48));
         assert_eq_m128(r, _mm_setr_ps(0.0, 16.0, 32.0, 48.0));
@@ -5734,12 +5641,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i64gather_ps() {
-        let mut arr = [0.0f32; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f32; 128] = core::array::from_fn(|i| i as f32);
         // A multiplier of 4 is word-addressing for f32s
         let r = _mm256_mask_i64gather_ps::<4>(
             _mm_set1_ps(256.0),
@@ -5752,10 +5654,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i64gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm_i64gather_epi64::<8>(arr.as_ptr(), _mm_setr_epi64x(0, 16));
         assert_eq_m128i(r, _mm_setr_epi64x(0, 16));
@@ -5763,10 +5662,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i64gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm_mask_i64gather_epi64::<8>(
             _mm_set1_epi64x(256),
@@ -5779,10 +5675,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i64gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm256_i64gather_epi64::<8>(arr.as_ptr(), _mm256_setr_epi64x(0, 16, 32, 48));
         assert_eq_m256i(r, _mm256_setr_epi64x(0, 16, 32, 48));
@@ -5790,10 +5683,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i64gather_epi64() {
-        let mut arr = [0i64; 128];
-        for i in 0..128i64 {
-            arr[i as usize] = i;
-        }
+        let arr: [i64; 128] = core::array::from_fn(|i| i as i64);
         // A multiplier of 8 is word-addressing for i64s
         let r = _mm256_mask_i64gather_epi64::<8>(
             _mm256_set1_epi64x(256),
@@ -5806,12 +5696,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_i64gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm_i64gather_pd::<8>(arr.as_ptr(), _mm_setr_epi64x(0, 16));
         assert_eq_m128d(r, _mm_setr_pd(0.0, 16.0));
@@ -5819,12 +5704,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm_mask_i64gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm_mask_i64gather_pd::<8>(
             _mm_set1_pd(256.0),
@@ -5837,12 +5717,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_i64gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm256_i64gather_pd::<8>(arr.as_ptr(), _mm256_setr_epi64x(0, 16, 32, 48));
         assert_eq_m256d(r, _mm256_setr_pd(0.0, 16.0, 32.0, 48.0));
@@ -5850,12 +5725,7 @@ mod tests {
 
     #[simd_test(enable = "avx2")]
     unsafe fn test_mm256_mask_i64gather_pd() {
-        let mut arr = [0.0f64; 128];
-        let mut j = 0.0;
-        for i in 0..128usize {
-            arr[i] = j;
-            j += 1.0;
-        }
+        let arr: [f64; 128] = core::array::from_fn(|i| i as f64);
         // A multiplier of 8 is word-addressing for f64s
         let r = _mm256_mask_i64gather_pd::<8>(
             _mm256_set1_pd(256.0),

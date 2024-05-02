@@ -1,5 +1,5 @@
 /// Borders represents a Table frame with horizontal and vertical split lines.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Borders<T> {
     /// A top horizontal on the frame.
     pub top: Option<T>,
@@ -85,21 +85,21 @@ impl<T> Borders<T> {
 
     /// A verification whether any border was set.
     pub const fn is_empty(&self) -> bool {
-        !(self.top.is_some()
-            || self.top_left.is_some()
-            || self.top_right.is_some()
-            || self.top_intersection.is_some()
-            || self.bottom.is_some()
-            || self.bottom_left.is_some()
-            || self.bottom_right.is_some()
-            || self.bottom_intersection.is_some()
-            || self.horizontal.is_some()
-            || self.left.is_some()
-            || self.right.is_some()
-            || self.vertical.is_some()
-            || self.left_intersection.is_some()
-            || self.right_intersection.is_some()
-            || self.intersection.is_some())
+        self.top.is_none()
+            && self.top_left.is_none()
+            && self.top_right.is_none()
+            && self.top_intersection.is_none()
+            && self.bottom.is_none()
+            && self.bottom_left.is_none()
+            && self.bottom_right.is_none()
+            && self.bottom_intersection.is_none()
+            && self.horizontal.is_none()
+            && self.left.is_none()
+            && self.right.is_none()
+            && self.vertical.is_none()
+            && self.left_intersection.is_none()
+            && self.right_intersection.is_none()
+            && self.intersection.is_none()
     }
 
     /// Verifies if borders has left line set on the frame.
@@ -148,5 +148,29 @@ impl<T> Borders<T> {
             || self.vertical.is_some()
             || self.top_intersection.is_some()
             || self.bottom_intersection.is_some()
+    }
+
+    /// Converts borders type into another one.
+    pub fn convert_into<T1>(self) -> Borders<T1>
+    where
+        T1: From<T>,
+    {
+        Borders {
+            left: self.left.map(Into::into),
+            right: self.right.map(Into::into),
+            top: self.top.map(Into::into),
+            bottom: self.bottom.map(Into::into),
+            bottom_intersection: self.bottom_intersection.map(Into::into),
+            bottom_left: self.bottom_left.map(Into::into),
+            bottom_right: self.bottom_right.map(Into::into),
+            horizontal: self.horizontal.map(Into::into),
+            intersection: self.intersection.map(Into::into),
+            left_intersection: self.left_intersection.map(Into::into),
+            right_intersection: self.right_intersection.map(Into::into),
+            top_intersection: self.top_intersection.map(Into::into),
+            top_left: self.top_left.map(Into::into),
+            top_right: self.top_right.map(Into::into),
+            vertical: self.vertical.map(Into::into),
+        }
     }
 }

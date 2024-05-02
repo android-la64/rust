@@ -1,11 +1,7 @@
-use papergrid::{
-    color::AnsiColor,
-    config::{Entity, Sides},
-};
-
 use crate::{
     grid::{
-        config::ColoredConfig,
+        ansi::ANSIBuf,
+        config::{ColoredConfig, Entity, Sides},
         records::{ExactRecords, Records},
     },
     settings::{object::Object, Color, TableOption},
@@ -13,7 +9,7 @@ use crate::{
 
 /// [`Colorization`] sets a color for the whole table data (so it's not include the borders).
 ///
-/// You can colorize borders in a different round using [`BorderColor`] or [`RawStyle`]
+/// You can colorize borders in a different round using [`BorderColor`] or [`Theme`]
 ///
 /// # Examples
 ///
@@ -38,15 +34,15 @@ use crate::{
 /// println!("{table}");
 /// ```
 ///
-/// [`RawStyle`]: crate::settings::style::RawStyle
+/// [`Theme`]: crate::settings::themes::Theme
 /// [`BorderColor`]: crate::settings::style::BorderColor
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Colorization {
     pattern: ColorizationPattern,
     colors: Vec<Color>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ColorizationPattern {
     Column,
     Row,
@@ -236,7 +232,7 @@ impl Colorization {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for Colorization
+impl<R, D> TableOption<R, ColoredConfig, D> for Colorization
 where
     R: Records + ExactRecords,
 {
@@ -341,7 +337,7 @@ fn colorize_diogonals(
 }
 
 fn colorize_entity(color: &Color, pos: Entity, cfg: &mut ColoredConfig) {
-    let ansi_color = AnsiColor::from(color.clone());
+    let ansi_color = ANSIBuf::from(color.clone());
     let _ = cfg.set_color(pos, ansi_color.clone());
     cfg.set_justification_color(pos, Some(ansi_color.clone()));
     cfg.set_padding_color(
@@ -370,7 +366,7 @@ impl<O> ExactColorization<O> {
     }
 }
 
-impl<R, D, O> TableOption<R, D, ColoredConfig> for ExactColorization<O>
+impl<R, D, O> TableOption<R, ColoredConfig, D> for ExactColorization<O>
 where
     O: Object<R>,
 {

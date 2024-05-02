@@ -102,7 +102,7 @@ pub trait CodegenBackend {
         ongoing_codegen: Box<dyn Any>,
         sess: &Session,
         outputs: &OutputFilenames,
-    ) -> Result<(CodegenResults, FxIndexMap<WorkProductId, WorkProduct>), ErrorGuaranteed>;
+    ) -> (CodegenResults, FxIndexMap<WorkProductId, WorkProduct>);
 
     /// This is called on the returned `CodegenResults` from `join_codegen`
     fn link(
@@ -111,6 +111,13 @@ pub trait CodegenBackend {
         codegen_results: CodegenResults,
         outputs: &OutputFilenames,
     ) -> Result<(), ErrorGuaranteed>;
+
+    /// Returns `true` if this backend can be safely called from multiple threads.
+    ///
+    /// Defaults to `true`.
+    fn supports_parallel(&self) -> bool {
+        true
+    }
 }
 
 pub trait ExtraBackendMethods:

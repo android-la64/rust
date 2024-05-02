@@ -5,6 +5,8 @@ use std::ffi::OsStr;
 use std::ffi::OsString;
 use std::fs::Metadata;
 use std::fs::ReadDir;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::io;
 use std::mem;
 use std::ops::Deref;
@@ -31,17 +33,13 @@ use super::PathExt;
 /// panic if this path is missing a prefix on Windows. A safe `new_unchecked`
 /// method might be added later that can safely create invalid base paths.
 ///
-/// Although this type is annotated with `#[repr(transparent)]`, the inner
-/// representation is not stable. Transmuting between this type and any other
-/// causes immediate undefined behavior.
-///
 /// [prefix]: ::std::path::Prefix
 #[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[repr(transparent)]
 pub struct BasePath(pub(super) OsStr);
 
 impl BasePath {
-    fn from_inner(path: &OsStr) -> &Self {
+    pub(super) fn from_inner(path: &OsStr) -> &Self {
         // SAFETY: This struct has a layout that makes this operation safe.
         unsafe { mem::transmute(path) }
     }
@@ -145,7 +143,7 @@ impl BasePath {
     pub fn canonicalize(&self) -> io::Result<BasePathBuf> {
         self.as_path().canonicalize().map(|base| {
             debug_assert!(normalize::is_base(&base));
-            BasePathBuf(base.into_os_string())
+            BasePathBuf(base)
         })
     }
 
@@ -226,6 +224,13 @@ impl BasePath {
     #[must_use]
     pub fn is_relative(&self) -> bool {
         self.as_path().is_relative()
+    }
+
+    /// Equivalent to [`Path::is_symlink`].
+    #[inline]
+    #[must_use]
+    pub fn is_symlink(&self) -> bool {
+        self.as_path().is_symlink()
     }
 
     /// An improved version of [`Path::join`] that handles more edge cases.
@@ -400,6 +405,12 @@ impl BasePath {
     pub fn symlink_metadata(&self) -> io::Result<Metadata> {
         self.as_path().symlink_metadata()
     }
+
+    /// Equivalent to [`Path::try_exists`].
+    #[inline]
+    pub fn try_exists(&self) -> io::Result<bool> {
+        self.as_path().try_exists()
+    }
 }
 
 impl AsRef<OsStr> for BasePath {
@@ -463,7 +474,7 @@ impl ToOwned for BasePath {
 
     #[inline]
     fn to_owned(&self) -> Self::Owned {
-        BasePathBuf(self.0.to_owned())
+        BasePathBuf(self.0.to_owned().into())
     }
 }
 
@@ -472,8 +483,8 @@ impl ToOwned for BasePath {
 /// For more information, see [`BasePath`].
 ///
 /// [prefix]: ::std::path::Prefix
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct BasePathBuf(pub(super) OsString);
+#[derive(Clone, Debug)]
+pub struct BasePathBuf(pub(super) PathBuf);
 
 impl BasePathBuf {
     /// Equivalent to [`BasePath::new`] but returns an owned path.
@@ -529,7 +540,7 @@ impl BasePathBuf {
     {
         let path = path.into();
         if normalize::is_base(&path) {
-            Ok(Self(path.into_os_string()))
+            Ok(Self(path))
         } else {
             Err(MissingPrefixBufError(path))
         }
@@ -539,14 +550,14 @@ impl BasePathBuf {
     #[inline]
     #[must_use]
     pub fn into_os_string(self) -> OsString {
-        self.0
+        self.0.into_os_string()
     }
 
     /// Returns the wrapped path.
     #[inline]
     #[must_use]
     pub fn into_path_buf(self) -> PathBuf {
-        self.0.into()
+        self.0
     }
 
     /// Equivalent to [`BasePath::parent`] but modifies `self` in place.
@@ -574,13 +585,6 @@ impl BasePathBuf {
         self.check_parent().map(|()| self.pop_unchecked())
     }
 
-    pub(super) fn replace_with<F>(&mut self, replace_fn: F)
-    where
-        F: FnOnce(PathBuf) -> PathBuf,
-    {
-        self.0 = replace_fn(mem::take(&mut self.0).into()).into_os_string();
-    }
-
     /// Equivalent to [`PathBuf::pop`].
     ///
     /// It is usually better to use [`pop`].
@@ -602,13 +606,7 @@ impl BasePathBuf {
     /// [`pop`]: Self::pop
     #[inline]
     pub fn pop_unchecked(&mut self) -> bool {
-        // This value is never used.
-        let mut result = false;
-        self.replace_with(|mut base| {
-            result = base.pop();
-            base
-        });
-        result
+        self.0.pop()
     }
 
     /// Equivalent to [`BasePath::join`] but modifies `self` in place.
@@ -638,14 +636,14 @@ impl BasePathBuf {
 impl AsRef<OsStr> for BasePathBuf {
     #[inline]
     fn as_ref(&self) -> &OsStr {
-        &self.0
+        self.as_os_str()
     }
 }
 
 impl AsRef<Path> for BasePathBuf {
     #[inline]
     fn as_ref(&self) -> &Path {
-        self.as_path()
+        &self.0
     }
 }
 
@@ -668,9 +666,11 @@ impl Deref for BasePathBuf {
 
     #[inline]
     fn deref(&self) -> &BasePath {
-        BasePath::from_inner(&self.0)
+        BasePath::from_inner(self.0.as_os_str())
     }
 }
+
+impl Eq for BasePathBuf {}
 
 impl From<BasePathBuf> for Cow<'_, BasePath> {
     #[inline]
@@ -682,14 +682,46 @@ impl From<BasePathBuf> for Cow<'_, BasePath> {
 impl From<BasePathBuf> for OsString {
     #[inline]
     fn from(value: BasePathBuf) -> Self {
-        value.0
+        value.into_os_string()
     }
 }
 
 impl From<BasePathBuf> for PathBuf {
     #[inline]
     fn from(value: BasePathBuf) -> Self {
-        value.into_path_buf()
+        value.0
+    }
+}
+
+impl Hash for BasePathBuf {
+    #[inline]
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        (**self).hash(state);
+    }
+}
+
+impl Ord for BasePathBuf {
+    #[inline]
+    fn cmp(&self, other: &Self) -> Ordering {
+        (**self).cmp(&**other)
+    }
+}
+
+impl PartialEq for BasePathBuf {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        **self == **other
+    }
+}
+
+impl PartialOrd for BasePathBuf {
+    #[allow(clippy::non_canonical_partial_ord_impl)]
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        (**self).partial_cmp(&**other)
     }
 }
 
@@ -750,7 +782,7 @@ mod serde {
         where
             D: Deserializer<'de>,
         {
-            OsString::deserialize(deserializer).map(Self)
+            OsString::deserialize(deserializer).map(|x| Self(x.into()))
         }
     }
 
@@ -770,7 +802,8 @@ mod serde {
         where
             S: Serializer,
         {
-            serializer.serialize_newtype_struct("BasePathBuf", &self.0)
+            serializer
+                .serialize_newtype_struct("BasePathBuf", self.as_os_str())
         }
     }
 }

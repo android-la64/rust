@@ -1,7 +1,7 @@
 use crate::build::expr::as_place::PlaceBuilder;
 use crate::build::scope::DropKind;
 use itertools::Itertools;
-use rustc_apfloat::ieee::{Double, Single};
+use rustc_apfloat::ieee::{Double, Half, Quad, Single};
 use rustc_apfloat::Float;
 use rustc_ast::attr;
 use rustc_data_structures::fx::FxHashMap;
@@ -234,6 +234,10 @@ struct Builder<'a, 'tcx> {
     // the root (most of them do) and saves us from retracing many sub-paths
     // many times, and rechecking many nodes.
     lint_level_roots_cache: GrowableBitSet<hir::ItemLocalId>,
+
+    /// Collects additional coverage information during MIR building.
+    /// Only present if branch coverage is enabled and this function is eligible.
+    coverage_branch_info: Option<coverageinfo::BranchInfoBuilder>,
 }
 
 type CaptureMap<'tcx> = SortedIndexMultiMap<usize, hir::HirId, Capture<'tcx>>;
@@ -495,7 +499,7 @@ fn construct_fn<'tcx>(
             args.as_coroutine().yield_ty(),
             args.as_coroutine().resume_ty(),
         ))),
-        ty::Closure(..) | ty::FnDef(..) => None,
+        ty::Closure(..) | ty::CoroutineClosure(..) | ty::FnDef(..) => None,
         ty => span_bug!(span_with_body, "unexpected type of body: {ty:?}"),
     };
 
@@ -631,7 +635,7 @@ fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -
         | DefKind::AssocConst
         | DefKind::AnonConst
         | DefKind::InlineConst
-        | DefKind::Static(_) => (vec![], tcx.type_of(def_id).instantiate_identity(), None),
+        | DefKind::Static { .. } => (vec![], tcx.type_of(def_id).instantiate_identity(), None),
         DefKind::Ctor(..) | DefKind::Fn | DefKind::AssocFn => {
             let sig = tcx.liberate_late_bound_regions(
                 def_id.to_def_id(),
@@ -666,7 +670,7 @@ fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -
                     let yield_ty = args.yield_ty();
                     let return_ty = args.return_ty();
                     (
-                        vec![closure_ty, args.resume_ty()],
+                        vec![closure_ty, resume_ty],
                         return_ty,
                         Some(Box::new(CoroutineInfo::initial(
                             tcx.coroutine_kind(def_id).unwrap(),
@@ -675,8 +679,39 @@ fn construct_error(tcx: TyCtxt<'_>, def_id: LocalDefId, guar: ErrorGuaranteed) -
                         ))),
                     )
                 }
-                _ => {
-                    span_bug!(span, "expected type of closure body to be a closure or coroutine");
+                ty::CoroutineClosure(did, args) => {
+                    let args = args.as_coroutine_closure();
+                    let sig = tcx.liberate_late_bound_regions(
+                        def_id.to_def_id(),
+                        args.coroutine_closure_sig(),
+                    );
+                    let self_ty = match args.kind() {
+                        ty::ClosureKind::Fn => {
+                            Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, closure_ty)
+                        }
+                        ty::ClosureKind::FnMut => {
+                            Ty::new_mut_ref(tcx, tcx.lifetimes.re_erased, closure_ty)
+                        }
+                        ty::ClosureKind::FnOnce => closure_ty,
+                    };
+                    (
+                        [self_ty].into_iter().chain(sig.tupled_inputs_ty.tuple_fields()).collect(),
+                        sig.to_coroutine(
+                            tcx,
+                            args.parent_args(),
+                            args.kind_ty(),
+                            tcx.coroutine_for_closure(*did),
+                            Ty::new_error(tcx, guar),
+                        ),
+                        None,
+                    )
+                }
+                ty::Error(_) => (vec![closure_ty, closure_ty], closure_ty, None),
+                kind => {
+                    span_bug!(
+                        span,
+                        "expected type of closure body to be a closure or coroutine, got {kind:?}"
+                    );
                 }
             }
         }
@@ -776,6 +811,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             unit_temp: None,
             var_debug_info: vec![],
             lint_level_roots_cache: GrowableBitSet::new_empty(),
+            coverage_branch_info: coverageinfo::BranchInfoBuilder::new_if_enabled(tcx, def),
         };
 
         assert_eq!(builder.cfg.start_new_block(), START_BLOCK);
@@ -795,7 +831,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             }
         }
 
-        Body::new(
+        let mut body = Body::new(
             MirSource::item(self.def_id.to_def_id()),
             self.cfg.basic_blocks,
             self.source_scopes,
@@ -806,7 +842,9 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
             self.fn_span,
             self.coroutine,
             None,
-        )
+        );
+        body.coverage_branch_info = self.coverage_branch_info.and_then(|b| b.into_done());
+        body
     }
 
     fn insert_upvar_arg(&mut self) {
@@ -822,6 +860,7 @@ impl<'a, 'tcx> Builder<'a, 'tcx> {
         let upvar_args = match closure_ty.kind() {
             ty::Closure(_, args) => ty::UpvarArgs::Closure(args),
             ty::Coroutine(_, args) => ty::UpvarArgs::Coroutine(args),
+            ty::CoroutineClosure(_, args) => ty::UpvarArgs::CoroutineClosure(args),
             _ => return,
         };
 
@@ -1021,6 +1060,8 @@ pub(crate) fn parse_float_into_scalar(
 ) -> Option<Scalar> {
     let num = num.as_str();
     match float_ty {
+        // FIXME(f16_f128): When available, compare to the library parser as with `f32` and `f64`
+        ty::FloatTy::F16 => num.parse::<Half>().ok().map(Scalar::from_f16),
         ty::FloatTy::F32 => {
             let Ok(rust_f) = num.parse::<f32>() else { return None };
             let mut f = num
@@ -1067,6 +1108,8 @@ pub(crate) fn parse_float_into_scalar(
 
             Some(Scalar::from_f64(f))
         }
+        // FIXME(f16_f128): When available, compare to the library parser as with `f32` and `f64`
+        ty::FloatTy::F128 => num.parse::<Quad>().ok().map(Scalar::from_f128),
     }
 }
 
@@ -1077,6 +1120,7 @@ pub(crate) fn parse_float_into_scalar(
 
 mod block;
 mod cfg;
+mod coverageinfo;
 mod custom;
 mod expr;
 mod matches;

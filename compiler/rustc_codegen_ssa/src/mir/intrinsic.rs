@@ -54,6 +54,7 @@ fn memset_intrinsic<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>>(
 }
 
 impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
+    /// In the `Err` case, returns the instance that should be called instead.
     pub fn codegen_intrinsic_call(
         bx: &mut Bx,
         instance: ty::Instance<'tcx>,
@@ -61,7 +62,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         args: &[OperandRef<'tcx, Bx::Value>],
         llresult: Bx::Value,
         span: Span,
-    ) {
+    ) -> Result<(), ty::Instance<'tcx>> {
         let callee_ty = instance.ty(bx.tcx(), ty::ParamEnv::reveal_all());
 
         let ty::FnDef(def_id, fn_args) = *callee_ty.kind() else {
@@ -81,7 +82,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
         let llval = match name {
             sym::abort => {
                 bx.abort();
-                return;
+                return Ok(());
             }
 
             sym::va_start => bx.va_start(args[0].immediate()),
@@ -150,7 +151,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     args[0].immediate(),
                     args[2].immediate(),
                 );
-                return;
+                return Ok(());
             }
             sym::write_bytes => {
                 memset_intrinsic(
@@ -161,7 +162,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     args[1].immediate(),
                     args[2].immediate(),
                 );
-                return;
+                return Ok(());
             }
 
             sym::volatile_copy_nonoverlapping_memory => {
@@ -174,7 +175,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     args[1].immediate(),
                     args[2].immediate(),
                 );
-                return;
+                return Ok(());
             }
             sym::volatile_copy_memory => {
                 copy_intrinsic(
@@ -186,7 +187,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     args[1].immediate(),
                     args[2].immediate(),
                 );
-                return;
+                return Ok(());
             }
             sym::volatile_set_memory => {
                 memset_intrinsic(
@@ -197,17 +198,17 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     args[1].immediate(),
                     args[2].immediate(),
                 );
-                return;
+                return Ok(());
             }
             sym::volatile_store => {
                 let dst = args[0].deref(bx.cx());
                 args[1].val.volatile_store(bx, dst);
-                return;
+                return Ok(());
             }
             sym::unaligned_volatile_store => {
                 let dst = args[0].deref(bx.cx());
                 args[1].val.unaligned_volatile_store(bx, dst);
-                return;
+                return Ok(());
             }
             sym::exact_div => {
                 let ty = arg_tys[0];
@@ -225,7 +226,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             name,
                             ty,
                         });
-                        return;
+                        return Ok(());
                     }
                 }
             }
@@ -245,10 +246,42 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             name,
                             ty: arg_tys[0],
                         });
-                        return;
+                        return Ok(());
                     }
                 }
             }
+            sym::fadd_algebraic
+            | sym::fsub_algebraic
+            | sym::fmul_algebraic
+            | sym::fdiv_algebraic
+            | sym::frem_algebraic => match float_type_width(arg_tys[0]) {
+                Some(_width) => match name {
+                    sym::fadd_algebraic => {
+                        bx.fadd_algebraic(args[0].immediate(), args[1].immediate())
+                    }
+                    sym::fsub_algebraic => {
+                        bx.fsub_algebraic(args[0].immediate(), args[1].immediate())
+                    }
+                    sym::fmul_algebraic => {
+                        bx.fmul_algebraic(args[0].immediate(), args[1].immediate())
+                    }
+                    sym::fdiv_algebraic => {
+                        bx.fdiv_algebraic(args[0].immediate(), args[1].immediate())
+                    }
+                    sym::frem_algebraic => {
+                        bx.frem_algebraic(args[0].immediate(), args[1].immediate())
+                    }
+                    _ => bug!(),
+                },
+                None => {
+                    bx.tcx().dcx().emit_err(InvalidMonomorphization::BasicFloatType {
+                        span,
+                        name,
+                        ty: arg_tys[0],
+                    });
+                    return Ok(());
+                }
+            },
 
             sym::float_to_int_unchecked => {
                 if float_type_width(arg_tys[0]).is_none() {
@@ -256,14 +289,14 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         span,
                         ty: arg_tys[0],
                     });
-                    return;
+                    return Ok(());
                 }
                 let Some((_width, signed)) = int_type_width_signed(ret_ty, bx.tcx()) else {
                     bx.tcx().dcx().emit_err(InvalidMonomorphization::FloatToIntUnchecked {
                         span,
                         ty: ret_ty,
                     });
-                    return;
+                    return Ok(());
                 };
                 if signed {
                     bx.fptosi(args[0].immediate(), llret_ty)
@@ -278,16 +311,6 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                 } else {
                     span_bug!(span, "Invalid discriminant type for `{:?}`", arg_tys[0])
                 }
-            }
-
-            sym::const_allocate => {
-                // returns a null pointer at runtime.
-                bx.const_null(bx.type_ptr())
-            }
-
-            sym::const_deallocate => {
-                // nop at runtime.
-                return;
             }
 
             // This requires that atomic intrinsics follow a specific naming pattern:
@@ -327,14 +350,8 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         if int_type_width_signed(ty, bx.tcx()).is_some() || ty.is_unsafe_ptr() {
                             let weak = instruction == "cxchgweak";
                             let dst = args[0].immediate();
-                            let mut cmp = args[1].immediate();
-                            let mut src = args[2].immediate();
-                            if ty.is_unsafe_ptr() {
-                                // Some platforms do not support atomic operations on pointers,
-                                // so we cast to integer first.
-                                cmp = bx.ptrtoint(cmp, bx.type_isize());
-                                src = bx.ptrtoint(src, bx.type_isize());
-                            }
+                            let cmp = args[1].immediate();
+                            let src = args[2].immediate();
                             let (val, success) = bx.atomic_cmpxchg(
                                 dst,
                                 cmp,
@@ -350,10 +367,10 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             bx.store(val, dest.llval, dest.align);
                             let dest = result.project_field(bx, 1);
                             bx.store(success, dest.llval, dest.align);
-                            return;
                         } else {
-                            return invalid_monomorphization(ty);
+                            invalid_monomorphization(ty);
                         }
+                        return Ok(());
                     }
 
                     "load" => {
@@ -362,28 +379,15 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             let layout = bx.layout_of(ty);
                             let size = layout.size;
                             let source = args[0].immediate();
-                            if ty.is_unsafe_ptr() {
-                                // Some platforms do not support atomic operations on pointers,
-                                // so we cast to integer first...
-                                let llty = bx.type_isize();
-                                let result = bx.atomic_load(
-                                    llty,
-                                    source,
-                                    parse_ordering(bx, ordering),
-                                    size,
-                                );
-                                // ... and then cast the result back to a pointer
-                                bx.inttoptr(result, bx.backend_type(layout))
-                            } else {
-                                bx.atomic_load(
-                                    bx.backend_type(layout),
-                                    source,
-                                    parse_ordering(bx, ordering),
-                                    size,
-                                )
-                            }
+                            bx.atomic_load(
+                                bx.backend_type(layout),
+                                source,
+                                parse_ordering(bx, ordering),
+                                size,
+                            )
                         } else {
-                            return invalid_monomorphization(ty);
+                            invalid_monomorphization(ty);
+                            return Ok(());
                         }
                     }
 
@@ -391,18 +395,13 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         let ty = fn_args.type_at(0);
                         if int_type_width_signed(ty, bx.tcx()).is_some() || ty.is_unsafe_ptr() {
                             let size = bx.layout_of(ty).size;
-                            let mut val = args[1].immediate();
+                            let val = args[1].immediate();
                             let ptr = args[0].immediate();
-                            if ty.is_unsafe_ptr() {
-                                // Some platforms do not support atomic operations on pointers,
-                                // so we cast to integer first.
-                                val = bx.ptrtoint(val, bx.type_isize());
-                            }
                             bx.atomic_store(val, ptr, parse_ordering(bx, ordering), size);
-                            return;
                         } else {
-                            return invalid_monomorphization(ty);
+                            invalid_monomorphization(ty);
                         }
+                        return Ok(());
                     }
 
                     "fence" => {
@@ -410,7 +409,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             parse_ordering(bx, ordering),
                             SynchronizationScope::CrossThread,
                         );
-                        return;
+                        return Ok(());
                     }
 
                     "singlethreadfence" => {
@@ -418,7 +417,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                             parse_ordering(bx, ordering),
                             SynchronizationScope::SingleThread,
                         );
-                        return;
+                        return Ok(());
                     }
 
                     // These are all AtomicRMW ops
@@ -441,15 +440,11 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         let ty = fn_args.type_at(0);
                         if int_type_width_signed(ty, bx.tcx()).is_some() || ty.is_unsafe_ptr() {
                             let ptr = args[0].immediate();
-                            let mut val = args[1].immediate();
-                            if ty.is_unsafe_ptr() {
-                                // Some platforms do not support atomic operations on pointers,
-                                // so we cast to integer first.
-                                val = bx.ptrtoint(val, bx.type_isize());
-                            }
+                            let val = args[1].immediate();
                             bx.atomic_rmw(atom_op, ptr, val, parse_ordering(bx, ordering))
                         } else {
-                            return invalid_monomorphization(ty);
+                            invalid_monomorphization(ty);
+                            return Ok(());
                         }
                     }
                 }
@@ -458,7 +453,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
             sym::nontemporal_store => {
                 let dst = args[0].deref(bx.cx());
                 args[1].val.nontemporal_store(bx, dst);
-                return;
+                return Ok(());
             }
 
             sym::ptr_guaranteed_cmp => {
@@ -493,8 +488,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
 
             _ => {
                 // Need to use backend-specific things in the implementation.
-                bx.codegen_intrinsic_call(instance, fn_abi, args, llresult, span);
-                return;
+                return bx.codegen_intrinsic_call(instance, fn_abi, args, llresult, span);
             }
         };
 
@@ -507,6 +501,7 @@ impl<'a, 'tcx, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                     .store(bx, result);
             }
         }
+        Ok(())
     }
 }
 

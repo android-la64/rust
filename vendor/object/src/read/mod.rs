@@ -30,7 +30,7 @@
 //!
 //! /// Reads a file and displays the name of each section.
 //! fn main() -> Result<(), Box<dyn Error>> {
-//! #   #[cfg(feature = "std")] {
+//! #   #[cfg(all(feature = "read", feature = "std"))] {
 //!     let data = fs::read("path/to/binary")?;
 //!     let file = object::File::parse(&*data)?;
 //!     for section in file.sections() {
@@ -45,7 +45,7 @@ use alloc::borrow::Cow;
 use alloc::vec::Vec;
 use core::{fmt, result};
 
-use crate::common::*;
+pub use crate::common::*;
 
 mod read_ref;
 pub use read_ref::*;
@@ -107,7 +107,7 @@ mod private {
 
 /// The error type used within the read module.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Error(&'static str);
+pub struct Error(pub(crate) &'static str);
 
 impl fmt::Display for Error {
     #[inline]
@@ -151,7 +151,7 @@ impl<T> ReadError<T> for Option<T> {
     target_pointer_width = "32",
     feature = "elf"
 ))]
-pub type NativeFile<'data, R = &'data [u8]> = elf::ElfFile32<'data, crate::Endianness, R>;
+pub type NativeFile<'data, R = &'data [u8]> = elf::ElfFile32<'data, crate::endian::Endianness, R>;
 
 /// The native executable file for the target platform.
 #[cfg(all(
@@ -160,15 +160,17 @@ pub type NativeFile<'data, R = &'data [u8]> = elf::ElfFile32<'data, crate::Endia
     target_pointer_width = "64",
     feature = "elf"
 ))]
-pub type NativeFile<'data, R = &'data [u8]> = elf::ElfFile64<'data, crate::Endianness, R>;
+pub type NativeFile<'data, R = &'data [u8]> = elf::ElfFile64<'data, crate::endian::Endianness, R>;
 
 /// The native executable file for the target platform.
 #[cfg(all(target_os = "macos", target_pointer_width = "32", feature = "macho"))]
-pub type NativeFile<'data, R = &'data [u8]> = macho::MachOFile32<'data, crate::Endianness, R>;
+pub type NativeFile<'data, R = &'data [u8]> =
+    macho::MachOFile32<'data, crate::endian::Endianness, R>;
 
 /// The native executable file for the target platform.
 #[cfg(all(target_os = "macos", target_pointer_width = "64", feature = "macho"))]
-pub type NativeFile<'data, R = &'data [u8]> = macho::MachOFile64<'data, crate::Endianness, R>;
+pub type NativeFile<'data, R = &'data [u8]> =
+    macho::MachOFile64<'data, crate::endian::Endianness, R>;
 
 /// The native executable file for the target platform.
 #[cfg(all(target_os = "windows", target_pointer_width = "32", feature = "pe"))]
@@ -235,12 +237,12 @@ pub enum FileKind {
     MachO64,
     /// A 32-bit Mach-O fat binary.
     ///
-    /// See [`macho::FatHeader::parse_arch32`].
+    /// See [`macho::MachOFatFile32`].
     #[cfg(feature = "macho")]
     MachOFat32,
     /// A 64-bit Mach-O fat binary.
     ///
-    /// See [`macho::FatHeader::parse_arch64`].
+    /// See [`macho::MachOFatFile64`].
     #[cfg(feature = "macho")]
     MachOFat64,
     /// A 32-bit PE file.
@@ -667,6 +669,7 @@ pub struct Relocation {
     target: RelocationTarget,
     addend: i64,
     implicit_addend: bool,
+    flags: RelocationFlags,
 }
 
 impl Relocation {
@@ -705,7 +708,7 @@ impl Relocation {
     /// Set the addend to use in the relocation calculation.
     #[inline]
     pub fn set_addend(&mut self, addend: i64) {
-        self.addend = addend
+        self.addend = addend;
     }
 
     /// Returns true if there is an implicit addend stored in the data at the offset
@@ -713,6 +716,15 @@ impl Relocation {
     #[inline]
     pub fn has_implicit_addend(&self) -> bool {
         self.implicit_addend
+    }
+
+    /// Relocation flags that are specific to each file format.
+    ///
+    /// The values returned by `kind`, `encoding` and `size` are derived
+    /// from these flags.
+    #[inline]
+    pub fn flags(&self) -> RelocationFlags {
+        self.flags
     }
 }
 
@@ -823,7 +835,11 @@ impl<'data> CompressedData<'data> {
                     .try_into()
                     .ok()
                     .read_error("Uncompressed data size is too large.")?;
-                let mut decompressed = Vec::with_capacity(size);
+                let mut decompressed = Vec::new();
+                decompressed
+                    .try_reserve_exact(size)
+                    .ok()
+                    .read_error("Uncompressed data allocation failed")?;
                 let mut decompress = flate2::Decompress::new(true);
                 decompress
                     .decompress_vec(
@@ -844,7 +860,11 @@ impl<'data> CompressedData<'data> {
                     .try_into()
                     .ok()
                     .read_error("Uncompressed data size is too large.")?;
-                let mut decompressed = Vec::with_capacity(size);
+                let mut decompressed = Vec::new();
+                decompressed
+                    .try_reserve_exact(size)
+                    .ok()
+                    .read_error("Uncompressed data allocation failed")?;
                 let mut decoder = ruzstd::StreamingDecoder::new(self.data)
                     .ok()
                     .read_error("Invalid zstd compressed data")?;

@@ -93,10 +93,10 @@ impl Matrix {
 
     pub fn with<O>(self, opt: O) -> Table
     where
-        O: TableOption<
+        for<'a> O: TableOption<
             VecRecords<CellInfo<String>>,
-            CompleteDimensionVecRecords<'static>,
             ColoredConfig,
+            CompleteDimensionVecRecords<'a>,
         >,
     {
         let mut table = self.to_table();

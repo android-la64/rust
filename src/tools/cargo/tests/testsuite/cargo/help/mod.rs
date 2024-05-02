@@ -1,5 +1,6 @@
-use cargo_test_support::curr_dir;
+use cargo_test_support::file;
 use cargo_test_support::prelude::*;
+use cargo_test_support::str;
 
 #[cargo_test]
 fn case() {
@@ -7,6 +8,6 @@ fn case() {
         .arg("--help")
         .assert()
         .success()
-        .stdout_matches_path(curr_dir!().join("stdout.log"))
-        .stderr_matches_path(curr_dir!().join("stderr.log"));
+        .stdout_matches(file!["stdout.term.svg"])
+        .stderr_matches(str![""]);
 }

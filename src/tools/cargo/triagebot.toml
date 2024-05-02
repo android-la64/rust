@@ -37,8 +37,8 @@ warn_non_default_branch = true
 "*" = ["@ehuss", "@epage", "@weihanglo"]
 
 
-[review-submitted] 
-reviewed_label = "S-waiting-on-author" 
+[review-submitted]
+reviewed_label = "S-waiting-on-author"
 review_labels = ["S-waiting-on-review"]
 
 [review-requested]
@@ -80,7 +80,7 @@ trigger_files = ["crates/mdman/", "src/etc/man/"]
 trigger_files = ["src/etc/_cargo", "src/etc/cargo.bashcomp.sh"]
 
 [autolabel."A-configuration"]
-trigger_files = ["src/cargo/util/config/mod.rs"]
+trigger_files = ["src/cargo/util/context/mod.rs"]
 
 [autolabel."A-console-output"]
 trigger_files = [
@@ -117,7 +117,7 @@ trigger_files = ["src/doc/"]
 [autolabel."A-environment-variables"]
 trigger_files = [
   "crates/home/",
-  "src/cargo/util/config/environment.rs",
+  "src/cargo/util/context/environment.rs",
 ]
 
 [autolabel."A-features2"]
@@ -153,7 +153,7 @@ trigger_files = ["crates/crates-io/", "src/cargo/ops/registry/"]
 
 [autolabel."A-layout"]
 trigger_files = [
-  "src/cargo/core/compiler/context/compilation_files.rs",
+  "src/cargo/core/compiler/build_runner/compilation_files.rs",
   "src/cargo/core/compiler/layout.rs",
 ]
 
@@ -171,7 +171,7 @@ trigger_files = ["src/cargo/core/compiler/lto.rs"]
 
 [autolabel."A-manifest"]
 trigger_files = [
-    "crates/cargo-util-schemas/src/manifest.rs",
+    "crates/cargo-util-schemas/src/manifest/",
     "src/cargo/core/manifest.rs",
     "src/cargo/util/toml/mod.rs",
     "src/cargo/util/toml_mut/",

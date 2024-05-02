@@ -2,7 +2,7 @@ use crate::{
     grid::config::ColoredConfig,
     grid::config::Entity,
     grid::dimension::CompleteDimensionVecRecords,
-    grid::records::{ExactRecords, PeekableRecords, Records, RecordsMut},
+    grid::records::{ExactRecords, IntoRecords, PeekableRecords, Records, RecordsMut},
     grid::util::string::count_lines,
     settings::{measurement::Measurement, peaker::Peaker, CellOption, Height, TableOption},
 };
@@ -45,6 +45,7 @@ where
     W: Measurement<Height>,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, entity: Entity) {
         let height = self.height.measure(&*records, cfg);
@@ -71,21 +72,25 @@ where
     }
 }
 
-impl<R, W> TableOption<R, CompleteDimensionVecRecords<'static>, ColoredConfig>
-    for CellHeightIncrease<W>
+impl<R, W> TableOption<R, ColoredConfig, CompleteDimensionVecRecords<'_>> for CellHeightIncrease<W>
 where
     W: Measurement<Height>,
     R: Records + ExactRecords + PeekableRecords,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(
         self,
         records: &mut R,
         cfg: &mut ColoredConfig,
-        dims: &mut CompleteDimensionVecRecords<'static>,
+        dims: &mut CompleteDimensionVecRecords<'_>,
     ) {
         let height = self.height.measure(&*records, cfg);
         TableHeightIncrease::new(height).change(records, cfg, dims)
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        Some(Entity::Row(0))
     }
 }
 

@@ -1,10 +1,11 @@
-// no-prefer-dynamic
-// compile-flags: --test
-// run-flags: --list --format json -Zunstable-options
-// run-fail
-// check-run-results
-// ignore-nightly
-// unset-exec-env:RUSTC_BOOTSTRAP
+//@ no-prefer-dynamic
+//@ compile-flags: --test
+//@ run-flags: --list --format json -Zunstable-options
+//@ run-fail
+//@ check-run-results
+//@ ignore-nightly
+//@ unset-exec-env:RUSTC_BOOTSTRAP
+//@ ignore-wasi cannot unset RUSTC_BOOTSTRAP
 
 #![cfg(test)]
 #[test]

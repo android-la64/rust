@@ -4,6 +4,7 @@
 //! refer to each other, but their documentation and implementation is split apart. We provide
 //! each protocol as a separate module, so it is clearly defined where a symbol belongs to.
 
+pub mod absolute_pointer;
 pub mod block_io;
 pub mod debug_support;
 pub mod debugport;
@@ -21,6 +22,7 @@ pub mod graphics_output;
 pub mod hii_database;
 pub mod hii_font;
 pub mod hii_font_ex;
+pub mod hii_package_list;
 pub mod hii_string;
 pub mod ip4;
 pub mod ip6;

@@ -1,22 +1,22 @@
 use super::*;
+use metadata::HasAttributes;
 
-pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn writer(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
     let type_name = def.type_name();
     let ident = to_ident(type_name.name);
     let underlying_type = def.underlying_type();
     let underlying_type = writer.type_name(&underlying_type);
 
     // TODO: unscoped enums should be removed from metadata
-    let is_scoped = def.flags().contains(TypeAttributes::WindowsRuntime) || def.has_attribute("ScopedEnumAttribute");
+    let is_scoped = def.flags().contains(metadata::TypeAttributes::WindowsRuntime) || def.has_attribute("ScopedEnumAttribute");
 
-    let cfg = type_def_cfg(def, &[]);
-    let doc = writer.cfg_doc(&cfg);
+    let cfg = cfg::type_def_cfg(writer, def, &[]);
     let features = writer.cfg_features(&cfg);
 
     let fields: Vec<(TokenStream, TokenStream)> = def
         .fields()
         .filter_map(|field| {
-            if field.flags().contains(FieldAttributes::Literal) {
+            if field.flags().contains(metadata::FieldAttributes::Literal) {
                 let field_name = to_ident(field.name());
                 let constant = field.constant().unwrap();
                 let value = writer.value(&constant.value());
@@ -28,26 +28,29 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
         })
         .collect();
 
-    let eq = if writer.sys {
-        quote! {}
+    let derive = if writer.sys {
+        if is_scoped {
+            quote! {
+                #[derive(Copy, Clone)]
+            }
+        } else {
+            quote! {}
+        }
     } else {
         quote! {
-            // Unfortunately, Rust requires these to be derived to allow constant patterns.
-            #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
+            #[derive(PartialEq, Eq, Copy, Clone, Default)]
         }
     };
 
     let mut tokens = if is_scoped || !writer.sys {
         quote! {
-            #doc
             #features
             #[repr(transparent)]
-            #eq
+            #derive
             pub struct #ident(pub #underlying_type);
         }
     } else {
         quote! {
-            #doc
             #features
             pub type #ident = #underlying_type;
         }
@@ -68,40 +71,16 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
         });
     }
 
-    if is_scoped || !writer.sys {
-        tokens.combine(&quote! {
-            #features
-            impl ::core::marker::Copy for #ident {}
-            #features
-            impl ::core::clone::Clone for #ident {
-                fn clone(&self) -> Self {
-                    *self
-                }
-            }
-        });
-    }
-
-    if !writer.sys {
-        tokens.combine(&quote! {
-            #features
-            impl ::core::default::Default for #ident {
-                fn default() -> Self {
-                    Self(0)
-                }
-            }
-        });
-    }
-
     if !writer.sys {
         let name = type_name.name;
         tokens.combine(&quote! {
             #features
-            impl ::windows_core::TypeKind for #ident {
-                type TypeKind = ::windows_core::CopyType;
+            impl windows_core::TypeKind for #ident {
+                type TypeKind = windows_core::CopyType;
             }
             #features
-            impl ::core::fmt::Debug for #ident {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            impl core::fmt::Debug for #ident {
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                     f.debug_tuple(#name).field(&self.0).finish()
                 }
             }
@@ -110,7 +89,7 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
         // Win32 enums use the Flags attribute. WinRT enums don't have the Flags attribute but are paritioned merely based
         // on whether they are signed.
         // TODO: Win32 metadata should just follow WinRT's example here.
-        let type_def_is_flags = def.has_attribute("FlagsAttribute") || (def.flags().contains(TypeAttributes::WindowsRuntime) && def.underlying_type() == Type::U32);
+        let type_def_is_flags = def.has_attribute("FlagsAttribute") || (def.flags().contains(metadata::TypeAttributes::WindowsRuntime) && def.underlying_type() == metadata::Type::U32);
 
         if type_def_is_flags {
             tokens.combine(&quote! {
@@ -121,7 +100,7 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
                     }
                 }
                 #features
-                impl ::core::ops::BitOr for #ident {
+                impl core::ops::BitOr for #ident {
                     type Output = Self;
 
                     fn bitor(self, other: Self) -> Self {
@@ -129,7 +108,7 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
                     }
                 }
                 #features
-                impl ::core::ops::BitAnd for #ident {
+                impl core::ops::BitAnd for #ident {
                     type Output = Self;
 
                     fn bitand(self, other: Self) -> Self {
@@ -137,19 +116,19 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
                     }
                 }
                 #features
-                impl ::core::ops::BitOrAssign for #ident {
+                impl core::ops::BitOrAssign for #ident {
                     fn bitor_assign(&mut self, other: Self) {
                         self.0.bitor_assign(other.0)
                     }
                 }
                 #features
-                impl ::core::ops::BitAndAssign for #ident {
+                impl core::ops::BitAndAssign for #ident {
                     fn bitand_assign(&mut self, other: Self) {
                         self.0.bitand_assign(other.0)
                     }
                 }
                 #features
-                impl ::core::ops::Not for #ident {
+                impl core::ops::Not for #ident {
                     type Output = Self;
 
                     fn not(self) -> Self {
@@ -159,13 +138,13 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
             });
         }
 
-        if def.flags().contains(TypeAttributes::WindowsRuntime) {
-            let signature = Literal::byte_string(type_def_signature(def, &[]).as_bytes());
+        if def.flags().contains(metadata::TypeAttributes::WindowsRuntime) {
+            let signature = Literal::byte_string(metadata::type_def_signature(def, &[]).as_bytes());
 
             tokens.combine(&quote! {
                 #features
-                impl ::windows_core::RuntimeType for #ident {
-                    const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(#signature);
+                impl windows_core::RuntimeType for #ident {
+                    const SIGNATURE: windows_core::imp::ConstBuffer = windows_core::imp::ConstBuffer::from_slice(#signature);
                 }
             });
         }

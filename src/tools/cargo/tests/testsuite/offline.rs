@@ -19,6 +19,7 @@ fn offline_unused_target_dep() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             [dependencies]
             used_dep = "1.0"
             [target.'cfg(unused)'.dependencies]
@@ -47,6 +48,7 @@ fn offline_missing_optional() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
             [dependencies]
             opt_dep = { version = "1.0", optional = true }
             "#,
@@ -82,6 +84,7 @@ fn cargo_compile_path_with_offline() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [dependencies.bar]
@@ -111,6 +114,7 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             present_dep = "1.2.3"
@@ -128,6 +132,7 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             present_dep = "1.2.3"
@@ -141,7 +146,7 @@ fn cargo_compile_with_downloaded_dependency_with_offline() {
             "\
 [CHECKING] present_dep v1.2.3
 [CHECKING] bar v0.1.0 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         )
         .run();
 }
@@ -158,6 +163,7 @@ fn cargo_compile_offline_not_try_update() {
             [package]
             name = "bar"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             not_cached_dep = "1.2.5"
@@ -181,7 +187,7 @@ retry without the offline flag.
         .run();
 
     // While we're here, also check the config works.
-    p.change_file(".cargo/config", "net.offline = true");
+    p.change_file(".cargo/config.toml", "net.offline = true");
     p.cargo("check").with_status(101).with_stderr(msg).run();
 }
 
@@ -211,6 +217,7 @@ fn compile_offline_without_maxvers_cached() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             present_dep = "=1.2.3"
@@ -227,6 +234,7 @@ fn compile_offline_without_maxvers_cached() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             present_dep = "1.2"
@@ -247,7 +255,7 @@ fn main(){
             "\
 [COMPILING] present_dep v1.2.3
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
      Running `[..]`",
         )
         .with_stdout("1.2.3")
@@ -264,6 +272,7 @@ fn cargo_compile_forbird_git_httpsrepo_offline() {
             [package]
             name = "foo"
             version = "0.5.0"
+            edition = "2015"
             authors = ["chabapok@example.com"]
 
             [dependencies.dep1]
@@ -305,6 +314,7 @@ fn compile_offline_while_transitive_dep_not_cached() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
 
             [dependencies]
             bar = "0.1.0"
@@ -343,6 +353,7 @@ fn update_offline_not_cached() {
             [package]
             name = "foo"
             version = "0.0.1"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -419,6 +430,7 @@ fn compile_offline_with_cached_git_dep(shallow: bool) {
                 [package]
                 name = "cache_git_dep"
                 version = "0.5.0"
+                edition = "2015"
 
                 [dependencies.dep1]
                 git = '{}'
@@ -450,6 +462,7 @@ fn compile_offline_with_cached_git_dep(shallow: bool) {
             [package]
             name = "cache_git_dep"
             version = "0.5.0"
+            edition = "2015"
 
             [dependencies.dep1]
             git = '{}'
@@ -469,6 +482,7 @@ fn compile_offline_with_cached_git_dep(shallow: bool) {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
 
                 [dependencies.dep1]
                 git = '{}'
@@ -489,7 +503,7 @@ fn compile_offline_with_cached_git_dep(shallow: bool) {
         "\
 [COMPILING] dep1 v0.5.0 ({}#[..])
 [COMPILING] foo v0.5.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]",
         path2url(git_root),
     ));
     maybe_use_shallow(cargo).run();
@@ -507,6 +521,7 @@ fn compile_offline_with_cached_git_dep(shallow: bool) {
             [package]
             name = "foo"
             version = "0.5.0"
+            edition = "2015"
 
             [dependencies.dep1]
             git = '{}'
@@ -541,6 +556,7 @@ fn offline_resolve_optional_fail() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             dep = { version = "1.0", optional = true }
@@ -558,6 +574,7 @@ fn offline_resolve_optional_fail() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             dep = { version = "2.0", optional = true }
@@ -591,6 +608,7 @@ fn offline_with_all_patched() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             dep = "1.0"
@@ -628,6 +646,7 @@ fn update_offline_cached() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 present_dep = "={}"
@@ -646,6 +665,7 @@ fn update_offline_cached() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [dependencies]
             present_dep = "1.2"
@@ -666,7 +686,7 @@ fn main(){
             "\
 [COMPILING] present_dep v1.2.9
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -688,7 +708,7 @@ fn main(){
             "\
 [COMPILING] present_dep v1.2.3
 [COMPILING] foo v0.1.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();

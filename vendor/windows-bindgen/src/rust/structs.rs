@@ -1,26 +1,36 @@
 use super::*;
+use metadata::HasAttributes;
 
-pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn writer(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
     if def.has_attribute("ApiContractAttribute") {
         return quote! {};
     }
 
-    if type_def_is_handle(def) {
+    if metadata::type_def_is_handle(def) {
         return handles::writer(writer, def);
     }
 
-    gen_struct_with_name(writer, def, def.name(), &Cfg::default())
+    if let Some(guid) = clsid(def) {
+        let ident = to_ident(def.name());
+        let value = writer.guid(&guid);
+        let guid = writer.type_name(&metadata::Type::GUID);
+        return quote! {
+            pub const #ident: #guid = #value;
+        };
+    }
+
+    gen_struct_with_name(writer, def, def.name(), &cfg::Cfg::default())
 }
 
-fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &Cfg) -> TokenStream {
+fn gen_struct_with_name(writer: &Writer, def: metadata::TypeDef, struct_name: &str, cfg: &cfg::Cfg) -> TokenStream {
     let name = to_ident(struct_name);
 
     if def.fields().next().is_none() {
         let mut tokens = quote! {
             #[repr(C)]
             pub struct #name(pub u8);
-            impl ::core::marker::Copy for #name {}
-            impl ::core::clone::Clone for #name {
+            impl Copy for #name {}
+            impl Clone for #name {
                 fn clone(&self) -> Self {
                     *self
                 }
@@ -28,8 +38,8 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
         };
         if !writer.sys {
             tokens.combine(&quote! {
-                impl ::windows_core::TypeKind for #name {
-                    type TypeKind = ::windows_core::CopyType;
+                impl windows_core::TypeKind for #name {
+                    type TypeKind = windows_core::CopyType;
                 }
             });
         }
@@ -37,7 +47,7 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
     }
 
     let flags = def.flags();
-    let cfg = cfg.union(&type_def_cfg(def, &[]));
+    let cfg = cfg.union(&cfg::type_def_cfg(writer, def, &[]));
 
     let repr = if let Some(layout) = def.class_layout() {
         let packing = Literal::usize_unsuffixed(layout.packing_size());
@@ -50,18 +60,18 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
         let name = to_ident(f.name());
         let ty = f.ty(Some(def));
 
-        if f.flags().contains(FieldAttributes::Literal) {
+        if f.flags().contains(metadata::FieldAttributes::Literal) {
             quote! {}
-        } else if !writer.sys && flags.contains(TypeAttributes::ExplicitLayout) && !field_is_copyable(f, def) {
+        } else if !writer.sys && flags.contains(metadata::TypeAttributes::ExplicitLayout) && !metadata::field_is_copyable(f, def) {
             let ty = writer.type_default_name(&ty);
-            quote! { pub #name: ::std::mem::ManuallyDrop<#ty>, }
-        } else if !writer.sys && !flags.contains(TypeAttributes::WindowsRuntime) && !field_is_blittable(f, def) {
-            if let Type::Win32Array(ty, len) = ty {
+            quote! { pub #name: std::mem::ManuallyDrop<#ty>, }
+        } else if !writer.sys && !flags.contains(metadata::TypeAttributes::WindowsRuntime) && !metadata::field_is_blittable(f, def) {
+            if let metadata::Type::Win32Array(ty, len) = ty {
                 let ty = writer.type_default_name(&ty);
-                quote! { pub #name: [::std::mem::ManuallyDrop<#ty>; #len], }
+                quote! { pub #name: [std::mem::ManuallyDrop<#ty>; #len], }
             } else {
                 let ty = writer.type_default_name(&ty);
-                quote! { pub #name: ::std::mem::ManuallyDrop<#ty>, }
+                quote! { pub #name: std::mem::ManuallyDrop<#ty>, }
             }
         } else {
             let ty = writer.type_default_name(&ty);
@@ -69,18 +79,16 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
         }
     });
 
-    let struct_or_union = if flags.contains(TypeAttributes::ExplicitLayout) {
+    let struct_or_union = if flags.contains(metadata::TypeAttributes::ExplicitLayout) {
         quote! { union }
     } else {
         quote! { struct }
     };
 
-    let doc = writer.cfg_doc(&cfg);
     let features = writer.cfg_features(&cfg);
 
     let mut tokens = quote! {
         #repr
-        #doc
         #features
         pub #struct_or_union #name {#(#fields)*}
     };
@@ -94,9 +102,9 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
     if !writer.sys {
         tokens.combine(&quote! {
             #features
-            impl ::core::default::Default for #name {
+            impl Default for #name {
                 fn default() -> Self {
-                    unsafe { ::core::mem::zeroed() }
+                    unsafe { core::mem::zeroed() }
                 }
             }
         });
@@ -110,12 +118,12 @@ fn gen_struct_with_name(writer: &Writer, def: TypeDef, struct_name: &str, cfg: &
     tokens
 }
 
-fn gen_windows_traits(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) -> TokenStream {
+fn gen_windows_traits(writer: &Writer, def: metadata::TypeDef, name: &TokenStream, cfg: &cfg::Cfg) -> TokenStream {
     if writer.sys {
         quote! {}
     } else {
         let features = writer.cfg_features(cfg);
-        let is_copy = type_def_is_blittable(def);
+        let is_copy = metadata::type_def_is_blittable(def);
 
         let type_kind = if is_copy {
             quote! { CopyType }
@@ -125,18 +133,18 @@ fn gen_windows_traits(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &C
 
         let mut tokens = quote! {
             #features
-            impl ::windows_core::TypeKind for #name {
-                type TypeKind = ::windows_core::#type_kind;
+            impl windows_core::TypeKind for #name {
+                type TypeKind = windows_core::#type_kind;
             }
         };
 
-        if def.flags().contains(TypeAttributes::WindowsRuntime) {
-            let signature = Literal::byte_string(type_def_signature(def, &[]).as_bytes());
+        if def.flags().contains(metadata::TypeAttributes::WindowsRuntime) {
+            let signature = Literal::byte_string(metadata::type_def_signature(def, &[]).as_bytes());
 
             tokens.combine(&quote! {
                 #features
-                impl ::windows_core::RuntimeType for #name {
-                    const SIGNATURE: ::windows_core::imp::ConstBuffer = ::windows_core::imp::ConstBuffer::from_slice(#signature);
+                impl windows_core::RuntimeType for #name {
+                    const SIGNATURE: windows_core::imp::ConstBuffer = windows_core::imp::ConstBuffer::from_slice(#signature);
                 }
             });
         }
@@ -145,15 +153,15 @@ fn gen_windows_traits(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &C
     }
 }
 
-fn gen_compare_traits(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) -> TokenStream {
+fn gen_compare_traits(writer: &Writer, def: metadata::TypeDef, name: &TokenStream, cfg: &cfg::Cfg) -> TokenStream {
     let features = writer.cfg_features(cfg);
 
-    if writer.sys || type_def_has_explicit_layout(def) || type_def_has_packing(def) || type_def_has_callback(def) {
+    if writer.sys || metadata::type_def_has_explicit_layout(def) || metadata::type_def_has_packing(def) || metadata::type_def_has_callback(def) {
         quote! {}
     } else {
         let fields = def.fields().filter_map(|f| {
             let name = to_ident(f.name());
-            if f.flags().contains(FieldAttributes::Literal) {
+            if f.flags().contains(metadata::FieldAttributes::Literal) {
                 None
             } else {
                 Some(quote! { self.#name == other.#name })
@@ -162,32 +170,32 @@ fn gen_compare_traits(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &C
 
         quote! {
             #features
-            impl ::core::cmp::PartialEq for #name {
+            impl PartialEq for #name {
                 fn eq(&self, other: &Self) -> bool {
                     #(#fields)&&*
                 }
             }
             #features
-            impl ::core::cmp::Eq for #name {}
+            impl Eq for #name {}
         }
     }
 }
 
-fn gen_debug(writer: &Writer, def: TypeDef, ident: &TokenStream, cfg: &Cfg) -> TokenStream {
-    if writer.sys || type_def_has_explicit_layout(def) || type_def_has_packing(def) {
+fn gen_debug(writer: &Writer, def: metadata::TypeDef, ident: &TokenStream, cfg: &cfg::Cfg) -> TokenStream {
+    if writer.sys || metadata::type_def_has_explicit_layout(def) || metadata::type_def_has_packing(def) {
         quote! {}
     } else {
         let name = ident.as_str();
         let features = writer.cfg_features(cfg);
 
         let fields = def.fields().filter_map(|f| {
-            if f.flags().contains(FieldAttributes::Literal) {
+            if f.flags().contains(metadata::FieldAttributes::Literal) {
                 None
             } else {
                 let name = f.name();
                 let ident = to_ident(name);
                 let ty = f.ty(Some(def));
-                if type_has_callback(&ty) {
+                if metadata::type_has_callback(&ty) {
                     None
                 } else {
                     Some(quote! { .field(#name, &self.#ident) })
@@ -197,8 +205,8 @@ fn gen_debug(writer: &Writer, def: TypeDef, ident: &TokenStream, cfg: &Cfg) -> T
 
         quote! {
             #features
-            impl ::core::fmt::Debug for #ident {
-                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            impl core::fmt::Debug for #ident {
+                fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                     f.debug_struct(#name) #(#fields)* .finish()
                 }
             }
@@ -206,15 +214,15 @@ fn gen_debug(writer: &Writer, def: TypeDef, ident: &TokenStream, cfg: &Cfg) -> T
     }
 }
 
-fn gen_copy_clone(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) -> TokenStream {
+fn gen_copy_clone(writer: &Writer, def: metadata::TypeDef, name: &TokenStream, cfg: &cfg::Cfg) -> TokenStream {
     let features = writer.cfg_features(cfg);
 
-    if writer.sys || type_def_is_copyable(def) {
+    if writer.sys || metadata::type_def_is_copyable(def) {
         quote! {
             #features
-            impl ::core::marker::Copy for #name {}
+            impl Copy for #name {}
             #features
-            impl ::core::clone::Clone for #name {
+            impl Clone for #name {
                 fn clone(&self) -> Self {
                     *self
                 }
@@ -223,21 +231,21 @@ fn gen_copy_clone(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) 
     } else if def.class_layout().is_some() {
         // Don't support copy/clone of packed structs: https://github.com/rust-lang/rust/issues/82523
         quote! {}
-    } else if !def.flags().contains(TypeAttributes::WindowsRuntime) {
+    } else if !def.flags().contains(metadata::TypeAttributes::WindowsRuntime) {
         quote! {
             #features
-            impl ::core::clone::Clone for #name {
+            impl Clone for #name {
                 fn clone(&self) -> Self {
-                    unsafe { ::core::mem::transmute_copy(self) }
+                    unsafe { core::mem::transmute_copy(self) }
                 }
             }
         }
     } else {
         let fields = def.fields().map(|f| {
             let name = to_ident(f.name());
-            if f.flags().contains(FieldAttributes::Literal) {
+            if f.flags().contains(metadata::FieldAttributes::Literal) {
                 quote! {}
-            } else if field_is_blittable(f, def) {
+            } else if metadata::field_is_blittable(f, def) {
                 quote! { #name: self.#name }
             } else {
                 quote! { #name: self.#name.clone() }
@@ -246,7 +254,7 @@ fn gen_copy_clone(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) 
 
         quote! {
             #features
-            impl ::core::clone::Clone for #name {
+            impl Clone for #name {
                 fn clone(&self) -> Self {
                     Self { #(#fields),* }
                 }
@@ -255,11 +263,11 @@ fn gen_copy_clone(writer: &Writer, def: TypeDef, name: &TokenStream, cfg: &Cfg) 
     }
 }
 
-fn gen_struct_constants(writer: &Writer, def: TypeDef, struct_name: &TokenStream, cfg: &Cfg) -> TokenStream {
+fn gen_struct_constants(writer: &Writer, def: metadata::TypeDef, struct_name: &TokenStream, cfg: &cfg::Cfg) -> TokenStream {
     let features = writer.cfg_features(cfg);
 
     let constants = def.fields().filter_map(|f| {
-        if f.flags().contains(FieldAttributes::Literal) {
+        if f.flags().contains(metadata::FieldAttributes::Literal) {
             if let Some(constant) = f.constant() {
                 let name = to_ident(f.name());
                 let value = writer.typed_value(&constant.value());
@@ -285,4 +293,11 @@ fn gen_struct_constants(writer: &Writer, def: TypeDef, struct_name: &TokenStream
     }
 
     tokens
+}
+
+fn clsid(def: metadata::TypeDef) -> Option<metadata::Guid> {
+    if def.fields().next().is_none() {
+        return metadata::type_def_guid(def);
+    }
+    None
 }

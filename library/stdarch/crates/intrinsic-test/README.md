@@ -7,9 +7,10 @@ USAGE:
     intrinsic-test [FLAGS] [OPTIONS] <INPUT>
 
 FLAGS:
-        --a32        Run tests for A32 instrinsics instead of A64
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+        --a32              Run tests for A32 instrinsics instead of A64
+        --generate-only    Regenerate test programs, but don't build or run them
+    -h, --help             Prints help information
+    -V, --version          Prints version information
 
 OPTIONS:
         --cppcompiler <CPPCOMPILER>    The C++ compiler to use for compiling the c++ code [default: clang++]
@@ -20,7 +21,3 @@ OPTIONS:
 ARGS:
     <INPUT>    The input file containing the intrinsics
 ```
-
-The intrinsic.csv is the arm neon tracking google sheet (https://docs.google.com/spreadsheets/d/1MqW1g8c7tlhdRWQixgdWvR4uJHNZzCYAf4V0oHjZkwA/edit#gid=0)
-that contains the intrinsic list. The done percentage column should be renamed to "enabled".
-

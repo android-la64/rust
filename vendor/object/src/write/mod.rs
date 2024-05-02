@@ -1,4 +1,13 @@
 //! Interface for writing object files.
+//!
+//! This module provides a unified write API for relocatable object files
+//! using [`Object`]. This does not support writing executable files.
+//! This supports the following file formats: COFF, ELF, Mach-O, and XCOFF.
+//!
+//! The submodules define helpers for writing the raw structs. These support
+//! writing both relocatable and executable files. There are writers for
+//! the following file formats: [COFF](coff::Writer), [ELF](elf::Writer),
+//! and [PE](pe::Writer).
 
 use alloc::borrow::Cow;
 use alloc::string::String;
@@ -10,10 +19,8 @@ use hashbrown::HashMap;
 use std::{boxed::Box, collections::HashMap, error, io};
 
 use crate::endian::{Endianness, U32, U64};
-use crate::{
-    Architecture, BinaryFormat, ComdatKind, FileFlags, RelocationEncoding, RelocationKind,
-    SectionFlags, SectionKind, SubArchitecture, SymbolFlags, SymbolKind, SymbolScope,
-};
+
+pub use crate::common::*;
 
 #[cfg(feature = "coff")]
 pub mod coff;
@@ -34,7 +41,7 @@ pub mod pe;
 #[cfg(feature = "xcoff")]
 mod xcoff;
 
-mod string;
+pub(crate) mod string;
 pub use string::StringId;
 
 mod util;
@@ -42,7 +49,7 @@ pub use util::*;
 
 /// The error type used within the write module.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Error(String);
+pub struct Error(pub(crate) String);
 
 impl fmt::Display for Error {
     #[inline]
@@ -68,13 +75,15 @@ pub struct Object<'a> {
     standard_sections: HashMap<StandardSection, SectionId>,
     symbols: Vec<Symbol>,
     symbol_map: HashMap<Vec<u8>, SymbolId>,
-    stub_symbols: HashMap<SymbolId, SymbolId>,
     comdats: Vec<Comdat>,
     /// File flags that are specific to each file format.
     pub flags: FileFlags,
     /// The symbol name mangling scheme.
     pub mangling: Mangling,
+    #[cfg(feature = "coff")]
+    stub_symbols: HashMap<SymbolId, SymbolId>,
     /// Mach-O "_tlv_bootstrap" symbol.
+    #[cfg(feature = "macho")]
     tlv_bootstrap: Option<SymbolId>,
     /// Mach-O CPU subtype.
     #[cfg(feature = "macho")]
@@ -95,10 +104,12 @@ impl<'a> Object<'a> {
             standard_sections: HashMap::new(),
             symbols: Vec::new(),
             symbol_map: HashMap::new(),
-            stub_symbols: HashMap::new(),
             comdats: Vec::new(),
             flags: FileFlags::None,
             mangling: Mangling::default(format, architecture),
+            #[cfg(feature = "coff")]
+            stub_symbols: HashMap::new(),
+            #[cfg(feature = "macho")]
             tlv_bootstrap: None,
             #[cfg(feature = "macho")]
             macho_cpu_subtype: None,
@@ -532,19 +543,31 @@ impl<'a> Object<'a> {
     /// Relocations must only be added after the referenced symbols have been added
     /// and defined (if applicable).
     pub fn add_relocation(&mut self, section: SectionId, mut relocation: Relocation) -> Result<()> {
-        let addend = match self.format {
+        match self.format {
             #[cfg(feature = "coff")]
-            BinaryFormat::Coff => self.coff_fixup_relocation(&mut relocation),
+            BinaryFormat::Coff => self.coff_translate_relocation(&mut relocation)?,
             #[cfg(feature = "elf")]
-            BinaryFormat::Elf => self.elf_fixup_relocation(&mut relocation)?,
+            BinaryFormat::Elf => self.elf_translate_relocation(&mut relocation)?,
             #[cfg(feature = "macho")]
-            BinaryFormat::MachO => self.macho_fixup_relocation(&mut relocation),
+            BinaryFormat::MachO => self.macho_translate_relocation(&mut relocation)?,
             #[cfg(feature = "xcoff")]
-            BinaryFormat::Xcoff => self.xcoff_fixup_relocation(&mut relocation),
+            BinaryFormat::Xcoff => self.xcoff_translate_relocation(&mut relocation)?,
+            _ => unimplemented!(),
+        }
+        let implicit = match self.format {
+            #[cfg(feature = "coff")]
+            BinaryFormat::Coff => self.coff_adjust_addend(&mut relocation)?,
+            #[cfg(feature = "elf")]
+            BinaryFormat::Elf => self.elf_adjust_addend(&mut relocation)?,
+            #[cfg(feature = "macho")]
+            BinaryFormat::MachO => self.macho_adjust_addend(&mut relocation)?,
+            #[cfg(feature = "xcoff")]
+            BinaryFormat::Xcoff => self.xcoff_adjust_addend(&mut relocation)?,
             _ => unimplemented!(),
         };
-        if addend != 0 {
-            self.write_relocation_addend(section, &relocation, addend)?;
+        if implicit && relocation.addend != 0 {
+            self.write_relocation_addend(section, &relocation)?;
+            relocation.addend = 0;
         }
         self.sections[section.0].relocations.push(relocation);
         Ok(())
@@ -554,13 +577,23 @@ impl<'a> Object<'a> {
         &mut self,
         section: SectionId,
         relocation: &Relocation,
-        addend: i64,
     ) -> Result<()> {
+        let size = match self.format {
+            #[cfg(feature = "coff")]
+            BinaryFormat::Coff => self.coff_relocation_size(relocation)?,
+            #[cfg(feature = "elf")]
+            BinaryFormat::Elf => self.elf_relocation_size(relocation)?,
+            #[cfg(feature = "macho")]
+            BinaryFormat::MachO => self.macho_relocation_size(relocation)?,
+            #[cfg(feature = "xcoff")]
+            BinaryFormat::Xcoff => self.xcoff_relocation_size(relocation)?,
+            _ => unimplemented!(),
+        };
         let data = self.sections[section.0].data_mut();
         let offset = relocation.offset as usize;
-        match relocation.size {
-            32 => data.write_at(offset, &U32::new(self.endian, addend as u32)),
-            64 => data.write_at(offset, &U64::new(self.endian, addend as u64)),
+        match size {
+            32 => data.write_at(offset, &U32::new(self.endian, relocation.addend as u32)),
+            64 => data.write_at(offset, &U64::new(self.endian, relocation.addend as u64)),
             _ => {
                 return Err(Error(format!(
                     "unimplemented relocation addend {:?}",
@@ -572,7 +605,7 @@ impl<'a> Object<'a> {
             Error(format!(
                 "invalid relocation offset {}+{} (max {})",
                 relocation.offset,
-                relocation.size,
+                size,
                 data.len()
             ))
         })
@@ -883,12 +916,6 @@ impl Symbol {
 pub struct Relocation {
     /// The section offset of the place of the relocation.
     pub offset: u64,
-    /// The size in bits of the place of relocation.
-    pub size: u8,
-    /// The operation used to calculate the result of the relocation.
-    pub kind: RelocationKind,
-    /// Information about how the result of the relocation operation is encoded in the place.
-    pub encoding: RelocationEncoding,
     /// The symbol referred to by the relocation.
     ///
     /// This may be a section symbol.
@@ -897,6 +924,8 @@ pub struct Relocation {
     ///
     /// This may be in addition to an implicit addend stored at the place of the relocation.
     pub addend: i64,
+    /// The fields that define the relocation type.
+    pub flags: RelocationFlags,
 }
 
 /// An identifier used to reference a COMDAT section group.

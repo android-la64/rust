@@ -10,8 +10,9 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
 name = "derive_builder_core"
-version = "0.12.0"
+version = "0.20.0"
 authors = [
     "Colin Kiegel <kiegel@gmx.de>",
     "Pascal Hertleif <killercup@gmail.com>",
@@ -21,27 +22,29 @@ authors = [
 description = "Internal helper library for the derive_builder crate."
 documentation = "https://docs.rs/derive_builder_core"
 readme = "README.md"
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/colin-kiegel/rust-derive-builder"
 
 [dependencies.darling]
-version = "0.14.0"
+version = "0.20.6"
 
 [dependencies.proc-macro2]
 version = "1.0.37"
 
 [dependencies.quote]
-version = "1.0.18"
+version = "1.0.35"
 
 [dependencies.syn]
-version = "1.0.91"
+version = "2.0.15"
 features = [
     "full",
     "extra-traits",
 ]
 
 [dev-dependencies.pretty_assertions]
-version = "0.6.1"
+version = "1.2.1"
 
 [features]
+alloc = []
 clippy = []
+lib_has_std = []

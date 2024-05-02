@@ -12,10 +12,10 @@
 use tabled::{Table, Tabled};
 
 #[derive(Tabled)]
-enum Contact {
+enum Contact<'a> {
     #[tabled(inline("telegram::"))]
     Telegram {
-        username: &'static str,
+        username: &'a str,
         #[tabled(inline("telegram::"))]
         number: Number,
     },
@@ -23,7 +23,7 @@ enum Contact {
     Local(#[tabled(inline("local::"))] Number),
 }
 
-#[derive(Tabled)]
+#[derive(tabled::Tabled)]
 struct Number {
     number: &'static str,
     code: usize,

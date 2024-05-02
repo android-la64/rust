@@ -18,7 +18,7 @@ use crate::{
         },
         PeekableGrid,
     },
-    settings::{Style, TableOption},
+    settings::{object::Object, CellOption, Style, TableOption},
     Tabled,
 };
 
@@ -156,37 +156,58 @@ impl Table {
         T: Tabled,
         I: IntoIterator<Item = T>,
     {
-        let mut records = Vec::new();
-        for row in iter {
-            let mut list = Vec::with_capacity(T::LENGTH);
-            for text in row.fields().into_iter() {
-                list.push(text.into_owned());
-            }
+        let mut builder = Builder::with_capacity(0, T::LENGTH);
+        builder.push_record(T::headers());
 
-            records.push(list);
+        for row in iter {
+            builder.push_record(row.fields().into_iter());
         }
 
-        let mut b = Builder::from(records);
-        let _ = b.set_header(T::headers()).hint_column_size(T::LENGTH);
-
-        b
+        builder
     }
 
-    /// With is a generic function which applies options to the [`Table`].
+    /// It's a generic function which applies options to the [`Table`].
     ///
     /// It applies settings immediately.
     pub fn with<O>(&mut self, option: O) -> &mut Self
     where
-        O: TableOption<
+        for<'a> O: TableOption<
             VecRecords<CellInfo<String>>,
-            CompleteDimensionVecRecords<'static>,
             ColoredConfig,
+            CompleteDimensionVecRecords<'a>,
         >,
     {
-        self.dimension.clear_width();
-        self.dimension.clear_height();
+        let reastimation_hint = option.hint_change();
+        let mut dims = self.dimension.from_origin();
 
-        option.change(&mut self.records, &mut self.config, &mut self.dimension);
+        option.change(&mut self.records, &mut self.config, &mut dims);
+
+        let (widths, heights) = dims.into_inner();
+        dimension_reastimate(&mut self.dimension, widths, heights, reastimation_hint);
+
+        self
+    }
+
+    /// It's a generic function which applies options to a particalar cells on the [`Table`].
+    /// Target cells using [`Object`]s such as [`Cell`], [`Rows`], [`Location`] and more.
+    ///
+    /// It applies settings immediately.
+    ///
+    /// [`Cell`]: crate::settings::object::Cell
+    /// [`Rows`]: crate::settings::object::Rows
+    /// [`Location`]: crate::settings::location::Locator
+    pub fn modify<T, O>(&mut self, target: T, option: O) -> &mut Self
+    where
+        T: Object<VecRecords<CellInfo<String>>>,
+        O: CellOption<VecRecords<CellInfo<String>>, ColoredConfig> + Clone,
+    {
+        for entity in target.cells(&self.records) {
+            let opt = option.clone();
+            opt.change(&mut self.records, &mut self.config, entity);
+        }
+
+        let reastimation_hint = option.hint_change();
+        dimension_reastimate_likely(&mut self.dimension, reastimation_hint);
 
         self
     }
@@ -296,10 +317,10 @@ impl fmt::Display for Table {
     }
 }
 
-impl<T, V> FromIterator<T> for Table
+impl<T> FromIterator<T> for Table
 where
-    T: IntoIterator<Item = V>,
-    V: Into<String>,
+    T: IntoIterator,
+    T::Item: Into<String>,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Builder::from_iter(iter.into_iter().map(|i| i.into_iter().map(|s| s.into()))).build()
@@ -308,7 +329,7 @@ where
 
 impl From<Builder> for Table {
     fn from(builder: Builder) -> Self {
-        let data: Vec<Vec<CellInfo<String>>> = builder.into();
+        let data = builder.into();
         let records = VecRecords::new(data);
 
         Self {
@@ -321,33 +342,30 @@ impl From<Builder> for Table {
 
 impl From<Table> for Builder {
     fn from(val: Table) -> Self {
-        let count_columns = val.count_columns();
-        let data: Vec<Vec<CellInfo<String>>> = val.records.into();
-        let mut builder = Builder::from(data);
-        let _ = builder.hint_column_size(count_columns);
-        builder
+        let data = val.records.into();
+        Builder::from_vec(data)
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for CompactConfig {
+impl<R, D> TableOption<R, ColoredConfig, D> for CompactConfig {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         *cfg.deref_mut() = self.into();
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for ColoredConfig {
+impl<R, D> TableOption<R, ColoredConfig, D> for ColoredConfig {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         *cfg = self;
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for SpannedConfig {
+impl<R, D> TableOption<R, ColoredConfig, D> for SpannedConfig {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         *cfg.deref_mut() = self;
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for &SpannedConfig {
+impl<R, D> TableOption<R, ColoredConfig, D> for &SpannedConfig {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         *cfg.deref_mut() = self.clone();
     }
@@ -386,7 +404,7 @@ fn configure_grid() -> SpannedConfig {
     );
     cfg.set_alignment_horizontal(Entity::Global, AlignmentHorizontal::Left);
     cfg.set_formatting(Entity::Global, Formatting::new(false, false, false));
-    cfg.set_borders(*Style::ascii().get_borders());
+    cfg.set_borders(Style::ascii().get_borders());
 
     cfg
 }
@@ -460,5 +478,84 @@ fn print_grid<F: fmt::Write, D: Dimension>(
         PeekableGrid::new(records, cfg, &dims, colors).build(f)
     } else {
         PeekableGrid::new(records, cfg, &dims, NoColors).build(f)
+    }
+}
+
+fn dimension_reastimate(
+    dims: &mut CompleteDimensionVecRecords<'_>,
+    widths: Option<Vec<usize>>,
+    heights: Option<Vec<usize>>,
+    hint: Option<Entity>,
+) {
+    let hint = match hint {
+        Some(hint) => hint,
+        None => return,
+    };
+
+    match hint {
+        Entity::Global | Entity::Cell(_, _) => {
+            dims_set_widths(dims, widths);
+            dims_set_heights(dims, heights);
+        }
+        Entity::Column(_) => {
+            dims_set_widths(dims, widths);
+        }
+        Entity::Row(_) => {
+            dims_set_heights(dims, heights);
+        }
+    }
+}
+
+fn dims_set_widths(dims: &mut CompleteDimensionVecRecords<'_>, list: Option<Vec<usize>>) {
+    match list {
+        Some(list) => match dims.get_widths() {
+            Some(widths) => {
+                if widths == list {
+                    dims.clear_width();
+                } else {
+                    dims.set_widths(list);
+                }
+            }
+            None => dims.set_widths(list),
+        },
+        None => {
+            dims.clear_width();
+        }
+    }
+}
+
+fn dims_set_heights(dims: &mut CompleteDimensionVecRecords<'_>, list: Option<Vec<usize>>) {
+    match list {
+        Some(list) => match dims.get_heights() {
+            Some(heights) => {
+                if heights == list {
+                    dims.clear_height();
+                } else {
+                    dims.set_heights(list);
+                }
+            }
+            None => dims.set_heights(list),
+        },
+        None => {
+            dims.clear_height();
+        }
+    }
+}
+
+fn dimension_reastimate_likely(dims: &mut CompleteDimensionVecRecords<'_>, hint: Option<Entity>) {
+    let hint = match hint {
+        Some(hint) => hint,
+        None => return,
+    };
+
+    match hint {
+        Entity::Global | Entity::Cell(_, _) => {
+            dims.clear_width();
+            dims.clear_height()
+        }
+        Entity::Column(_) => {
+            dims.clear_width();
+        }
+        Entity::Row(_) => dims.clear_height(),
     }
 }

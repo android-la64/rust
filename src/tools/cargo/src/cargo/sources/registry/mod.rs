@@ -211,7 +211,7 @@ use crate::util::cache_lock::CacheLockMode;
 use crate::util::hex;
 use crate::util::interning::InternedString;
 use crate::util::network::PollExt;
-use crate::util::{restricted_names, CargoResult, Config, Filesystem, LimitErrorReader};
+use crate::util::{restricted_names, CargoResult, Filesystem, GlobalContext, LimitErrorReader};
 
 /// The `.cargo-ok` file is used to track if the source is already unpacked.
 /// See [`RegistrySource::unpack_package`] for more.
@@ -239,7 +239,7 @@ struct LockMetadata {
 /// [`RegistryData`] trait referenced via the `ops` field.
 ///
 /// For general concepts of registries, see the [module-level documentation](crate::sources::registry).
-pub struct RegistrySource<'cfg> {
+pub struct RegistrySource<'gctx> {
     /// A unique name of the source (typically used as the directory name
     /// where its cached content is stored).
     name: InternedString,
@@ -247,12 +247,12 @@ pub struct RegistrySource<'cfg> {
     source_id: SourceId,
     /// The path where crate files are extracted (`$CARGO_HOME/registry/src/$REG-HASH`).
     src_path: Filesystem,
-    /// Local reference to [`Config`] for convenience.
-    config: &'cfg Config,
+    /// Local reference to [`GlobalContext`] for convenience.
+    gctx: &'gctx GlobalContext,
     /// Abstraction for interfacing to the different registry kinds.
-    ops: Box<dyn RegistryData + 'cfg>,
+    ops: Box<dyn RegistryData + 'gctx>,
     /// Interface for managing the on-disk index.
-    index: index::RegistryIndex<'cfg>,
+    index: index::RegistryIndex<'gctx>,
     /// A set of packages that should be allowed to be used, even if they are
     /// yanked.
     ///
@@ -261,6 +261,12 @@ pub struct RegistrySource<'cfg> {
     /// Otherwise, the resolver would think that those entries no longer
     /// exist, and it would trigger updates to unrelated packages.
     yanked_whitelist: HashSet<PackageId>,
+    /// Yanked versions that have already been selected during queries.
+    ///
+    /// As of this writing, this is for not emitting the `--precise <yanked>`
+    /// warning twice, with the assumption of (`dep.package_name()` + `--precise`
+    /// version) being sufficient to uniquely identify the same query result.
+    selected_precise_yanked: HashSet<(InternedString, semver::Version)>,
 }
 
 /// The [`config.json`] file stored in the index.
@@ -410,7 +416,7 @@ pub trait RegistryData {
     ///
     /// Given the [`Filesystem`], this will make sure that the package cache
     /// lock is held. If not, it will panic. See
-    /// [`Config::acquire_package_cache_lock`] for acquiring the global lock.
+    /// [`GlobalContext::acquire_package_cache_lock`] for acquiring the global lock.
     ///
     /// Returns the [`Path`] to the [`Filesystem`].
     fn assert_index_locked<'a>(&self, path: &'a Filesystem) -> &'a Path;
@@ -460,7 +466,7 @@ fn short_name(id: SourceId, is_shallow: bool) -> String {
     name
 }
 
-impl<'cfg> RegistrySource<'cfg> {
+impl<'gctx> RegistrySource<'gctx> {
     /// Creates a [`Source`] of a "remote" registry.
     /// It could be either an HTTP-based [`http_remote::HttpRegistry`] or
     /// a Git-based [`remote::RemoteRegistry`].
@@ -469,26 +475,25 @@ impl<'cfg> RegistrySource<'cfg> {
     pub fn remote(
         source_id: SourceId,
         yanked_whitelist: &HashSet<PackageId>,
-        config: &'cfg Config,
-    ) -> CargoResult<RegistrySource<'cfg>> {
+        gctx: &'gctx GlobalContext,
+    ) -> CargoResult<RegistrySource<'gctx>> {
         assert!(source_id.is_remote_registry());
         let name = short_name(
             source_id,
-            config
-                .cli_unstable()
+            gctx.cli_unstable()
                 .git
                 .map_or(false, |features| features.shallow_index)
                 && !source_id.is_sparse(),
         );
         let ops = if source_id.is_sparse() {
-            Box::new(http_remote::HttpRegistry::new(source_id, config, &name)?) as Box<_>
+            Box::new(http_remote::HttpRegistry::new(source_id, gctx, &name)?) as Box<_>
         } else {
-            Box::new(remote::RemoteRegistry::new(source_id, config, &name)) as Box<_>
+            Box::new(remote::RemoteRegistry::new(source_id, gctx, &name)) as Box<_>
         };
 
         Ok(RegistrySource::new(
             source_id,
-            config,
+            gctx,
             &name,
             ops,
             yanked_whitelist,
@@ -503,11 +508,11 @@ impl<'cfg> RegistrySource<'cfg> {
         source_id: SourceId,
         path: &Path,
         yanked_whitelist: &HashSet<PackageId>,
-        config: &'cfg Config,
-    ) -> RegistrySource<'cfg> {
+        gctx: &'gctx GlobalContext,
+    ) -> RegistrySource<'gctx> {
         let name = short_name(source_id, false);
-        let ops = local::LocalRegistry::new(path, config, &name);
-        RegistrySource::new(source_id, config, &name, Box::new(ops), yanked_whitelist)
+        let ops = local::LocalRegistry::new(path, gctx, &name);
+        RegistrySource::new(source_id, gctx, &name, Box::new(ops), yanked_whitelist)
     }
 
     /// Creates a source of a registry. This is a inner helper function.
@@ -518,19 +523,20 @@ impl<'cfg> RegistrySource<'cfg> {
     /// * `yanked_whitelist` --- Packages allowed to be used, even if they are yanked.
     fn new(
         source_id: SourceId,
-        config: &'cfg Config,
+        gctx: &'gctx GlobalContext,
         name: &str,
-        ops: Box<dyn RegistryData + 'cfg>,
+        ops: Box<dyn RegistryData + 'gctx>,
         yanked_whitelist: &HashSet<PackageId>,
-    ) -> RegistrySource<'cfg> {
+    ) -> RegistrySource<'gctx> {
         RegistrySource {
             name: name.into(),
-            src_path: config.registry_source_path().join(name),
-            config,
+            src_path: gctx.registry_source_path().join(name),
+            gctx,
             source_id,
-            index: index::RegistryIndex::new(source_id, ops.index_path(), config),
+            index: index::RegistryIndex::new(source_id, ops.index_path(), gctx),
             yanked_whitelist: yanked_whitelist.clone(),
             ops,
+            selected_precise_yanked: HashSet::new(),
         }
     }
 
@@ -594,13 +600,13 @@ impl<'cfg> RegistrySource<'cfg> {
         let dst = self.src_path.join(&package_dir);
         let path = dst.join(PACKAGE_SOURCE_LOCK);
         let path = self
-            .config
+            .gctx
             .assert_package_cache_locked(CacheLockMode::DownloadExclusive, &path);
         let unpack_dir = path.parent().unwrap();
         match fs::read_to_string(path) {
             Ok(ok) => match serde_json::from_str::<LockMetadata>(&ok) {
                 Ok(lock_meta) if lock_meta.v == 1 => {
-                    self.config
+                    self.gctx
                         .deferred_global_last_use()?
                         .mark_registry_src_used(global_cache_tracker::RegistrySrc {
                             encoded_registry_name: self.name,
@@ -624,7 +630,7 @@ impl<'cfg> RegistrySource<'cfg> {
         }
         dst.create_dir()?;
         let mut tar = {
-            let size_limit = max_unpack_size(self.config, tarball.metadata()?.len());
+            let size_limit = max_unpack_size(self.gctx, tarball.metadata()?.len());
             let gz = GzDecoder::new(tarball);
             let gz = LimitErrorReader::new(gz, size_limit);
             let mut tar = Archive::new(gz);
@@ -690,7 +696,7 @@ impl<'cfg> RegistrySource<'cfg> {
         let lock_meta = LockMetadata { v: 1 };
         write!(ok, "{}", serde_json::to_string(&lock_meta).unwrap())?;
 
-        self.config
+        self.gctx
             .deferred_global_last_use()?
             .mark_registry_src_used(global_cache_tracker::RegistrySrc {
                 encoded_registry_name: self.name,
@@ -711,7 +717,7 @@ impl<'cfg> RegistrySource<'cfg> {
         let path = self
             .unpack_package(package, path)
             .with_context(|| format!("failed to unpack package `{}`", package))?;
-        let mut src = PathSource::new(&path, self.source_id, self.config);
+        let mut src = PathSource::new(&path, self.source_id, self.gctx);
         src.update()?;
         let mut pkg = match src.download(package)? {
             MaybePackage::Ready(pkg) => pkg,
@@ -733,7 +739,7 @@ impl<'cfg> RegistrySource<'cfg> {
     }
 }
 
-impl<'cfg> Source for RegistrySource<'cfg> {
+impl<'gctx> Source for RegistrySource<'gctx> {
     fn query(
         &mut self,
         dep: &Dependency,
@@ -748,8 +754,14 @@ impl<'cfg> Source for RegistrySource<'cfg> {
             .precise_registry_version(dep.package_name().as_str())
             .filter(|(c, _)| req.matches(c))
         {
-            req.update_precise(&requested);
+            req.precise_to(&requested);
         }
+
+        let mut called = false;
+        let callback = &mut |s| {
+            called = true;
+            f(s);
+        };
 
         // If this is a locked dependency, then it came from a lock file and in
         // theory the registry is known to contain this version. If, however, we
@@ -757,14 +769,12 @@ impl<'cfg> Source for RegistrySource<'cfg> {
         // updated, so we fall back to performing a lazy update.
         if kind == QueryKind::Exact && req.is_locked() && !self.ops.is_updated() {
             debug!("attempting query without update");
-            let mut called = false;
             ready!(self
                 .index
                 .query_inner(dep.package_name(), &req, &mut *self.ops, &mut |s| {
                     if dep.matches(s.as_summary()) {
                         // We are looking for a package from a lock file so we do not care about yank
-                        called = true;
-                        f(s);
+                        callback(s)
                     }
                 },))?;
             if called {
@@ -775,29 +785,53 @@ impl<'cfg> Source for RegistrySource<'cfg> {
                 Poll::Pending
             }
         } else {
-            let mut called = false;
+            let mut precise_yanked_in_use = false;
             ready!(self
                 .index
                 .query_inner(dep.package_name(), &req, &mut *self.ops, &mut |s| {
                     let matched = match kind {
                         QueryKind::Exact => dep.matches(s.as_summary()),
-                        QueryKind::Fuzzy => true,
+                        QueryKind::Alternatives => true,
+                        QueryKind::Normalized => true,
                     };
+                    if !matched {
+                        return;
+                    }
                     // Next filter out all yanked packages. Some yanked packages may
                     // leak through if they're in a whitelist (aka if they were
                     // previously in `Cargo.lock`
-                    if matched
-                        && (!s.is_yanked() || self.yanked_whitelist.contains(&s.package_id()))
-                    {
-                        f(s);
-                        called = true;
+                    if !s.is_yanked() {
+                        callback(s);
+                    } else if self.yanked_whitelist.contains(&s.package_id()) {
+                        callback(s);
+                    } else if req.is_precise() {
+                        precise_yanked_in_use = true;
+                        if self.gctx.cli_unstable().unstable_options {
+                            callback(s);
+                        }
                     }
                 }))?;
+            if precise_yanked_in_use {
+                self.gctx
+                    .cli_unstable()
+                    .fail_if_stable_opt("--precise <yanked-version>", 4225)?;
+                let name = dep.package_name();
+                let version = req
+                    .precise_version()
+                    .expect("--precise <yanked-version> in use");
+                if self.selected_precise_yanked.insert((name, version.clone())) {
+                    let mut shell = self.gctx.shell();
+                    shell.warn(format_args!(
+                        "selected package `{name}@{version}` was yanked by the author"
+                    ))?;
+                    shell.note("if possible, try a compatible non-yanked version")?;
+                }
+            }
             if called {
                 return Poll::Ready(Ok(()));
             }
             let mut any_pending = false;
-            if kind == QueryKind::Fuzzy {
+            if kind == QueryKind::Alternatives || kind == QueryKind::Normalized {
                 // Attempt to handle misspellings by searching for a chain of related
                 // names to the original name. The resolver will later
                 // reject any candidates that have the wrong name, and with this it'll
@@ -907,7 +941,7 @@ impl<'cfg> Source for RegistrySource<'cfg> {
         //
         // IO errors in creating and marking it are ignored, e.g. in case we're on a
         // read-only filesystem.
-        let registry_base = self.config.registry_base_path();
+        let registry_base = self.gctx.registry_base_path();
         let _ = registry_base.create_dir();
         exclude_from_backups_and_indexing(&registry_base.into_path_unlocked());
 
@@ -938,26 +972,24 @@ impl RegistryConfig {
 /// * <https://cran.r-project.org/web/packages/brotli/vignettes/brotli-2015-09-22.pdf>
 /// * <https://blog.cloudflare.com/results-experimenting-brotli/>
 /// * <https://tukaani.org/lzma/benchmarks.html>
-fn max_unpack_size(config: &Config, size: u64) -> u64 {
+fn max_unpack_size(gctx: &GlobalContext, size: u64) -> u64 {
     const SIZE_VAR: &str = "__CARGO_TEST_MAX_UNPACK_SIZE";
     const RATIO_VAR: &str = "__CARGO_TEST_MAX_UNPACK_RATIO";
     const MAX_UNPACK_SIZE: u64 = 512 * 1024 * 1024; // 512 MiB
     const MAX_COMPRESSION_RATIO: usize = 20; // 20:1
 
-    let max_unpack_size = if cfg!(debug_assertions) && config.get_env(SIZE_VAR).is_ok() {
+    let max_unpack_size = if cfg!(debug_assertions) && gctx.get_env(SIZE_VAR).is_ok() {
         // For integration test only.
-        config
-            .get_env(SIZE_VAR)
+        gctx.get_env(SIZE_VAR)
             .unwrap()
             .parse()
             .expect("a max unpack size in bytes")
     } else {
         MAX_UNPACK_SIZE
     };
-    let max_compression_ratio = if cfg!(debug_assertions) && config.get_env(RATIO_VAR).is_ok() {
+    let max_compression_ratio = if cfg!(debug_assertions) && gctx.get_env(RATIO_VAR).is_ok() {
         // For integration test only.
-        config
-            .get_env(RATIO_VAR)
+        gctx.get_env(RATIO_VAR)
             .unwrap()
             .parse()
             .expect("a max compression ratio in bytes")

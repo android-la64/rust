@@ -13,15 +13,16 @@
 //! [`Table`]: crate::Table
 
 use crate::{
-    grid::config::CompactConfig,
-    grid::config::{AlignmentHorizontal, AlignmentVertical, CompactMultilineConfig},
+    grid::config::{
+        AlignmentHorizontal, AlignmentVertical, CompactConfig, CompactMultilineConfig, Entity,
+    },
     settings::TableOption,
 };
 
 use AlignmentInner::*;
 
 #[cfg(feature = "std")]
-use crate::grid::config::{ColoredConfig, Entity};
+use crate::grid::config::ColoredConfig;
 
 /// Alignment represent a horizontal and vertical alignment setting for any cell on a [`Table`].
 ///
@@ -91,7 +92,7 @@ enum AlignmentInner {
 
 impl Alignment {
     /// Left constructs a horizontal alignment to [`AlignmentHorizontal::Left`]
-    pub fn left() -> Self {
+    pub const fn left() -> Self {
         Self::horizontal(AlignmentHorizontal::Left)
     }
 
@@ -104,7 +105,7 @@ impl Alignment {
     ///
     /// [`MinWidth`]: crate::settings::width::MinWidth
     /// [`TrimStrategy`]: crate::settings::formatting::TrimStrategy
-    pub fn right() -> Self {
+    pub const fn right() -> Self {
         Self::horizontal(AlignmentHorizontal::Right)
     }
 
@@ -162,28 +163,78 @@ impl<R> crate::settings::CellOption<R, ColoredConfig> for Alignment {
 }
 
 #[cfg(feature = "std")]
-impl<R, D> TableOption<R, D, ColoredConfig> for Alignment {
+impl<R, D> TableOption<R, ColoredConfig, D> for Alignment {
     fn change(self, _: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         match self.inner {
             Horizontal(a) => cfg.set_alignment_horizontal(Entity::Global, a),
             Vertical(a) => cfg.set_alignment_vertical(Entity::Global, a),
         }
     }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
+    }
 }
 
-impl<R, D> TableOption<R, D, CompactConfig> for Alignment {
+impl<R, D> TableOption<R, CompactConfig, D> for Alignment {
     fn change(self, _: &mut R, cfg: &mut CompactConfig, _: &mut D) {
         if let Horizontal(a) = self.inner {
             *cfg = cfg.set_alignment_horizontal(a)
         }
     }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
+    }
 }
 
-impl<R, D> TableOption<R, D, CompactMultilineConfig> for Alignment {
+impl<R, D> TableOption<R, CompactMultilineConfig, D> for Alignment {
     fn change(self, _: &mut R, cfg: &mut CompactMultilineConfig, _: &mut D) {
         match self.inner {
-            Horizontal(a) => *cfg = cfg.set_alignment_horizontal(a),
-            Vertical(a) => *cfg = cfg.set_alignment_vertical(a),
+            Horizontal(a) => cfg.set_alignment_horizontal(a),
+            Vertical(a) => cfg.set_alignment_vertical(a),
+        }
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
+    }
+}
+
+impl From<AlignmentHorizontal> for Alignment {
+    fn from(value: AlignmentHorizontal) -> Self {
+        match value {
+            AlignmentHorizontal::Center => Self::center(),
+            AlignmentHorizontal::Left => Self::left(),
+            AlignmentHorizontal::Right => Self::right(),
+        }
+    }
+}
+
+impl From<AlignmentVertical> for Alignment {
+    fn from(value: AlignmentVertical) -> Self {
+        match value {
+            AlignmentVertical::Center => Self::center_vertical(),
+            AlignmentVertical::Top => Self::top(),
+            AlignmentVertical::Bottom => Self::bottom(),
+        }
+    }
+}
+
+impl From<Alignment> for Option<AlignmentHorizontal> {
+    fn from(value: Alignment) -> Self {
+        match value.inner {
+            Horizontal(alignment) => Some(alignment),
+            Vertical(_) => None,
+        }
+    }
+}
+
+impl From<Alignment> for Option<AlignmentVertical> {
+    fn from(value: Alignment) -> Self {
+        match value.inner {
+            Vertical(alignment) => Some(alignment),
+            Horizontal(_) => None,
         }
     }
 }

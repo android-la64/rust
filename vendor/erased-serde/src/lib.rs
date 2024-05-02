@@ -95,10 +95,11 @@
 //! }
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/erased-serde/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/erased-serde/0.4.2")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(unsafe_op_in_unsafe_fn)]
 #![allow(
+    clippy::box_collection,
     clippy::derive_partial_eq_without_eq,
     clippy::extra_unused_type_parameters,
     clippy::items_after_statements,

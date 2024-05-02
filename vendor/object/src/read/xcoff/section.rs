@@ -1,11 +1,13 @@
 use core::fmt::Debug;
 use core::{iter, result, slice, str};
 
-use crate::{
-    xcoff, BigEndian as BE, CompressedData, CompressedFileRange, Pod, SectionFlags, SectionKind,
+use crate::endian::BigEndian as BE;
+use crate::pod::Pod;
+use crate::read::{
+    self, CompressedData, CompressedFileRange, Error, ObjectSection, ReadError, ReadRef, Result,
+    SectionFlags, SectionIndex, SectionKind,
 };
-
-use crate::read::{self, Error, ObjectSection, ReadError, ReadRef, Result, SectionIndex};
+use crate::xcoff;
 
 use super::{AuxHeader, FileHeader, Rel, XcoffFile, XcoffRelocationIterator};
 
@@ -136,11 +138,11 @@ where
         self.data().map(CompressedData::none)
     }
 
-    fn name_bytes(&self) -> read::Result<&[u8]> {
+    fn name_bytes(&self) -> read::Result<&'data [u8]> {
         Ok(self.section.name())
     }
 
-    fn name(&self) -> read::Result<&str> {
+    fn name(&self) -> read::Result<&'data str> {
         let name = self.name_bytes()?;
         str::from_utf8(name)
             .ok()

@@ -13,10 +13,7 @@
 //! [amd64_ref]: http://support.amd.com/TechDocs/24594.pdf
 //! [wiki]: https://en.wikipedia.org/wiki/Advanced_Vector_Extensions
 
-use crate::{
-    core_arch::{simd_llvm::*, x86::*},
-    mem::transmute,
-};
+use crate::{core_arch::x86::*, intrinsics::simd::*, mem::transmute};
 
 /// Copies `a` to result, and insert the 64-bit integer `i` into result
 /// at the location specified by `index`.
@@ -29,7 +26,7 @@ use crate::{
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_insert_epi64<const INDEX: i32>(a: __m256i, i: i64) -> __m256i {
     static_assert_uimm_bits!(INDEX, 2);
-    transmute(simd_insert(a.as_i64x4(), INDEX as u32, i))
+    transmute(simd_insert!(a.as_i64x4(), INDEX as u32, i))
 }
 
 #[cfg(test)]

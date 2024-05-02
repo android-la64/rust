@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "cranelift-codegen-shared"
-version = "0.104.0"
+version = "0.105.2"
 authors = ["The Cranelift Project Developers"]
 description = "For code shared between cranelift-codegen-meta and cranelift-codegen"
 readme = "README.md"

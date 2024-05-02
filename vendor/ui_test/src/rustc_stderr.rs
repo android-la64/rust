@@ -6,20 +6,32 @@ use std::{
 };
 
 #[derive(serde::Deserialize, Debug)]
+struct RustcDiagnosticCode {
+    code: String,
+}
+
+#[derive(serde::Deserialize, Debug)]
 struct RustcMessage {
     rendered: Option<String>,
     spans: Vec<RustcSpan>,
     level: String,
     message: String,
     children: Vec<RustcMessage>,
+    code: Option<RustcDiagnosticCode>,
 }
 
 #[derive(Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub(crate) enum Level {
+/// The different levels of diagnostic messages and their relative ranking.
+pub enum Level {
+    /// internal compiler errors
     Ice = 5,
+    /// ´error´ level messages
     Error = 4,
+    /// ´warn´ level messages
     Warn = 3,
+    /// ´help´ level messages
     Help = 2,
+    /// ´note´ level messages
     Note = 1,
     /// Only used for "For more information about this error, try `rustc --explain EXXXX`".
     FailureNote = 0,
@@ -30,7 +42,8 @@ pub(crate) enum Level {
 pub struct Message {
     pub(crate) level: Level,
     pub(crate) message: String,
-    pub(crate) line_col: Option<Span>,
+    pub(crate) line_col: Option<spanned::Span>,
+    pub(crate) code: Option<String>,
 }
 
 /// Information about macro expansion.
@@ -49,36 +62,11 @@ struct RustcSpan {
 }
 
 #[derive(serde::Deserialize, Debug, Copy, Clone)]
-pub struct Span {
-    pub line_start: NonZeroUsize,
-    pub column_start: NonZeroUsize,
-    pub line_end: NonZeroUsize,
-    pub column_end: NonZeroUsize,
-}
-
-impl Span {
-    pub const INVALID: Self = Self {
-        line_start: NonZeroUsize::MAX,
-        column_start: NonZeroUsize::MAX,
-        line_end: NonZeroUsize::MAX,
-        column_end: NonZeroUsize::MAX,
-    };
-
-    pub fn shrink_to_end(self) -> Span {
-        Self {
-            line_start: self.line_end,
-            column_start: self.column_end,
-            ..self
-        }
-    }
-
-    pub fn shrink_to_start(self) -> Span {
-        Self {
-            line_end: self.line_start,
-            column_end: self.column_start,
-            ..self
-        }
-    }
+struct Span {
+    line_start: NonZeroUsize,
+    column_start: NonZeroUsize,
+    line_end: NonZeroUsize,
+    column_end: NonZeroUsize,
 }
 
 impl std::str::FromStr for Level {
@@ -108,7 +96,7 @@ pub(crate) struct Diagnostics {
 }
 
 impl RustcMessage {
-    fn line(&self, file: &Path) -> Option<Span> {
+    fn line(&self, file: &Path) -> Option<spanned::Span> {
         let span = |primary| self.spans.iter().find_map(|span| span.line(file, primary));
         span(true).or_else(|| span(false))
     }
@@ -119,15 +107,16 @@ impl RustcMessage {
         file: &Path,
         messages: &mut Vec<Vec<Message>>,
         messages_from_unknown_file_or_line: &mut Vec<Message>,
-        line: Option<Span>,
+        line: Option<spanned::Span>,
     ) {
         let line = self.line(file).or(line);
         let msg = Message {
             level: self.level.parse().unwrap(),
             message: self.message,
-            line_col: line,
+            line_col: line.clone(),
+            code: self.code.map(|x| x.code),
         };
-        if let Some(line) = line {
+        if let Some(line) = line.clone() {
             if messages.len() <= line.line_start.get() {
                 messages.resize_with(line.line_start.get() + 1, Vec::new);
             }
@@ -141,20 +130,37 @@ impl RustcMessage {
             messages_from_unknown_file_or_line.push(msg);
         }
         for child in self.children {
-            child.insert_recursive(file, messages, messages_from_unknown_file_or_line, line)
+            child.insert_recursive(
+                file,
+                messages,
+                messages_from_unknown_file_or_line,
+                line.clone(),
+            )
         }
     }
 }
 
 impl RustcSpan {
     /// Returns the most expanded line number *in the given file*, if possible.
-    fn line(&self, file: &Path, primary: bool) -> Option<Span> {
+    fn line(&self, file: &Path, primary: bool) -> Option<spanned::Span> {
         if let Some(exp) = &self.expansion {
-            if let Some(line) = exp.span.line(file, primary && !self.is_primary) {
+            if let Some(line) = exp.span.line(file, !primary || self.is_primary) {
                 return Some(line);
+            } else if self.file_name != file {
+                return if !primary && self.is_primary {
+                    exp.span.line(file, false)
+                } else {
+                    None
+                };
             }
         }
-        ((!primary || self.is_primary) && self.file_name == file).then_some(self.line_col)
+        ((!primary || self.is_primary) && self.file_name == file).then_some(spanned::Span {
+            file: self.file_name.clone(),
+            line_start: self.line_col.line_start,
+            line_end: self.line_col.line_end,
+            col_start: self.line_col.column_start,
+            col_end: self.line_col.column_end,
+        })
     }
 }
 

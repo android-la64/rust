@@ -153,13 +153,17 @@ impl<R> CellOption<R, ColoredConfig> for AlignmentStrategy {
     }
 }
 
-impl<R, D> TableOption<R, D, ColoredConfig> for AlignmentStrategy {
+impl<R, D> TableOption<R, ColoredConfig, D> for AlignmentStrategy {
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         <Self as CellOption<R, ColoredConfig>>::change(self, records, cfg, Entity::Global)
     }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
+    }
 }
 
-impl<R, D> TableOption<R, D, CompactMultilineConfig> for AlignmentStrategy {
+impl<R, D> TableOption<R, CompactMultilineConfig, D> for AlignmentStrategy {
     fn change(self, _: &mut R, cfg: &mut CompactMultilineConfig, _: &mut D) {
         let mut f = cfg.get_formatting();
         match &self {
@@ -167,6 +171,10 @@ impl<R, D> TableOption<R, D, CompactMultilineConfig> for AlignmentStrategy {
             AlignmentStrategy::PerLine => f.allow_lines_alignment = true,
         }
 
-        *cfg = cfg.set_formatting(f);
+        cfg.set_formatting(f);
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        None
     }
 }

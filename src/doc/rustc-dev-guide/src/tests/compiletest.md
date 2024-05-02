@@ -63,7 +63,8 @@ The following test suites are available, with links for more information:
 - [`codegen-units`](#codegen-units-tests) — tests for codegen unit partitioning
 - [`assembly`](#assembly-tests) — verifies assembly output
 - [`mir-opt`](#mir-opt-tests) — tests for MIR generation
-- [`run-make`](#run-make-tests) — general purpose tests using a Makefile
+- [`run-make`](#run-make-tests) — general purpose tests using Rust programs (or
+  Makefiles (legacy))
 - `run-make-fulldeps` — `run-make` tests which require a linkable build of `rustc`,
   or the rust demangler
 - [`run-pass-valgrind`](#valgrind-tests) — tests run with Valgrind
@@ -160,7 +161,7 @@ the current revision name.
 For example, this will run twice, simulating changing a function:
 
 ```rust,ignore
-// revisions: rpass1 rpass2
+//@ revisions: rpass1 rpass2
 
 #[cfg(rpass1)]
 fn foo() {
@@ -224,11 +225,11 @@ breakpoint, launch the program, inspect a value, and check what the debugger
 prints:
 
 ```rust,ignore
-// compile-flags: -g
+//@ compile-flags: -g
 
-// lldb-command: run
-// lldb-command: print foo
-// lldb-check: $0 = 123
+//@ lldb-command: run
+//@ lldb-command: print foo
+//@ lldb-check: $0 = 123
 
 fn main() {
     let foo = 123;
@@ -368,14 +369,42 @@ your test, causing separate files to be generated for 32bit and 64bit systems.
 
 ### `run-make` tests
 
-The tests in [`tests/run-make`] are general-purpose tests using Makefiles
-which provide the ultimate in flexibility.
-These should be used as a last resort.
-If possible, you should use one of the other test suites.
+> NOTE:
+> We are planning to migrate all existing Makefile-based `run-make` tests
+> to Rust recipes. You should not be adding new Makefile-based `run-make`
+> tests.
+
+The tests in [`tests/run-make`] are general-purpose tests using Rust *recipes*,
+which are small programs allowing arbitrary Rust code such as `rustc`
+invocations, and is supported by a [`run_make_support`] library. Using Rust
+recipes provide the ultimate in flexibility.
+
+*These should be used as a last resort*. If possible, you should use one of the
+other test suites.
+
 If there is some minor feature missing which you need for your test,
 consider extending compiletest to add a header command for what you need.
 However, if running a bunch of commands is really what you need,
 `run-make` is here to the rescue!
+
+#### Using Rust recipes
+
+Each test should be in a separate directory with a `rmake.rs` Rust program,
+called the *recipe*. A recipe will be compiled and executed by compiletest
+with the `run_make_support` library linked in.
+
+If you need new utilities or functionality, consider extending and improving
+the [`run_make_support`] library.
+
+Two `run-make` tests are ported over to Rust recipes as examples:
+
+- <https://github.com/rust-lang/rust/tree/master/tests/run-make/CURRENT_RUSTC_VERSION>
+- <https://github.com/rust-lang/rust/tree/master/tests/run-make/a-b-a-linker-guard>
+
+#### Using Makefiles (legacy)
+
+> NOTE:
+> You should avoid writing new Makefile-based `run-make` tests.
 
 Each test should be in a separate directory with a `Makefile` indicating the
 commands to run.
@@ -385,6 +414,7 @@ Take a look at some of the other tests for some examples on how to get started.
 
 [`tools.mk`]: https://github.com/rust-lang/rust/blob/master/tests/run-make/tools.mk
 [`tests/run-make`]: https://github.com/rust-lang/rust/tree/master/tests/run-make
+[`run_make_support`]: https://github.com/rust-lang/rust/tree/master/src/tools/run-make-support
 
 
 ### Valgrind tests
@@ -480,7 +510,7 @@ There are two [headers](headers.md) to assist with that:
 The source file should be in a directory called `auxiliary` beside the test file.
 
 ```rust,ignore
-// aux-build: my-helper.rs
+//@ aux-build: my-helper.rs
 
 extern crate my_helper;
 // ... You can use my_helper.
@@ -507,8 +537,8 @@ Place the proc-macro itself in a file like `auxiliary/my-proc-macro.rs`
 with the following structure:
 
 ```rust,ignore
-// force-host
-// no-prefer-dynamic
+//@ force-host
+//@ no-prefer-dynamic
 
 #![crate_type = "proc-macro"]
 
@@ -529,7 +559,7 @@ The `#![crate_type]` attribute is needed to specify the correct crate-type.
 Then in your test, you can build with `aux-build`:
 
 ```rust,ignore
-// aux-build: my-proc-macro.rs
+//@ aux-build: my-proc-macro.rs
 
 extern crate my_proc_macro;
 
@@ -545,7 +575,7 @@ Revisions allow a single test file to be used for multiple tests.
 This is done by adding a special header at the top of the file:
 
 ```rust,ignore
-// revisions: foo bar baz
+//@ revisions: foo bar baz
 ```
 
 This will result in the test being compiled (and tested) three times,
@@ -560,12 +590,27 @@ comment, like so:
 
 ```rust,ignore
 // A flag to pass in only for cfg `foo`:
-//[foo]compile-flags: -Z verbose
+//@[foo]compile-flags: -Z verbose
 
 #[cfg(foo)]
 fn test_foo() {
     let x: usize = 32_u32; //[foo]~ ERROR mismatched types
 }
+```
+
+In test suites that use the LLVM [FileCheck] tool, the current revision name is
+also registered as an additional prefix for FileCheck directives:
+
+```rust,ignore
+//@ revisions: NORMAL COVERAGE
+//@ [COVERAGE] compile-flags: -Cinstrument-coverage
+//@ [COVERAGE] needs-profiler-support
+
+// COVERAGE:   @__llvm_coverage_mapping
+// NORMAL-NOT: @__llvm_coverage_mapping
+
+// CHECK: main
+fn main() {}
 ```
 
 Note that not all headers have meaning when customized to a revision.
@@ -579,6 +624,7 @@ Following is classes of tests that support revisions:
 - UI
 - assembly
 - codegen
+- coverage
 - debuginfo
 - rustdoc UI tests
 - incremental (these are special in that they inherently cannot be run in parallel)

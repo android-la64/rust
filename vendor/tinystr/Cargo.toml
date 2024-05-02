@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66"
+rust-version = "1.67"
 name = "tinystr"
-version = "0.7.4"
+version = "0.7.5"
 authors = ["The ICU4X Project Developers"]
 include = [
     "data/**/*",
@@ -77,7 +77,7 @@ required-features = [
 ]
 
 [dependencies.databake]
-version = "0.1.6"
+version = "0.1.7"
 optional = true
 default-features = false
 
@@ -92,7 +92,7 @@ optional = true
 default-features = false
 
 [dependencies.zerovec]
-version = "0.10.0"
+version = "0.10.1"
 optional = true
 default-features = false
 

@@ -32,6 +32,12 @@ This will ask `rust-analyzer` to use `./x check` to check the sources, and the
 stage 0 rustfmt to format them.
 The recommended `rust-analyzer` settings live at [`src/etc/rust_analyzer_settings.json`].
 
+The default `rust-analyzer.check.overrideCommand` command line will check all the crates and tools
+in the repository. If you are working on a specific part, you can override the command to only 
+check the part you are working on to save checking time. For example, if you are working on 
+the compiler, you can override the command to `x check compiler --json-output` to only 
+check the compiler part. You can run `x check --help --verbose` to see the available parts.
+
 If you have enough free disk space and you would like to be able to run `x` commands while
 rust-analyzer runs in the background, you can also add `--build-dir build-rust-analyzer` to the
 `overrideCommand` to avoid x locking.
@@ -270,67 +276,34 @@ If you're using nix, you can use the following nix-shell to work on Rust:
 
 ```nix
 { pkgs ? import <nixpkgs> {} }:
-
-# This file contains a development shell for working on rustc.
-let
-  # Build configuration for rust-lang/rust. Based on `config.example.toml` (then called
-  # `config.toml.example`) from `1bd30ce2aac40c7698aa4a1b9520aa649ff2d1c5`
-  config = pkgs.writeText "rustc-config" ''
-    profile = "compiler" # you may want to choose a different profile, like `library` or `tools`
-
-    [build]
-    patch-binaries-for-nix = true
-    # The path to (or name of) the GDB executable to use. This is only used for
-    # executing the debuginfo test suite.
-    gdb = "${pkgs.gdb}/bin/gdb"
-    python = "${pkgs.python3Full}/bin/python"
-
-    [rust]
-    debug = true
-    incremental = true
-    deny-warnings = false
-
-    # Indicates whether some LLVM tools, like llvm-objdump, will be made available in the
-    # sysroot.
-    llvm-tools = true
-
-    # Print backtrace on internal compiler errors during bootstrap
-    backtrace-on-ice = true
-  '';
-
-  ripgrepConfig =
-    let
-      # Files that are ignored by ripgrep when searching.
-      ignoreFile = pkgs.writeText "rustc-rgignore" ''
-        configure
-        config.example.toml
-        x.py
-        LICENSE-MIT
-        LICENSE-APACHE
-        COPYRIGHT
-        **/*.txt
-        **/*.toml
-        **/*.yml
-        **/*.nix
-        *.md
-        src/ci
-        src/etc/
-        src/llvm-emscripten/
-        src/llvm-project/
-        src/rtstartup/
-        src/rustllvm/
-        src/stdsimd/
-        src/tools/rls/rls-analysis/test_data/
-      '';
-    in
-    pkgs.writeText "rustc-ripgreprc" "--ignore-file=${ignoreFile}";
-in
 pkgs.mkShell {
   name = "rustc";
   nativeBuildInputs = with pkgs; [
-    gcc_multi binutils cmake ninja openssl pkgconfig python39 git curl cacert patchelf nix psutils
+    binutils cmake ninja pkg-config python3 git curl cacert patchelf nix
   ];
-  RIPGREP_CONFIG_PATH = ripgrepConfig;
+  buildInputs = with pkgs; [
+    openssl glibc.out glibc.static
+  ];
+  # Avoid creating text files for ICEs.
+  RUSTC_ICE = "0";
+}
+```
+
+Note that when using nix on a not-NixOS distribution, it may be necessary to set
+**`patch-binaries-for-nix = true` in `config.toml`**.
+Bootstrap tries to detect whether it's running in nix and enable patching automatically,
+but this detection can have false negatives.
+
+You can also use your nix shell to manage `config.toml`:
+
+```nix
+let
+  config = pkgs.writeText "rustc-config" ''
+    # Your config.toml content goes here
+  ''
+pkgs.mkShell {
+  /* ... */
+  # This environment varaible tells bootstrap where our config.toml is.
   RUST_BOOTSTRAP_CONFIG = config;
 }
 ```

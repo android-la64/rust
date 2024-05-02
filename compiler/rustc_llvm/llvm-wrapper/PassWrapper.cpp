@@ -42,7 +42,11 @@
 #endif
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Instrumentation/AddressSanitizer.h"
+#include "llvm/Transforms/Instrumentation/DataFlowSanitizer.h"
 #include "llvm/Support/TimeProfiler.h"
+#if LLVM_VERSION_GE(19, 0)
+#include "llvm/Support/PGOOptions.h"
+#endif
 #include "llvm/Transforms/Instrumentation/GCOVProfiler.h"
 #include "llvm/Transforms/Instrumentation/InstrProfiling.h"
 #include "llvm/Transforms/Instrumentation/ThreadSanitizer.h"
@@ -73,9 +77,9 @@ extern "C" void LLVMRustTimeTraceProfilerFinishThread() {
 }
 
 extern "C" void LLVMRustTimeTraceProfilerFinish(const char* FileName) {
-  StringRef FN(FileName);
+  auto FN = StringRef(FileName);
   std::error_code EC;
-  raw_fd_ostream OS(FN, EC, sys::fs::CD_CreateAlways);
+  auto OS = raw_fd_ostream(FN, EC, sys::fs::CD_CreateAlways);
 
   timeTraceProfilerWrite(OS);
   timeTraceProfilerCleanup();
@@ -368,10 +372,10 @@ extern "C" void LLVMRustPrintTargetCPUs(LLVMTargetMachineRef TM,
 }
 
 extern "C" size_t LLVMRustGetTargetFeaturesCount(LLVMTargetMachineRef TM) {
-#ifdef LLVM_RUSTLLVM
+#if LLVM_VERSION_GE(18, 0)
   const TargetMachine *Target = unwrap(TM);
   const MCSubtargetInfo *MCInfo = Target->getMCSubtargetInfo();
-  const ArrayRef<SubtargetFeatureKV> FeatTable = MCInfo->getFeatureTable();
+  const ArrayRef<SubtargetFeatureKV> FeatTable = MCInfo->getAllProcessorFeatures();
   return FeatTable.size();
 #else
   return 0;
@@ -380,10 +384,10 @@ extern "C" size_t LLVMRustGetTargetFeaturesCount(LLVMTargetMachineRef TM) {
 
 extern "C" void LLVMRustGetTargetFeature(LLVMTargetMachineRef TM, size_t Index,
                                          const char** Feature, const char** Desc) {
-#ifdef LLVM_RUSTLLVM
+#if LLVM_VERSION_GE(18, 0)
   const TargetMachine *Target = unwrap(TM);
   const MCSubtargetInfo *MCInfo = Target->getMCSubtargetInfo();
-  const ArrayRef<SubtargetFeatureKV> FeatTable = MCInfo->getFeatureTable();
+  const ArrayRef<SubtargetFeatureKV> FeatTable = MCInfo->getAllProcessorFeatures();
   const SubtargetFeatureKV Feat = FeatTable[Index];
   *Feature = Feat.Key;
   *Desc = Feat.Desc;
@@ -420,7 +424,7 @@ extern "C" LLVMTargetMachineRef LLVMRustCreateTargetMachine(
   auto CM = fromRust(RustCM);
 
   std::string Error;
-  Triple Trip(Triple::normalize(TripleStr));
+  auto Trip = Triple(Triple::normalize(TripleStr));
   const llvm::Target *TheTarget =
       TargetRegistry::lookupTarget(Trip.getTriple(), Error);
   if (TheTarget == nullptr) {
@@ -447,14 +451,30 @@ extern "C" LLVMTargetMachineRef LLVMRustCreateTargetMachine(
       Options.ObjectFilenameForDebug = OutputObjFile;
   }
   if (!strcmp("zlib", DebugInfoCompression) && llvm::compression::zlib::isAvailable()) {
+#if LLVM_VERSION_GE(19, 0)
+    Options.MCOptions.CompressDebugSections = DebugCompressionType::Zlib;
+#else
     Options.CompressDebugSections = DebugCompressionType::Zlib;
+#endif
   } else if (!strcmp("zstd", DebugInfoCompression) && llvm::compression::zstd::isAvailable()) {
+#if LLVM_VERSION_GE(19, 0)
+    Options.MCOptions.CompressDebugSections = DebugCompressionType::Zstd;
+#else
     Options.CompressDebugSections = DebugCompressionType::Zstd;
+#endif
   } else if (!strcmp("none", DebugInfoCompression)) {
+#if LLVM_VERSION_GE(19, 0)
+    Options.MCOptions.CompressDebugSections = DebugCompressionType::None;
+#else
     Options.CompressDebugSections = DebugCompressionType::None;
+#endif
   }
 
+#if LLVM_VERSION_GE(19, 0)
+  Options.MCOptions.X86RelaxRelocations = RelaxELFRelocations;
+#else
   Options.RelaxELFRelocations = RelaxELFRelocations;
+#endif
   Options.UseInitArray = UseInitArray;
 
 #if LLVM_VERSION_LT(17, 0)
@@ -533,8 +553,8 @@ extern "C" void LLVMRustDisposeTargetMachine(LLVMTargetMachineRef TM) {
 // TargetLibraryInfo pass, so we use this method to do so.
 extern "C" void LLVMRustAddLibraryInfo(LLVMPassManagerRef PMR, LLVMModuleRef M,
                                        bool DisableSimplifyLibCalls) {
-  Triple TargetTriple(unwrap(M)->getTargetTriple());
-  TargetLibraryInfoImpl TLII(TargetTriple);
+  auto TargetTriple = Triple(unwrap(M)->getTargetTriple());
+  auto TLII = TargetLibraryInfoImpl(TargetTriple);
   if (DisableSimplifyLibCalls)
     TLII.disableAllFunctions();
   unwrap(PMR)->add(new TargetLibraryInfoWrapperPass(TLII));
@@ -585,7 +605,7 @@ LLVMRustWriteOutputFile(LLVMTargetMachineRef Target, LLVMPassManagerRef PMR,
 
   std::string ErrorInfo;
   std::error_code EC;
-  raw_fd_ostream OS(Path, EC, sys::fs::OF_None);
+  auto OS = raw_fd_ostream(Path, EC, sys::fs::OF_None);
   if (EC)
     ErrorInfo = EC.message();
   if (ErrorInfo != "") {
@@ -593,9 +613,9 @@ LLVMRustWriteOutputFile(LLVMTargetMachineRef Target, LLVMPassManagerRef PMR,
     return LLVMRustResult::Failure;
   }
 
-  buffer_ostream BOS(OS);
+  auto BOS = buffer_ostream(OS);
   if (DwoPath) {
-    raw_fd_ostream DOS(DwoPath, EC, sys::fs::OF_None);
+    auto DOS = raw_fd_ostream(DwoPath, EC, sys::fs::OF_None);
     EC.clear();
     if (EC)
         ErrorInfo = EC.message();
@@ -603,7 +623,7 @@ LLVMRustWriteOutputFile(LLVMTargetMachineRef Target, LLVMPassManagerRef PMR,
       LLVMRustSetLastError(ErrorInfo.c_str());
       return LLVMRustResult::Failure;
     }
-    buffer_ostream DBOS(DOS);
+    auto DBOS = buffer_ostream(DOS);
     unwrap(Target)->addPassesToEmitFile(*PM, BOS, &DBOS, FileType, false);
     PM->run(*unwrap(M));
   } else {
@@ -683,6 +703,9 @@ struct LLVMRustSanitizerOptions {
   bool SanitizeAddress;
   bool SanitizeAddressRecover;
   bool SanitizeCFI;
+  bool SanitizeDataFlow;
+  char **SanitizeDataFlowABIList;
+  size_t SanitizeDataFlowABIListLen;
   bool SanitizeKCFI;
   bool SanitizeMemory;
   bool SanitizeMemoryRecover;
@@ -749,6 +772,9 @@ LLVMRustOptimize(
                         FS,
 #endif
                         PGOOptions::IRInstr, PGOOptions::NoCSAction,
+#if LLVM_VERSION_GE(19, 0)
+                        PGOOptions::ColdFuncOpt::Default,
+#endif
                         DebugInfoForProfiling);
   } else if (PGOUsePath) {
     assert(!PGOSampleUsePath);
@@ -758,6 +784,9 @@ LLVMRustOptimize(
                         FS,
 #endif
                         PGOOptions::IRUse, PGOOptions::NoCSAction,
+#if LLVM_VERSION_GE(19, 0)
+                        PGOOptions::ColdFuncOpt::Default,
+#endif
                         DebugInfoForProfiling);
   } else if (PGOSampleUsePath) {
     PGOOpt = PGOOptions(PGOSampleUsePath, "", "",
@@ -766,6 +795,9 @@ LLVMRustOptimize(
                         FS,
 #endif
                         PGOOptions::SampleUse, PGOOptions::NoCSAction,
+#if LLVM_VERSION_GE(19, 0)
+                        PGOOptions::ColdFuncOpt::Default,
+#endif
                         DebugInfoForProfiling);
   } else if (DebugInfoForProfiling) {
     PGOOpt = PGOOptions("", "", "",
@@ -774,10 +806,13 @@ LLVMRustOptimize(
                         FS,
 #endif
                         PGOOptions::NoAction, PGOOptions::NoCSAction,
+#if LLVM_VERSION_GE(19, 0)
+                        PGOOptions::ColdFuncOpt::Default,
+#endif
                         DebugInfoForProfiling);
   }
 
-  PassBuilder PB(TM, PTO, PGOOpt, &PIC);
+  auto PB = PassBuilder(TM, PTO, PGOOpt, &PIC);
   LoopAnalysisManager LAM;
   FunctionAnalysisManager FAM;
   CGSCCAnalysisManager CGAM;
@@ -868,6 +903,18 @@ LLVMRustOptimize(
   }
 
   if (SanitizerOptions) {
+    if (SanitizerOptions->SanitizeDataFlow) {
+      std::vector<std::string> ABIListFiles(
+          SanitizerOptions->SanitizeDataFlowABIList,
+          SanitizerOptions->SanitizeDataFlowABIList +
+              SanitizerOptions->SanitizeDataFlowABIListLen);
+      OptimizerLastEPCallbacks.push_back(
+        [ABIListFiles](ModulePassManager &MPM, OptimizationLevel Level) {
+          MPM.addPass(DataFlowSanitizerPass(ABIListFiles));
+        }
+      );
+    }
+
     if (SanitizerOptions->SanitizeMemory) {
       MemorySanitizerOptions Options(
           SanitizerOptions->SanitizeMemoryTrackOrigins,
@@ -934,10 +981,8 @@ LLVMRustOptimize(
     } else {
       for (const auto &C : PipelineStartEPCallbacks)
         PB.registerPipelineStartEPCallback(C);
-      if (OptStage != LLVMRustOptStage::PreLinkThinLTO) {
-        for (const auto &C : OptimizerLastEPCallbacks)
-          PB.registerOptimizerLastEPCallback(C);
-      }
+      for (const auto &C : OptimizerLastEPCallbacks)
+        PB.registerOptimizerLastEPCallback(C);
 
       switch (OptStage) {
       case LLVMRustOptStage::PreLinkNoLTO:
@@ -945,14 +990,7 @@ LLVMRustOptimize(
         break;
       case LLVMRustOptStage::PreLinkThinLTO:
         MPM = PB.buildThinLTOPreLinkDefaultPipeline(OptLevel);
-        // The ThinLTOPreLink pipeline already includes ThinLTOBuffer passes. However, callback
-        // passes may still run afterwards. This means we need to run the buffer passes again.
-        // FIXME: In LLVM 13, the ThinLTOPreLink pipeline also runs OptimizerLastEPCallbacks
-        // before the RequiredLTOPreLinkPasses, in which case we can remove these hacks.
-        if (OptimizerLastEPCallbacks.empty())
-          NeedThinLTOBufferPasses = false;
-        for (const auto &C : OptimizerLastEPCallbacks)
-          C(MPM, OptLevel);
+        NeedThinLTOBufferPasses = false;
         break;
       case LLVMRustOptStage::PreLinkFatLTO:
         MPM = PB.buildLTOPreLinkDefaultPipeline(OptLevel);
@@ -1090,7 +1128,7 @@ extern "C" LLVMRustResult
 LLVMRustPrintModule(LLVMModuleRef M, const char *Path, DemangleFn Demangle) {
   std::string ErrorInfo;
   std::error_code EC;
-  raw_fd_ostream OS(Path, EC, sys::fs::OF_None);
+  auto OS = raw_fd_ostream(Path, EC, sys::fs::OF_None);
   if (EC)
     ErrorInfo = EC.message();
   if (ErrorInfo != "") {
@@ -1098,8 +1136,8 @@ LLVMRustPrintModule(LLVMModuleRef M, const char *Path, DemangleFn Demangle) {
     return LLVMRustResult::Failure;
   }
 
-  RustAssemblyAnnotationWriter AAW(Demangle);
-  formatted_raw_ostream FOS(OS);
+  auto AAW = RustAssemblyAnnotationWriter(Demangle);
+  auto FOS = formatted_raw_ostream(OS);
   unwrap(M)->print(FOS, &AAW);
 
   return LLVMRustResult::Success;
@@ -1259,8 +1297,8 @@ LLVMRustCreateThinLTOData(LLVMRustThinLTOModule *modules,
   // Load each module's summary and merge it into one combined index
   for (int i = 0; i < num_modules; i++) {
     auto module = &modules[i];
-    StringRef buffer(module->data, module->len);
-    MemoryBufferRef mem_buffer(buffer, module->identifier);
+    auto buffer = StringRef(module->data, module->len);
+    auto mem_buffer = MemoryBufferRef(buffer, module->identifier);
 
     Ret->ModuleMap[module->identifier] = mem_buffer;
 
@@ -1463,7 +1501,7 @@ LLVMRustPrepareThinLTOImport(const LLVMRustThinLTOData *Data, LLVMModuleRef M,
     return MOrErr;
   };
   bool ClearDSOLocal = clearDSOLocalOnDeclarations(Mod, Target);
-  FunctionImporter Importer(Data->Index, Loader, ClearDSOLocal);
+  auto Importer = FunctionImporter(Data->Index, Loader, ClearDSOLocal);
   Expected<bool> Result = Importer.importFunctions(Mod, ImportList);
   if (!Result) {
     LLVMRustSetLastError(toString(Result.takeError()).c_str());
@@ -1488,7 +1526,7 @@ extern "C" LLVMRustThinLTOBuffer*
 LLVMRustThinLTOBufferCreate(LLVMModuleRef M, bool is_thin) {
   auto Ret = std::make_unique<LLVMRustThinLTOBuffer>();
   {
-    raw_string_ostream OS(Ret->data);
+    auto OS = raw_string_ostream(Ret->data);
     {
       if (is_thin) {
         PassBuilder PB;
@@ -1535,8 +1573,8 @@ LLVMRustParseBitcodeForLTO(LLVMContextRef Context,
                            const char *data,
                            size_t len,
                            const char *identifier) {
-  StringRef Data(data, len);
-  MemoryBufferRef Buffer(Data, identifier);
+  auto Data = StringRef(data, len);
+  auto Buffer = MemoryBufferRef(Data, identifier);
   unwrap(Context)->enableDebugTypeODRUniquing();
   Expected<std::unique_ptr<Module>> SrcOrError =
       parseBitcodeFile(Buffer, *unwrap(Context));
@@ -1554,8 +1592,8 @@ extern "C" const char *LLVMRustGetSliceFromObjectDataByName(const char *data,
                                                             const char *name,
                                                             size_t *out_len) {
   *out_len = 0;
-  StringRef Data(data, len);
-  MemoryBufferRef Buffer(Data, ""); // The id is unused.
+  auto Data = StringRef(data, len);
+  auto Buffer = MemoryBufferRef(Data, ""); // The id is unused.
   file_magic Type = identify_magic(Buffer.getBuffer());
   Expected<std::unique_ptr<object::ObjectFile>> ObjFileOrError =
       object::ObjectFile::createObjectFile(Buffer, Type);

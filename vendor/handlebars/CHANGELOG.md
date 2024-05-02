@@ -1,5 +1,9 @@
 # Change Log
 
+## [5.1.0](https://github.com/sunng87/handlebars-rust/compare/5.0.0...5.1.0) - 2024-01-17
+
+* [Added] Chained `else if` block support [#629]
+
 ## [5.0.0](https://github.com/sunng87/handlebars-rust/compare/4.3.4...5.0.0) - 2023-12-31
 
 * [Added] public mutable access to local variables in `BlockContext` [#533]

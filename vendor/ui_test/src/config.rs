@@ -1,6 +1,10 @@
 use regex::bytes::Regex;
+use spanned::{Span, Spanned};
 
-use crate::{dependencies::build_dependencies, CommandBuilder, Filter, Match, Mode, RustfixMode};
+use crate::{
+    dependencies::build_dependencies, per_test_config::Comments, CommandBuilder, Match, Mode,
+    RustfixMode,
+};
 pub use color_eyre;
 use color_eyre::eyre::Result;
 use std::{
@@ -19,24 +23,14 @@ pub struct Config {
     pub host: Option<String>,
     /// `None` to run on the host, otherwise a target triple
     pub target: Option<String>,
-    /// Filters applied to stderr output before processing it.
-    /// By default contains a filter for replacing backslashes in paths with
-    /// regular slashes.
-    /// On windows, contains a filter to remove `\r`.
-    pub stderr_filters: Filter,
-    /// Filters applied to stdout output before processing it.
-    /// On windows, contains a filter to remove `\r`.
-    pub stdout_filters: Filter,
     /// The folder in which to start searching for .rs files
     pub root_dir: PathBuf,
-    /// The mode in which to run the tests.
-    pub mode: Mode,
     /// The binary to actually execute.
     pub program: CommandBuilder,
-    /// The command to run to obtain the cfgs that the output is supposed to
-    pub cfgs: CommandBuilder,
     /// What to do in case the stdout/stderr output differs from the expected one.
     pub output_conflict_handling: OutputConflictHandling,
+    /// The recommended command to bless failing tests.
+    pub bless_command: Option<String>,
     /// Path to a `Cargo.toml` that describes which dependencies the tests can access.
     pub dependencies_crate_manifest_path: Option<PathBuf>,
     /// The command to run can be changed from `cargo` to any custom command to build the
@@ -45,8 +39,6 @@ pub struct Config {
     /// Where to dump files like the binaries compiled from tests.
     /// Defaults to `target/ui` in the current directory.
     pub out_dir: PathBuf,
-    /// The default edition to use on all tests.
-    pub edition: Option<String>,
     /// Skip test files whose names contain any of these entries.
     pub skip_files: Vec<String>,
     /// Only test files whose names contain any of these entries.
@@ -59,73 +51,74 @@ pub struct Config {
     pub run_only_ignored: bool,
     /// Filters must match exactly instead of just checking for substrings.
     pub filter_exact: bool,
+    /// The default settings settable via `@` comments
+    pub comment_defaults: Comments,
 }
 
 impl Config {
     /// Create a configuration for testing the output of running
     /// `rustc` on the test files.
     pub fn rustc(root_dir: impl Into<PathBuf>) -> Self {
+        let mut comment_defaults = Comments::default();
+        let _ = comment_defaults
+            .base()
+            .edition
+            .set("2021".into(), Span::default());
+        let filters = vec![
+            (Match::PathBackslash, b"/".to_vec()),
+            #[cfg(windows)]
+            (Match::Exact(vec![b'\r']), b"".to_vec()),
+            #[cfg(windows)]
+            (Match::Exact(br"\\?\".to_vec()), b"".to_vec()),
+        ];
+        comment_defaults.base().normalize_stderr = filters.clone();
+        comment_defaults.base().normalize_stdout = filters;
+        comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
+            require_patterns: true,
+            rustfix: RustfixMode::MachineApplicable,
+        })
+        .into();
         Self {
             host: None,
             target: None,
-            stderr_filters: vec![
-                (Match::PathBackslash, b"/"),
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-                #[cfg(windows)]
-                (Match::Exact(br"\\?\".to_vec()), b""),
-            ],
-            stdout_filters: vec![
-                (Match::PathBackslash, b"/"),
-                #[cfg(windows)]
-                (Match::Exact(vec![b'\r']), b""),
-                #[cfg(windows)]
-                (Match::Exact(br"\\?\".to_vec()), b""),
-            ],
             root_dir: root_dir.into(),
-            mode: Mode::Fail {
-                require_patterns: true,
-                rustfix: RustfixMode::MachineApplicable,
-            },
             program: CommandBuilder::rustc(),
-            cfgs: CommandBuilder::cfgs(),
             output_conflict_handling: OutputConflictHandling::Bless,
+            bless_command: None,
             dependencies_crate_manifest_path: None,
             dependency_builder: CommandBuilder::cargo(),
             out_dir: std::env::var_os("CARGO_TARGET_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| std::env::current_dir().unwrap().join("target"))
                 .join("ui"),
-            edition: Some("2021".into()),
             skip_files: Vec::new(),
             filter_files: Vec::new(),
             threads: None,
             list: false,
             run_only_ignored: false,
             filter_exact: false,
+            comment_defaults,
         }
     }
 
     /// Create a configuration for testing the output of running
     /// `cargo` on the test `Cargo.toml` files.
     pub fn cargo(root_dir: impl Into<PathBuf>) -> Self {
-        Self {
+        let mut this = Self {
             program: CommandBuilder::cargo(),
-            edition: None,
-            mode: Mode::Fail {
-                require_patterns: true,
-                rustfix: RustfixMode::Disabled,
-            },
             ..Self::rustc(root_dir)
-        }
+        };
+        this.comment_defaults.base().edition = Default::default();
+        this.comment_defaults.base().mode = Spanned::dummy(Mode::Fail {
+            require_patterns: true,
+            rustfix: RustfixMode::Disabled,
+        })
+        .into();
+        this
     }
 
     /// Populate the config with the values from parsed command line arguments.
-    /// If neither `--bless` or `--check` are provided `default_bless` is used.
-    ///
-    /// The default output conflict handling command suggests adding `--bless`
-    /// to the end of the current command.
-    pub fn with_args(&mut self, args: &Args, default_bless: bool) {
+    pub fn with_args(&mut self, args: &Args) {
         let Args {
             ref filters,
             check,
@@ -147,22 +140,11 @@ impl Config {
 
         self.list = list;
 
-        let bless = match (bless, check) {
-            (_, true) => false,
-            (true, _) => true,
-            _ => default_bless,
-        };
-        self.output_conflict_handling = if bless {
-            OutputConflictHandling::Bless
-        } else {
-            OutputConflictHandling::Error(format!(
-                "{} --bless",
-                std::env::args()
-                    .map(|s| format!("{s:?}"))
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            ))
-        };
+        if check {
+            self.output_conflict_handling = OutputConflictHandling::Error;
+        } else if bless {
+            self.output_conflict_handling = OutputConflictHandling::Bless;
+        }
     }
 
     /// Replace all occurrences of a path in stderr/stdout with a byte string.
@@ -180,8 +162,10 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         let pattern = path.canonicalize().unwrap();
-        self.stderr_filters
-            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stderr.push((
+            pattern.parent().unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a path in stdout with a byte string.
@@ -192,8 +176,10 @@ impl Config {
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
         let pattern = path.canonicalize().unwrap();
-        self.stdout_filters
-            .push((pattern.parent().unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stdout.push((
+            pattern.parent().unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a regex pattern in stderr/stdout with a byte string.
@@ -210,8 +196,10 @@ impl Config {
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
-        self.stderr_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stderr.push((
+            Regex::new(pattern).unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Replace all occurrences of a regex pattern in stdout with a byte string.
@@ -221,8 +209,10 @@ impl Config {
         pattern: &str,
         replacement: &'static (impl AsRef<[u8]> + ?Sized),
     ) {
-        self.stdout_filters
-            .push((Regex::new(pattern).unwrap().into(), replacement.as_ref()));
+        self.comment_defaults.base().normalize_stdout.push((
+            Regex::new(pattern).unwrap().into(),
+            replacement.as_ref().to_owned(),
+        ));
     }
 
     /// Compile dependencies and return the right flags
@@ -284,8 +274,10 @@ impl Config {
 #[derive(Debug, Clone)]
 /// The different options for what to do when stdout/stderr files differ from the actual output.
 pub enum OutputConflictHandling {
-    /// The string should be a command that can be executed to bless all tests.
-    Error(String),
+    /// Fail the test when mismatches are found, if provided the command string
+    /// in [`Config::bless_command`] will be suggested as a way to bless the
+    /// test.
+    Error,
     /// Ignore mismatches in the stderr/stdout files.
     Ignore,
     /// Instead of erroring if the stderr/stdout differs from the expected

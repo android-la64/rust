@@ -1,7 +1,5 @@
 use super::*;
-use crate::tokens::{quote, to_ident, TokenStream};
-use crate::{rdl, Error, Result, Tree};
-use metadata::*;
+use tokens::{quote, to_ident, TokenStream};
 
 pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collections::BTreeMap<&str, &str>, output: &str) -> Result<()> {
     let dialect = match config.remove("type") {
@@ -30,7 +28,7 @@ pub fn from_reader(reader: &'static metadata::Reader, mut config: std::collectio
 
 fn gen_split(writer: &Writer) -> Result<()> {
     let tree = Tree::new(writer.reader);
-    let directory = crate::directory(&writer.output);
+    let directory = directory(&writer.output);
 
     // TODO: parallelize
     for tree in tree.flatten() {
@@ -85,9 +83,9 @@ impl Writer {
             #tokens
         };
 
-        let file = rdl::File::parse_str(&tokens.into_string())?;
-        crate::write_to_file(output, file.fmt())
-        //crate::write_to_file(output, tokens.into_string())
+        let file = File::parse_str(&tokens.into_string())?;
+        write_to_file(output, file.fmt())
+        //write_to_file(output, tokens.into_string())
     }
 
     fn tree(&self, tree: &Tree) -> TokenStream {
@@ -286,8 +284,8 @@ impl Writer {
         // TODO: then list default interface first
         // Then everything else
 
-        for interface in type_def_interfaces(def, generics) {
-            if interface.kind == InterfaceKind::Default {
+        for interface in metadata::type_def_interfaces(def, generics) {
+            if interface.kind == metadata::InterfaceKind::Default {
                 types.insert(0, self.ty(&interface.ty));
             } else {
                 types.push(self.ty(&interface.ty));
@@ -323,7 +321,7 @@ impl Writer {
 
     fn ty(&self, ty: &metadata::Type) -> TokenStream {
         match ty {
-            metadata::Type::Void => quote! { ::core::ffi::c_void },
+            metadata::Type::Void => quote! { core::ffi::c_void },
             metadata::Type::Bool => quote! { bool },
             metadata::Type::Char => quote! { u16 },
             metadata::Type::I8 => quote! { i8 },

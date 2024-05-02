@@ -72,6 +72,7 @@ fn custom_target_dependency() {
 
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = ["author@example.com"]
 
                 [dependencies]
@@ -189,6 +190,7 @@ fn changing_spec_relearns_crate_types() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [lib]
                 crate-type = ["cdylib"]
@@ -244,13 +246,13 @@ fn custom_target_ignores_filepath() {
         .with_stderr(
             "\
 [..]Compiling foo v0.0.1 ([..])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
 
     // But not the second time, even though the path to the custom target is dfferent.
     p.cargo("build --lib --target b/custom-target.json")
-        .with_stderr("[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]")
+        .with_stderr("[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]")
         .run();
 }

@@ -1,5 +1,5 @@
 use core::alloc::{Allocator, Layout};
-use core::num::NonZeroUsize;
+use core::num::NonZero;
 use core::ptr::NonNull;
 use core::{assert_eq, assert_ne};
 use std::alloc::System;
@@ -1089,9 +1089,9 @@ fn test_into_iter_advance_by() {
     assert_eq!(i.advance_back_by(1), Ok(()));
     assert_eq!(i.as_slice(), [2, 3, 4]);
 
-    assert_eq!(i.advance_back_by(usize::MAX), Err(NonZeroUsize::new(usize::MAX - 3).unwrap()));
+    assert_eq!(i.advance_back_by(usize::MAX), Err(NonZero::new(usize::MAX - 3).unwrap()));
 
-    assert_eq!(i.advance_by(usize::MAX), Err(NonZeroUsize::new(usize::MAX).unwrap()));
+    assert_eq!(i.advance_by(usize::MAX), Err(NonZero::new(usize::MAX).unwrap()));
 
     assert_eq!(i.advance_by(0), Ok(()));
     assert_eq!(i.advance_back_by(0), Ok(()));
@@ -1192,7 +1192,7 @@ fn test_from_iter_specialization_with_iterator_adapters() {
         .map(|(a, b)| a + b)
         .map_while(Option::Some)
         .skip(1)
-        .map(|e| if e != usize::MAX { Ok(std::num::NonZeroUsize::new(e)) } else { Err(()) });
+        .map(|e| if e != usize::MAX { Ok(NonZero::new(e)) } else { Err(()) });
     assert_in_place_trait(&iter);
     let sink = iter.collect::<Result<Vec<_>, _>>().unwrap();
     let sinkptr = sink.as_ptr();
@@ -1692,6 +1692,18 @@ fn test_reserve_exact() {
 
     v.reserve_exact(16);
     assert!(v.capacity() >= 33)
+}
+
+#[test]
+#[cfg_attr(miri, ignore)] // Miri does not support signalling OOM
+#[cfg_attr(target_os = "android", ignore)] // Android used in CI has a broken dlmalloc
+fn test_try_with_capacity() {
+    let mut vec: Vec<u32> = Vec::try_with_capacity(5).unwrap();
+    assert_eq!(0, vec.len());
+    assert!(vec.capacity() >= 5 && vec.capacity() <= isize::MAX as usize / 4);
+    assert!(vec.spare_capacity_mut().len() >= 5);
+
+    assert!(Vec::<u16>::try_with_capacity(isize::MAX as usize + 1).is_err());
 }
 
 #[test]
@@ -2575,7 +2587,7 @@ fn test_box_zero_allocator() {
                 assert!(state.0.insert(addr));
                 state.1 += 1;
                 std::println!("allocating {addr}");
-                std::ptr::invalid_mut(addr)
+                std::ptr::without_provenance_mut(addr)
             } else {
                 unsafe { std::alloc::alloc(layout) }
             };

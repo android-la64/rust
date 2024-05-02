@@ -42,10 +42,10 @@ fn main() {
     ];
 
     let theme = Style::modern()
+        .horizontals([(1, HorizontalLine::inherit(Style::modern()))])
+        .verticals([(1, VerticalLine::inherit(Style::modern()))])
         .remove_horizontal()
-        .remove_vertical()
-        .horizontals([HorizontalLine::new(1, Style::modern().get_horizontal()).intersection(None)])
-        .verticals([VerticalLine::new(1, Style::modern().get_vertical())]);
+        .remove_vertical();
 
     let mut table = Table::new(data);
     table.with(theme).with(Alignment::left());

@@ -865,17 +865,7 @@ impl<'de> de::VariantAccess<'de> for TableEnumDeserializer<'de> {
                             },
                         )),
                     })
-                    // Fold all values into a `Vec`, or return the first error.
-                    .fold(Ok(Vec::with_capacity(len)), |result, value_result| {
-                        result.and_then(move |mut tuple_values| match value_result {
-                            Ok(value) => {
-                                tuple_values.push(value);
-                                Ok(tuple_values)
-                            }
-                            // `Result<de::Value, Self::Error>` to `Result<Vec<_>, Self::Error>`
-                            Err(e) => Err(e),
-                        })
-                    })?;
+                    .collect::<Result<Vec<_>, _>>()?;
 
                 if tuple_values.len() == len {
                     de::Deserializer::deserialize_seq(
@@ -1131,13 +1121,13 @@ impl<'a> Deserializer<'a> {
             })
         } else if s == "nan" {
             Ok(Value {
-                e: E::Float(f64::NAN),
+                e: E::Float(f64::NAN.copysign(1.0)),
                 start,
                 end,
             })
         } else if s == "-nan" {
             Ok(Value {
-                e: E::Float(-f64::NAN),
+                e: E::Float(f64::NAN.copysign(-1.0)),
                 start,
                 end,
             })

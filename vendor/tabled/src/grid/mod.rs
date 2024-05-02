@@ -12,7 +12,7 @@ mod compact_multiline_config;
 pub mod dimension;
 pub mod records;
 
-pub use papergrid::color;
+pub use papergrid::ansi;
 pub use papergrid::colors;
 pub use papergrid::util;
 
@@ -21,14 +21,12 @@ pub mod config {
 
     pub use papergrid::config::{
         compact::CompactConfig, AlignmentHorizontal, AlignmentVertical, Border, Borders, Entity,
-        EntityIterator, Indent, Line, Position, Sides,
+        EntityIterator, Formatting, HorizontalLine, Indent, Position, Sides, VerticalLine,
     };
 
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    pub use papergrid::config::spanned::{
-        EntityMap, Formatting, HorizontalLine, Offset, SpannedConfig, VerticalLine,
-    };
+    pub use papergrid::config::spanned::{EntityMap, Offset, SpannedConfig};
 
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]

@@ -12,9 +12,17 @@
 [package]
 edition = "2018"
 name = "libmimalloc-sys"
-version = "0.1.33"
+version = "0.1.35"
 authors = ["Octavian Oncescu <octavonce@gmail.com>"]
 links = "mimalloc"
+exclude = [
+    "/c_src/mimalloc/bin",
+    "/c_src/mimalloc/cmake",
+    "/c_src/mimalloc/doc",
+    "/c_src/mimalloc/docs",
+    "/c_src/mimalloc/ide",
+    "/c_src/mimalloc/test",
+]
 description = "Sys crate wrapping the mimalloc allocator"
 keywords = [
     "allocator",

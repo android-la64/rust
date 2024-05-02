@@ -72,7 +72,7 @@ pub fn cli() -> Command {
         .arg(flag("no-track", "Do not save tracking information"))
         .arg(flag(
             "list",
-            "list all installed packages and their versions",
+            "List all installed packages and their versions",
         ))
         .arg_ignore_rust_version()
         .arg_message_format()
@@ -99,19 +99,19 @@ pub fn cli() -> Command {
         ))
 }
 
-pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
-    let path = args.value_of_path("path", config);
+pub fn exec(gctx: &mut GlobalContext, args: &ArgMatches) -> CliResult {
+    let path = args.value_of_path("path", gctx);
     if let Some(path) = &path {
-        config.reload_rooted_at(path)?;
+        gctx.reload_rooted_at(path)?;
     } else {
         // TODO: Consider calling set_search_stop_path(home).
-        config.reload_rooted_at(config.home().clone().into_path_unlocked())?;
+        gctx.reload_rooted_at(gctx.home().clone().into_path_unlocked())?;
     }
 
     // In general, we try to avoid normalizing paths in Cargo,
     // but in these particular cases we need it to fix rust-lang/cargo#10283.
     // (Handle `SourceId::for_path` and `Workspace::new`,
-    // but not `Config::reload_rooted_at` which is always cwd)
+    // but not `GlobalContext::reload_rooted_at` which is always cwd)
     let path = path.map(|p| paths::normalize_path(&p));
 
     let version = args.get_one::<VersionReq>("version");
@@ -161,14 +161,14 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
         SourceId::for_path(path)?
     } else if krates.is_empty() {
         from_cwd = true;
-        SourceId::for_path(config.cwd())?
-    } else if let Some(reg_or_index) = args.registry_or_index(config)? {
+        SourceId::for_path(gctx.cwd())?
+    } else if let Some(reg_or_index) = args.registry_or_index(gctx)? {
         match reg_or_index {
-            ops::RegistryOrIndex::Registry(r) => SourceId::alt_registry(config, &r)?,
+            ops::RegistryOrIndex::Registry(r) => SourceId::alt_registry(gctx, &r)?,
             ops::RegistryOrIndex::Index(url) => SourceId::for_registry(&url)?,
         }
     } else {
-        SourceId::crates_io(config)?
+        SourceId::crates_io(gctx)?
     };
 
     let root = args.get_one::<String>("root").map(String::as_str);
@@ -181,28 +181,28 @@ pub fn exec(config: &mut Config, args: &ArgMatches) -> CliResult {
     // This workspace information is for emitting helpful messages from
     // `ArgMatchesExt::compile_options` and won't affect the actual compilation.
     let workspace = if from_cwd {
-        args.workspace(config).ok()
+        args.workspace(gctx).ok()
     } else if let Some(path) = &path {
-        Workspace::new(&path.join("Cargo.toml"), config).ok()
+        Workspace::new(&path.join("Cargo.toml"), gctx).ok()
     } else {
         None
     };
 
     let mut compile_opts = args.compile_options(
-        config,
+        gctx,
         CompileMode::Build,
         workspace.as_ref(),
         ProfileChecking::Custom,
     )?;
 
     compile_opts.build_config.requested_profile =
-        args.get_profile_name(config, "release", ProfileChecking::Custom)?;
+        args.get_profile_name(gctx, "release", ProfileChecking::Custom)?;
 
     if args.flag("list") {
-        ops::install_list(root, config)?;
+        ops::install_list(root, gctx)?;
     } else {
         ops::install(
-            config,
+            gctx,
             root,
             krates,
             source,

@@ -1,6 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
+use itertools::Itertools as _;
+
+use crate::format::Indentation;
 use crate::values::value_for_array;
 use crate::Language;
 
@@ -288,82 +291,86 @@ impl IntrinsicType {
         }
     }
 
-    /// Generates a comma list of values that can be used to initialize the array that
-    /// an argument for the intrinsic call is loaded from.
+    /// Generates an initialiser for an array, which can be used to initialise an argument for the
+    /// intrinsic call.
+    ///
     /// This is determistic based on the pass number.
     ///
     /// * `loads`: The number of values that need to be loaded from the argument array
     /// * e.g for argument type uint32x2, loads=2 results in a string representing 4 32-bit values
     ///
     /// Returns a string such as
-    /// * `0x1, 0x7F, 0xFF` if `language` is `Language::C`
-    /// * `0x1 as _, 0x7F as _, 0xFF as _` if `language` is `Language::Rust`
-    pub fn populate_random(&self, loads: u32, language: &Language) -> String {
+    /// * `{0x1, 0x7F, 0xFF}` if `language` is `Language::C`
+    /// * `[0x1 as _, 0x7F as _, 0xFF as _]` if `language` is `Language::Rust`
+    pub fn populate_random(
+        &self,
+        indentation: Indentation,
+        loads: u32,
+        language: &Language,
+    ) -> String {
         match self {
-            IntrinsicType::Ptr { child, .. } => child.populate_random(loads, language),
+            IntrinsicType::Ptr { child, .. } => child.populate_random(indentation, loads, language),
             IntrinsicType::Type {
-                bit_len: Some(bit_len),
-                kind,
+                bit_len: Some(bit_len @ (8 | 16 | 32 | 64)),
+                kind: kind @ (TypeKind::Int | TypeKind::UInt | TypeKind::Poly),
                 simd_len,
                 vec_len,
                 ..
-            } if kind == &TypeKind::Int || kind == &TypeKind::UInt || kind == &TypeKind::Poly => (0
-                ..(simd_len.unwrap_or(1) * vec_len.unwrap_or(1) + loads - 1))
-                .map(|i| {
-                    format!(
-                        "{}{}",
-                        value_for_array(*bit_len, i),
-                        match language {
-                            &Language::Rust => format!(" as {ty} ", ty = self.rust_scalar_type()),
-                            &Language::C => String::from(""),
-                        }
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(","),
-            IntrinsicType::Type {
-                kind: TypeKind::Float,
-                bit_len: Some(32),
-                simd_len,
-                vec_len,
-                ..
-            } => (0..(simd_len.unwrap_or(1) * vec_len.unwrap_or(1) + loads - 1))
-                .map(|i| {
-                    format!(
-                        "{}({})",
-                        match language {
-                            &Language::Rust => "std::mem::transmute",
-                            &Language::C => "cast<float, uint32_t>",
-                        },
-                        value_for_array(32, i),
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(","),
+            } => {
+                let (prefix, suffix) = match language {
+                    &Language::Rust => ("[", "]"),
+                    &Language::C => ("{", "}"),
+                };
+                let body_indentation = indentation.nested();
+                format!(
+                    "{prefix}\n{body}\n{indentation}{suffix}",
+                    body = (0..(simd_len.unwrap_or(1) * vec_len.unwrap_or(1) + loads - 1))
+                        .format_with(",\n", |i, fmt| {
+                            let src = value_for_array(*bit_len, i);
+                            assert!(src == 0 || src.ilog2() < *bit_len);
+                            if *kind == TypeKind::Int && (src >> (*bit_len - 1)) != 0 {
+                                // `src` is a two's complement representation of a negative value.
+                                let mask = !0u64 >> (64 - *bit_len);
+                                let ones_compl = src ^ mask;
+                                let twos_compl = ones_compl + 1;
+                                if (twos_compl == src) && (language == &Language::C) {
+                                    // `src` is INT*_MIN. C requires `-0x7fffffff - 1` to avoid
+                                    // undefined literal overflow behaviour.
+                                    fmt(&format_args!("{body_indentation}-{ones_compl:#x} - 1"))
+                                } else {
+                                    fmt(&format_args!("{body_indentation}-{twos_compl:#x}"))
+                                }
+                            } else {
+                                fmt(&format_args!("{body_indentation}{src:#x}"))
+                            }
+                        })
+                )
+            }
             IntrinsicType::Type {
                 kind: TypeKind::Float,
-                bit_len: Some(64),
+                bit_len: Some(bit_len @ (32 | 64)),
                 simd_len,
                 vec_len,
                 ..
-            } => (0..(simd_len.unwrap_or(1) * vec_len.unwrap_or(1) + loads - 1))
-                .map(|i| {
-                    format!(
-                        "{}({}{})",
-                        match language {
-                            &Language::Rust => "std::mem::transmute",
-                            &Language::C => "cast<double, uint64_t>",
-                        },
-                        value_for_array(64, i),
-                        match language {
-                            &Language::Rust => " as u64",
-                            &Language::C => "",
-                        }
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(","),
-            _ => unreachable!("populate random: {:#?}", self),
+            } => {
+                let (prefix, cast_prefix, cast_suffix, suffix) = match (language, bit_len) {
+                    (&Language::Rust, 32) => ("[", "f32::from_bits(", ")", "]"),
+                    (&Language::Rust, 64) => ("[", "f64::from_bits(", ")", "]"),
+                    (&Language::C, 32) => ("{", "cast<float, uint32_t>(", ")", "}"),
+                    (&Language::C, 64) => ("{", "cast<double, uint64_t>(", ")", "}"),
+                    _ => unreachable!(),
+                };
+                format!(
+                    "{prefix}\n{body}\n{indentation}{suffix}",
+                    body = (0..(simd_len.unwrap_or(1) * vec_len.unwrap_or(1) + loads - 1))
+                        .format_with(",\n", |i, fmt| fmt(&format_args!(
+                            "{indentation}{cast_prefix}{src:#x}{cast_suffix}",
+                            indentation = indentation.nested(),
+                            src = value_for_array(*bit_len, i)
+                        )))
+                )
+            }
+            _ => unimplemented!("populate random: {:#?}", self),
         }
     }
 

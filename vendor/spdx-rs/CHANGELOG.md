@@ -6,6 +6,25 @@ SPDX-License-Identifier: MIT
 
 # Changelog
 
+## [0.5.5](https://github.com/doubleopen-project/spdx-rs/compare/v0.5.4...v0.5.5) (2023-09-19)
+
+
+### Bug Fixes
+
+* follow enum literals from schema ([23d1519](https://github.com/doubleopen-project/spdx-rs/commit/23d1519b964062fe5fa72aed200c4a47ff5c6032))
+
+## [0.5.4](https://github.com/doubleopen-project/spdx-rs/compare/v0.5.3...v0.5.4) (2023-09-01)
+
+
+### Features
+
+* allow to clone the document ([7d07772](https://github.com/doubleopen-project/spdx-rs/commit/7d077728326f22f8c3b11b30beb97640f17d540d))
+
+
+### Bug Fixes
+
+* accept complex license expression in 'LicenseInfoInFiles' ([ee8b6b9](https://github.com/doubleopen-project/spdx-rs/commit/ee8b6b9ae2e96b9a7fd7f1cb784c529e03708e5a))
+
 ## [0.5.3](https://github.com/doubleopen-project/spdx-rs/compare/v0.5.2...v0.5.3) (2023-06-29)
 
 

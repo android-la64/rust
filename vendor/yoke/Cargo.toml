@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66"
+rust-version = "1.67"
 name = "yoke"
-version = "0.7.2"
+version = "0.7.3"
 authors = ["Manish Goregaokar <manishsmail@gmail.com>"]
 include = [
     "data/**/*",
@@ -62,12 +62,12 @@ version = "1.2.0"
 default-features = false
 
 [dependencies.yoke-derive]
-version = "0.7.1"
+version = "0.7.3"
 optional = true
 default-features = false
 
 [dependencies.zerofrom]
-version = "0.1.1"
+version = "0.1.2"
 optional = true
 default-features = false
 

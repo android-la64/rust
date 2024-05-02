@@ -9,7 +9,6 @@ use crate::{
     db::ExpandDatabase,
     hygiene::{marks_rev, SyntaxContextExt, Transparency},
     name::{known, AsName, Name},
-    span_map::SpanMapRef,
     tt,
 };
 use base_db::CrateId;
@@ -49,9 +48,9 @@ impl ModPath {
     pub fn from_src(
         db: &dyn ExpandDatabase,
         path: ast::Path,
-        span_map: SpanMapRef<'_>,
+        span_for_range: &mut dyn FnMut(::tt::TextRange) -> SyntaxContextId,
     ) -> Option<ModPath> {
-        convert_path(db, path, span_map)
+        convert_path(db, path, span_for_range)
     }
 
     pub fn from_tt(db: &dyn ExpandDatabase, tt: &[tt::TokenTree]) -> Option<ModPath> {
@@ -94,6 +93,21 @@ impl ModPath {
             }
     }
 
+    pub fn textual_len(&self) -> usize {
+        let base = match self.kind {
+            PathKind::Plain => 0,
+            PathKind::Super(0) => "self".len(),
+            PathKind::Super(i) => "super".len() * i as usize,
+            PathKind::Crate => "crate".len(),
+            PathKind::Abs => 0,
+            PathKind::DollarCrate(_) => "$crate".len(),
+        };
+        self.segments()
+            .iter()
+            .map(|segment| segment.as_str().map_or(0, str::len))
+            .fold(base, core::ops::Add::add)
+    }
+
     pub fn is_ident(&self) -> bool {
         self.as_ident().is_some()
     }
@@ -126,6 +140,12 @@ impl ModPath {
 
     pub fn display<'a>(&'a self, db: &'a dyn crate::db::ExpandDatabase) -> impl fmt::Display + 'a {
         Display { db, path: self }
+    }
+}
+
+impl Extend<Name> for ModPath {
+    fn extend<T: IntoIterator<Item = Name>>(&mut self, iter: T) {
+        self.segments.extend(iter);
     }
 }
 
@@ -200,7 +220,7 @@ fn display_fmt_path(
 fn convert_path(
     db: &dyn ExpandDatabase,
     path: ast::Path,
-    span_map: SpanMapRef<'_>,
+    span_for_range: &mut dyn FnMut(::tt::TextRange) -> SyntaxContextId,
 ) -> Option<ModPath> {
     let mut segments = path.segments();
 
@@ -209,12 +229,9 @@ fn convert_path(
         ast::PathSegmentKind::Name(name_ref) => {
             if name_ref.text() == "$crate" {
                 ModPath::from_kind(
-                    resolve_crate_root(
-                        db,
-                        span_map.span_for_range(name_ref.syntax().text_range()).ctx,
-                    )
-                    .map(PathKind::DollarCrate)
-                    .unwrap_or(PathKind::Crate),
+                    resolve_crate_root(db, span_for_range(name_ref.syntax().text_range()))
+                        .map(PathKind::DollarCrate)
+                        .unwrap_or(PathKind::Crate),
                 )
             } else {
                 let mut res = ModPath::from_kind(
@@ -232,7 +249,7 @@ fn convert_path(
         ast::PathSegmentKind::SuperKw => {
             let mut deg = 1;
             let mut next_segment = None;
-            while let Some(segment) = segments.next() {
+            for segment in segments.by_ref() {
                 match segment.kind()? {
                     ast::PathSegmentKind::SuperKw => deg += 1,
                     ast::PathSegmentKind::Name(name) => {
@@ -268,7 +285,7 @@ fn convert_path(
     // We follow what it did anyway :)
     if mod_path.segments.len() == 1 && mod_path.kind == PathKind::Plain {
         if let Some(_macro_call) = path.syntax().parent().and_then(ast::MacroCall::cast) {
-            let syn_ctx = span_map.span_for_range(segment.syntax().text_range()).ctx;
+            let syn_ctx = span_for_range(segment.syntax().text_range());
             if let Some(macro_call_id) = db.lookup_intern_syntax_context(syn_ctx).outer_expn {
                 if db.lookup_intern_macro_call(macro_call_id).def.local_inner {
                     mod_path.kind = match resolve_crate_root(db, syn_ctx) {
@@ -284,13 +301,13 @@ fn convert_path(
 }
 
 fn convert_path_tt(db: &dyn ExpandDatabase, tt: &[tt::TokenTree]) -> Option<ModPath> {
-    let mut leafs = tt.iter().filter_map(|tt| match tt {
+    let mut leaves = tt.iter().filter_map(|tt| match tt {
         tt::TokenTree::Leaf(leaf) => Some(leaf),
         tt::TokenTree::Subtree(_) => None,
     });
     let mut segments = smallvec::smallvec![];
-    let kind = match leafs.next()? {
-        tt::Leaf::Punct(tt::Punct { char: ':', .. }) => match leafs.next()? {
+    let kind = match leaves.next()? {
+        tt::Leaf::Punct(tt::Punct { char: ':', .. }) => match leaves.next()? {
             tt::Leaf::Punct(tt::Punct { char: ':', .. }) => PathKind::Abs,
             _ => return None,
         },
@@ -300,7 +317,7 @@ fn convert_path_tt(db: &dyn ExpandDatabase, tt: &[tt::TokenTree]) -> Option<ModP
         tt::Leaf::Ident(tt::Ident { text, .. }) if text == "self" => PathKind::Super(0),
         tt::Leaf::Ident(tt::Ident { text, .. }) if text == "super" => {
             let mut deg = 1;
-            while let Some(tt::Leaf::Ident(tt::Ident { text, .. })) = leafs.next() {
+            while let Some(tt::Leaf::Ident(tt::Ident { text, .. })) = leaves.next() {
                 if text != "super" {
                     segments.push(Name::new_text_dont_use(text.clone()));
                     break;
@@ -316,7 +333,7 @@ fn convert_path_tt(db: &dyn ExpandDatabase, tt: &[tt::TokenTree]) -> Option<ModP
         }
         _ => return None,
     };
-    segments.extend(leafs.filter_map(|leaf| match leaf {
+    segments.extend(leaves.filter_map(|leaf| match leaf {
         ::tt::Leaf::Ident(ident) => Some(Name::new_text_dont_use(ident.text.clone())),
         _ => None,
     }));
@@ -343,7 +360,7 @@ pub fn resolve_crate_root(db: &dyn ExpandDatabase, mut ctxt: SyntaxContextId) ->
         result_mark = Some(mark);
     }
 
-    result_mark.flatten().map(|call| db.lookup_intern_macro_call(call).def.krate)
+    result_mark.map(|call| db.lookup_intern_macro_call(call).def.krate)
 }
 
 pub use crate::name as __name;

@@ -4,15 +4,18 @@ eyre
 [![Build Status][actions-badge]][actions-url]
 [![Latest Version](https://img.shields.io/crates/v/eyre.svg)](https://crates.io/crates/eyre)
 [![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/eyre)
+[![Discord chat][discord-badge]][discord-url]
 
-[actions-badge]: https://github.com/yaahc/eyre/workflows/Continuous%20integration/badge.svg
-[actions-url]: https://github.com/yaahc/eyre/actions?query=workflow%3A%22Continuous+integration%22
+[actions-badge]: https://github.com/eyre-rs/eyre/workflows/Continuous%20integration/badge.svg
+[actions-url]: https://github.com/eyre-rs/eyre/actions?query=workflow%3A%22Continuous+integration%22
+[discord-badge]: https://img.shields.io/discord/960645145018110012?label=eyre%20community%20discord
+[discord-url]: https://discord.gg/z94RqmUTKB
 
 This library provides [`eyre::Report`][Report], a trait object based
 error handling type for easy idiomatic error handling and reporting in Rust
 applications.
 
-This crate is a fork of [`anyhow`]  with a support for customized
+This crate is a fork of [`anyhow`]  with support for customized
 error reports. For more details on customization checkout the docs on
 [`eyre::EyreHandler`].
 
@@ -168,23 +171,9 @@ avoid using `eyre::Report` as your public error type.
 
 ## No-std support
 
-**NOTE**: tests are currently broken for `no_std` so I cannot guarantee that
-everything works still. I'm waiting for upstream fixes to be merged rather than
-fixing them myself, so bear with me.
-
-In no_std mode, the same API is almost all available and works the same way. To
-depend on Eyre in no_std mode, disable our default enabled "std" feature in
-Cargo.toml. A global allocator is required.
-
-```toml
-[dependencies]
-eyre = { version = "0.6", default-features = false }
-```
-
-Since the `?`-based error conversions would normally rely on the
-`std::error::Error` trait which is only available through std, no_std mode will
-require an explicit `.map_err(Report::msg)` when working with a non-Eyre error
-type inside a function that returns Eyre's error type.
+No-std support was removed in 2020 in [commit 608a16a] due to unaddressed upstream breakages.
+[commit 608a16a]:
+https://github.com/eyre-rs/eyre/pull/29/commits/608a16aa2c2c27eca6c88001cc94c6973c18f1d5
 
 ## Comparison to failure
 
@@ -219,24 +208,30 @@ implies that you're creating a new error that saves the old error as its
 `source`. With `Option` there is no source error to wrap, so `wrap_err` ends up
 being somewhat meaningless.
 
-Instead `eyre` intends for users to use the combinator functions provided by
-`std` for converting `Option`s to `Result`s. So where you would write this with
+Instead `eyre` offers [`OptionExt::ok_or_eyre`] to yield _static_ errors from `None`,
+and intends for users to use the combinator functions provided by
+`std`, converting `Option`s to `Result`s, for _dynamic_ errors.
+So where you would write this with
 anyhow:
+
+[`OptionExt::ok_or_eyre`]: https://docs.rs/eyre/latest/eyre/trait.OptionExt.html#tymethod.ok_or_eyre
 
 ```rust
 use anyhow::Context;
 
 let opt: Option<()> = None;
-let result = opt.context("new error message");
+let result_static = opt.context("static error message");
+let result_dynamic = opt.with_context(|| format!("{} error message", "dynamic"));
 ```
 
 With `eyre` we want users to write:
 
 ```rust
-use eyre::{eyre, Result};
+use eyre::{eyre, OptionExt, Result};
 
 let opt: Option<()> = None;
-let result: Result<()> = opt.ok_or_else(|| eyre!("new error message"));
+let result_static: Result<()> = opt.ok_or_eyre("static error message");
+let result_dynamic: Result<()> = opt.ok_or_else(|| eyre!("{} error message", "dynamic"));
 ```
 
 **NOTE**: However, to help with porting we do provide a `ContextCompat` trait which
@@ -249,14 +244,14 @@ implements `context` for options which you can import to make existing
 [`anyhow::Context`]: https://docs.rs/anyhow/*/anyhow/trait.Context.html
 [`anyhow`]: https://github.com/dtolnay/anyhow
 [`tracing_error::SpanTrace`]: https://docs.rs/tracing-error/*/tracing_error/struct.SpanTrace.html
-[`stable-eyre`]: https://github.com/yaahc/stable-eyre
-[`color-eyre`]: https://github.com/yaahc/color-eyre
+[`stable-eyre`]: https://github.com/eyre-rs/stable-eyre
+[`color-eyre`]: https://github.com/eyre-rs/color-eyre
 [`jane-eyre`]: https://github.com/yaahc/jane-eyre
-[`simple-eyre`]: https://github.com/yaahc/simple-eyre
-[`color-spantrace`]: https://github.com/yaahc/color-spantrace
+[`simple-eyre`]: https://github.com/eyre-rs/simple-eyre
+[`color-spantrace`]: https://github.com/eyre-rs/color-spantrace
 [`color-backtrace`]: https://github.com/athre0z/color-backtrace
 
-[^1]: example and explanation of breakage https://github.com/yaahc/eyre/issues/30#issuecomment-647650361
+[^1]: example and explanation of breakage https://github.com/eyre-rs/eyre/issues/30#issuecomment-647650361
 
 #### License
 

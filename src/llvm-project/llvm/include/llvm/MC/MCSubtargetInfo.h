@@ -230,12 +230,13 @@ public:
     return Found != ProcDesc.end() && StringRef(Found->Key) == CPU;
   }
 
+  /// Return processor descriptions.
   ArrayRef<SubtargetSubTypeKV> getAllProcessorDescriptions() const {
     return ProcDesc;
   }
 
-
-  ArrayRef<SubtargetFeatureKV> getFeatureTable() const {
+  /// Return processor features.
+  ArrayRef<SubtargetFeatureKV> getAllProcessorFeatures() const {
     return ProcFeatures;
   }
 

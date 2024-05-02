@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "tikv-jemalloc-ctl"
-version = "0.5.0"
+version = "0.5.4"
 authors = [
     "Steven Fackler <sfackler@gmail.com>",
     "Gonzalo Brito Gadeschi <gonzalobg88@gmail.com>",
@@ -57,6 +57,7 @@ version = "0.5.0"
 
 [features]
 default = []
+disable_initial_exec_tls = ["tikv-jemalloc-sys/disable_initial_exec_tls"]
 use_std = ["libc/use_std"]
 
 [badges.codecov]

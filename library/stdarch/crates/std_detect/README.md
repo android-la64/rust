@@ -9,7 +9,7 @@ supports certain features, like SIMD instructions.
 
 `std::detect` APIs are available as part of `libstd`. Prefer using it via the
 standard library than through this crate. Unstable features of `std::detect` are
-available on nightly Rust behind the `feature(stdsimd)` feature-gate.
+available on nightly Rust behind various feature-gates.
 
 If you need run-time feature detection in `#[no_std]` environments, Rust `core`
 library cannot help you. By design, Rust `core` is platform independent, but
@@ -53,7 +53,7 @@ crate from working on applications in which `std` is not available.
   [`cupid`](https://crates.io/crates/cupid) crate.
 
 * Linux/Android:
-  * `arm{32, 64}`, `mips{32,64}{,el}`, `powerpc{32,64}{,le}`, `riscv{32,64}`: `std_detect`
+  * `arm{32, 64}`, `mips{32,64}{,el}`, `powerpc{32,64}{,le}`, `riscv{32,64}`, `loongarch64`: `std_detect`
     supports these on Linux by querying ELF auxiliary vectors (using `getauxval`
     when available), and if that fails, by querying `/proc/cpuinfo`.
   * `arm64`: partial support for doing run-time feature detection by directly

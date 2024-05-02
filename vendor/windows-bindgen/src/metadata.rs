@@ -40,7 +40,6 @@ pub enum SignatureParamKind {
     ArrayRelativeLen(usize),
     ArrayRelativeByteLen(usize),
     ArrayRelativePtr(usize),
-    TryInto,
     IntoParam,
     OptionalPointer,
     ValueType,
@@ -115,7 +114,7 @@ impl SignatureParamKind {
 
 impl SignatureParam {
     pub fn is_convertible(&self) -> bool {
-        !self.def.flags().contains(ParamAttributes::Out) && !self.ty.is_winrt_array() && !self.ty.is_pointer() && !self.kind.is_array() && (type_is_borrowed(&self.ty) || type_is_non_exclusive_winrt_interface(&self.ty) || type_is_trivially_convertible(&self.ty))
+        !self.def.flags().contains(ParamAttributes::Out) && !self.ty.is_winrt_array() && !self.ty.is_pointer() && !self.kind.is_array() && (type_is_borrowed(&self.ty) || type_is_trivially_convertible(&self.ty))
     }
 
     fn is_retval(&self) -> bool {
@@ -174,7 +173,6 @@ impl Signature {
                     SignatureKind::ResultVoid
                 }
             }
-            Type::TypeDef(def, _) if def.type_name() == TypeName::WIN32_ERROR => SignatureKind::ResultVoid,
             Type::TypeDef(def, _) if def.type_name() == TypeName::BOOL && method_def_last_error(self.def) => SignatureKind::ResultVoid,
             _ if type_is_struct(&self.return_type) => SignatureKind::ReturnStruct,
             _ => SignatureKind::PreserveSig,
@@ -182,6 +180,14 @@ impl Signature {
     }
 
     fn is_retval(&self) -> bool {
+        // First we check whether there's an actual retval parameter.
+        if let Some(param) = self.params.last() {
+            if param.def.has_attribute("RetValAttribute") {
+                return true;
+            }
+        }
+
+        // Then we see if we can infer retval-like behavior more conservatively.
         self.params.last().map_or(false, |param| param.is_retval())
             && self.params[..self.params.len() - 1].iter().all(|param| {
                 let flags = param.def.flags();
@@ -292,11 +298,7 @@ pub fn method_def_signature(namespace: &str, row: MethodDef, generics: &[Type]) 
     for param in &mut params {
         if param.kind == SignatureParamKind::Other {
             if param.is_convertible() {
-                if type_is_non_exclusive_winrt_interface(&param.ty) {
-                    param.kind = SignatureParamKind::TryInto;
-                } else {
-                    param.kind = SignatureParamKind::IntoParam;
-                }
+                param.kind = SignatureParamKind::IntoParam;
             } else {
                 let flags = param.def.flags();
                 if param.ty.is_pointer() && (flags.contains(ParamAttributes::Optional) || param.def.has_attribute("ReservedAttribute")) {
@@ -340,6 +342,10 @@ fn param_kind(row: Param) -> SignatureParamKind {
 
 // TODO: this is a terribly broken Win32 metadata attribute - need to get rid of it.
 fn param_or_enum(row: Param) -> Option<String> {
+    if row.flags().contains(ParamAttributes::Out) {
+        return None;
+    }
+
     row.find_attribute("AssociatedEnumAttribute").and_then(|attribute| {
         for (_, arg) in attribute.args() {
             if let Value::String(name) = arg {
@@ -371,25 +377,7 @@ fn method_def_last_error(row: MethodDef) -> bool {
 pub fn type_is_borrowed(ty: &Type) -> bool {
     match ty {
         Type::TypeDef(row, _) => !type_def_is_blittable(*row),
-        Type::BSTR | Type::PCSTR | Type::PCWSTR | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => true,
-        _ => false,
-    }
-}
-
-pub fn type_is_non_exclusive_winrt_interface(ty: &Type) -> bool {
-    match ty {
-        Type::TypeDef(row, _) => {
-            let flags = row.flags();
-            if !flags.contains(TypeAttributes::WindowsRuntime) {
-                false
-            } else {
-                match row.kind() {
-                    TypeKind::Interface => !type_def_is_exclusive(*row),
-                    TypeKind::Class => row.has_attribute("ComposableAttribute"),
-                    _ => false,
-                }
-            }
-        }
+        Type::BSTR | Type::VARIANT | Type::PROPVARIANT | Type::PCSTR | Type::PCWSTR | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => true,
         _ => false,
     }
 }
@@ -518,7 +506,7 @@ pub fn field_is_copyable(row: Field, enclosing: TypeDef) -> bool {
 pub fn type_is_blittable(ty: &Type) -> bool {
     match ty {
         Type::TypeDef(row, _) => type_def_is_blittable(*row),
-        Type::String | Type::BSTR | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => false,
+        Type::String | Type::BSTR | Type::VARIANT | Type::PROPVARIANT | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => false,
         Type::Win32Array(kind, _) => type_is_blittable(kind),
         Type::WinrtArray(kind) => type_is_blittable(kind),
         _ => true,
@@ -528,7 +516,7 @@ pub fn type_is_blittable(ty: &Type) -> bool {
 fn type_is_copyable(ty: &Type) -> bool {
     match ty {
         Type::TypeDef(row, _) => type_def_is_copyable(*row),
-        Type::String | Type::BSTR | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => false,
+        Type::String | Type::BSTR | Type::VARIANT | Type::PROPVARIANT | Type::IInspectable | Type::IUnknown | Type::GenericParam(_) => false,
         Type::Win32Array(kind, _) => type_is_copyable(kind),
         Type::WinrtArray(kind) => type_is_copyable(kind),
         _ => true,

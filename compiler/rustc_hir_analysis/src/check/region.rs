@@ -6,7 +6,7 @@
 //!
 //! [rustc dev guide]: https://rustc-dev-guide.rust-lang.org/borrow_check.html
 
-use rustc_ast::walk_list;
+use rustc_ast::visit::walk_list;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_hir as hir;
 use rustc_hir::def_id::DefId;
@@ -16,7 +16,6 @@ use rustc_index::Idx;
 use rustc_middle::middle::region::*;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::source_map;
-use rustc_span::Span;
 
 use super::errs::{maybe_expr_static_mut, maybe_stmt_static_mut};
 
@@ -72,11 +71,7 @@ struct RegionResolutionVisitor<'tcx> {
 }
 
 /// Records the lifetime of a local variable as `cx.var_parent`
-fn record_var_lifetime(
-    visitor: &mut RegionResolutionVisitor<'_>,
-    var_id: hir::ItemLocalId,
-    _sp: Span,
-) {
+fn record_var_lifetime(visitor: &mut RegionResolutionVisitor<'_>, var_id: hir::ItemLocalId) {
     match visitor.cx.var_parent {
         None => {
             // this can happen in extern fn declarations like
@@ -128,7 +123,7 @@ fn resolve_block<'tcx>(visitor: &mut RegionResolutionVisitor<'tcx>, blk: &'tcx h
 
         for (i, statement) in blk.stmts.iter().enumerate() {
             match statement.kind {
-                hir::StmtKind::Local(hir::Local { els: Some(els), .. }) => {
+                hir::StmtKind::Let(hir::Local { els: Some(els), .. }) => {
                     // Let-else has a special lexical structure for variables.
                     // First we take a checkpoint of the current scope context here.
                     let mut prev_cx = visitor.cx;
@@ -151,7 +146,7 @@ fn resolve_block<'tcx>(visitor: &mut RegionResolutionVisitor<'tcx>, blk: &'tcx h
                     // From now on, we continue normally.
                     visitor.cx = prev_cx;
                 }
-                hir::StmtKind::Local(..) => {
+                hir::StmtKind::Let(..) => {
                     // Each declaration introduces a subscope for bindings
                     // introduced by the declaration; this subscope covers a
                     // suffix of the block. Each subscope in a block has the
@@ -210,7 +205,7 @@ fn resolve_pat<'tcx>(visitor: &mut RegionResolutionVisitor<'tcx>, pat: &'tcx hir
 
     // If this is a binding then record the lifetime of that binding.
     if let PatKind::Binding(..) = pat.kind {
-        record_var_lifetime(visitor, pat.hir_id.local_id, pat.span);
+        record_var_lifetime(visitor, pat.hir_id.local_id);
     }
 
     debug!("resolve_pat - pre-increment {} pat = {:?}", visitor.expr_and_pat_count, pat);

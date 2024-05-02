@@ -3,7 +3,7 @@ use std::fmt;
 use either::{Either, Left, Right};
 
 use rustc_apfloat::{
-    ieee::{Double, Single},
+    ieee::{Double, Half, Quad, Single},
     Float,
 };
 use rustc_macros::HashStable;
@@ -202,12 +202,22 @@ impl<Prov> Scalar<Prov> {
     }
 
     #[inline]
+    pub fn from_f16(f: Half) -> Self {
+        Scalar::Int(f.into())
+    }
+
+    #[inline]
     pub fn from_f32(f: Single) -> Self {
         Scalar::Int(f.into())
     }
 
     #[inline]
     pub fn from_f64(f: Double) -> Self {
+        Scalar::Int(f.into())
+    }
+
+    #[inline]
+    pub fn from_f128(f: Quad) -> Self {
         Scalar::Int(f.into())
     }
 
@@ -418,8 +428,13 @@ impl<'tcx, Prov: Provenance> Scalar<Prov> {
 
     #[inline]
     pub fn to_float<F: Float>(self) -> InterpResult<'tcx, F> {
-        // Going through `to_uint` to check size and truncation.
-        Ok(F::from_bits(self.to_uint(Size::from_bits(F::BITS))?))
+        // Going through `to_bits` to check size and truncation.
+        Ok(F::from_bits(self.to_bits(Size::from_bits(F::BITS))?))
+    }
+
+    #[inline]
+    pub fn to_f16(self) -> InterpResult<'tcx, Half> {
+        self.to_float()
     }
 
     #[inline]
@@ -429,6 +444,11 @@ impl<'tcx, Prov: Provenance> Scalar<Prov> {
 
     #[inline]
     pub fn to_f64(self) -> InterpResult<'tcx, Double> {
+        self.to_float()
+    }
+
+    #[inline]
+    pub fn to_f128(self) -> InterpResult<'tcx, Quad> {
         self.to_float()
     }
 }

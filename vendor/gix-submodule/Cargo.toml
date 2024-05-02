@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-submodule"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -31,19 +31,19 @@ version = "1.5.0"
 default-features = false
 
 [dependencies.gix-config]
-version = "^0.33.1"
+version = "^0.34.0"
 
 [dependencies.gix-path]
-version = "^0.10.3"
+version = "^0.10.4"
 
 [dependencies.gix-pathspec]
-version = "^0.5.1"
+version = "^0.6.0"
 
 [dependencies.gix-refspec]
-version = "^0.21.1"
+version = "^0.22.0"
 
 [dependencies.gix-url]
-version = "^0.26.1"
+version = "^0.27.0"
 
 [dependencies.thiserror]
 version = "1.0.44"

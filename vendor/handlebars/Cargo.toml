@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.66"
 name = "handlebars"
-version = "5.0.0"
+version = "5.1.0"
 authors = ["Ning Sun <sunng@pm.me>"]
 description = "Handlebars templating implemented in Rust."
 homepage = "https://github.com/sunng87/handlebars-rust"

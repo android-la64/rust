@@ -10,9 +10,10 @@ use crate::rustc_middle::ty::Article;
 use crate::ty::TypeAndMut;
 use core::cmp::min;
 use core::iter;
+use hir::def_id::LocalDefId;
 use rustc_ast::util::parser::{ExprPrecedence, PREC_POSTFIX};
 use rustc_data_structures::packed::Pu128;
-use rustc_errors::{Applicability, Diagnostic, MultiSpan};
+use rustc_errors::{Applicability, Diag, MultiSpan};
 use rustc_hir as hir;
 use rustc_hir::def::Res;
 use rustc_hir::def::{CtorKind, CtorOf, DefKind};
@@ -22,7 +23,7 @@ use rustc_hir::{
     Path, QPath, Stmt, StmtKind, TyKind, WherePredicate,
 };
 use rustc_hir_analysis::astconv::AstConv;
-use rustc_infer::traits::{self, StatementAsExpression};
+use rustc_infer::traits::{self};
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::middle::stability::EvalResult;
 use rustc_middle::ty::print::with_no_trimmed_paths;
@@ -48,7 +49,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             .copied()
     }
 
-    pub(in super::super) fn suggest_semicolon_at_end(&self, span: Span, err: &mut Diagnostic) {
+    pub(in super::super) fn suggest_semicolon_at_end(&self, span: Span, err: &mut Diag<'_>) {
         // This suggestion is incorrect for
         // fn foo() -> bool { match () { () => true } || match () { () => true } }
         err.span_suggestion_short(
@@ -66,7 +67,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// - Possible missing return type if the return type is the default, and not `fn main()`.
     pub fn suggest_mismatched_types_on_tail(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &'tcx hir::Expr<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
@@ -97,7 +98,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// ```
     pub(crate) fn suggest_fn_call(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         found: Ty<'tcx>,
         can_satisfy: impl FnOnce(Ty<'tcx>) -> bool,
@@ -179,7 +180,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub fn suggest_two_fn_call(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         lhs_expr: &'tcx hir::Expr<'tcx>,
         lhs_ty: Ty<'tcx>,
         rhs_expr: &'tcx hir::Expr<'tcx>,
@@ -253,7 +254,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub fn suggest_remove_last_method_call(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         expected: Ty<'tcx>,
     ) -> bool {
@@ -261,6 +262,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             expr.kind
             && let Some(recv_ty) = self.typeck_results.borrow().expr_ty_opt(recv_expr)
             && self.can_coerce(recv_ty, expected)
+            && let name = method.name.as_str()
+            && (name.starts_with("to_") || name.starts_with("as_") || name == "into")
         {
             let span = if let Some(recv_span) = recv_expr.span.find_ancestor_inside(expr.span) {
                 expr.span.with_lo(recv_span.hi())
@@ -280,7 +283,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub fn suggest_deref_ref_or_into(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
@@ -456,13 +459,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // but those checks need to be a bit more delicate and the benefit is diminishing.
             if self.can_eq(self.param_env, found_ty_inner, peeled) && error_tys_equate_as_ref {
                 let sugg = prefix_wrap(".as_ref()");
-                err.subdiagnostic(errors::SuggestConvertViaMethod {
-                    span: expr.span.shrink_to_hi(),
-                    sugg,
-                    expected,
-                    found,
-                    borrow_removal_span,
-                });
+                err.subdiagnostic(
+                    self.dcx(),
+                    errors::SuggestConvertViaMethod {
+                        span: expr.span.shrink_to_hi(),
+                        sugg,
+                        expected,
+                        found,
+                        borrow_removal_span,
+                    },
+                );
                 return true;
             } else if let Some((deref_ty, _)) =
                 self.autoderef(expr.span, found_ty_inner).silence_errors().nth(1)
@@ -470,13 +476,16 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 && error_tys_equate_as_ref
             {
                 let sugg = prefix_wrap(".as_deref()");
-                err.subdiagnostic(errors::SuggestConvertViaMethod {
-                    span: expr.span.shrink_to_hi(),
-                    sugg,
-                    expected,
-                    found,
-                    borrow_removal_span,
-                });
+                err.subdiagnostic(
+                    self.dcx(),
+                    errors::SuggestConvertViaMethod {
+                        span: expr.span.shrink_to_hi(),
+                        sugg,
+                        expected,
+                        found,
+                        borrow_removal_span,
+                    },
+                );
                 return true;
             } else if let ty::Adt(adt, _) = found_ty_inner.peel_refs().kind()
                 && Some(adt.did()) == self.tcx.lang_items().string()
@@ -532,7 +541,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// in the heap by calling `Box::new()`.
     pub(in super::super) fn suggest_boxing_when_appropriate(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         span: Span,
         hir_id: HirId,
         expected: Ty<'tcx>,
@@ -563,7 +572,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     end: span.shrink_to_hi(),
                 },
             };
-            err.subdiagnostic(suggest_boxing);
+            err.subdiagnostic(self.dcx(), suggest_boxing);
 
             true
         } else {
@@ -575,7 +584,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// suggest a non-capturing closure
     pub(in super::super) fn suggest_no_capture_closure(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
     ) -> bool {
@@ -612,7 +621,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     #[instrument(skip(self, err))]
     pub(in super::super) fn suggest_calling_boxed_future_when_appropriate(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
@@ -679,9 +688,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // Check if the parent expression is a call to Pin::new. If it
                 // is and we were expecting a Box, ergo Pin<Box<expected>>, we
                 // can suggest Box::pin.
-                let parent = self.tcx.hir().parent_id(expr.hir_id);
-                let Some(Node::Expr(Expr { kind: ExprKind::Call(fn_name, _), .. })) =
-                    self.tcx.opt_hir_node(parent)
+                let Node::Expr(Expr { kind: ExprKind::Call(fn_name, _), .. }) =
+                    self.tcx.parent_hir_node(expr.hir_id)
                 else {
                     return false;
                 };
@@ -725,7 +733,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// block is needed to be added too (`|| { expr; }`). This is denoted by `needs_block`.
     pub fn suggest_missing_semicolon(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expression: &'tcx hir::Expr<'tcx>,
         expected: Ty<'tcx>,
         needs_block: bool,
@@ -784,12 +792,12 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     #[instrument(level = "trace", skip(self, err))]
     pub(in super::super) fn suggest_missing_return_type(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         fn_decl: &hir::FnDecl<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
         can_suggest: bool,
-        fn_id: hir::HirId,
+        fn_id: LocalDefId,
     ) -> bool {
         let found =
             self.resolve_numeric_literals_with_default(self.resolve_vars_if_possible(found));
@@ -798,34 +806,41 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         match &fn_decl.output {
             &hir::FnRetTy::DefaultReturn(span) if expected.is_unit() && !can_suggest => {
                 // `fn main()` must return `()`, do not suggest changing return type
-                err.subdiagnostic(errors::ExpectedReturnTypeLabel::Unit { span });
+                err.subdiagnostic(self.dcx(), errors::ExpectedReturnTypeLabel::Unit { span });
                 return true;
             }
             &hir::FnRetTy::DefaultReturn(span) if expected.is_unit() => {
                 if let Some(found) = found.make_suggestable(self.tcx, false) {
-                    err.subdiagnostic(errors::AddReturnTypeSuggestion::Add {
-                        span,
-                        found: found.to_string(),
-                    });
+                    err.subdiagnostic(
+                        self.dcx(),
+                        errors::AddReturnTypeSuggestion::Add { span, found: found.to_string() },
+                    );
                     return true;
                 } else if let ty::Closure(_, args) = found.kind()
                     // FIXME(compiler-errors): Get better at printing binders...
                     && let closure = args.as_closure()
                     && closure.sig().is_suggestable(self.tcx, false)
                 {
-                    err.subdiagnostic(errors::AddReturnTypeSuggestion::Add {
-                        span,
-                        found: closure.print_as_impl_trait().to_string(),
-                    });
+                    err.subdiagnostic(
+                        self.dcx(),
+                        errors::AddReturnTypeSuggestion::Add {
+                            span,
+                            found: closure.print_as_impl_trait().to_string(),
+                        },
+                    );
                     return true;
                 } else {
                     // FIXME: if `found` could be `impl Iterator` we should suggest that.
-                    err.subdiagnostic(errors::AddReturnTypeSuggestion::MissingHere { span });
+                    err.subdiagnostic(
+                        self.dcx(),
+                        errors::AddReturnTypeSuggestion::MissingHere { span },
+                    );
                     return true;
                 }
             }
             hir::FnRetTy::Return(hir_ty) => {
                 if let hir::TyKind::OpaqueDef(item_id, ..) = hir_ty.kind
+                    // FIXME: account for RPITIT.
                     && let hir::Node::Item(hir::Item {
                         kind: hir::ItemKind::OpaqueTy(op_ty), ..
                     }) = self.tcx.hir_node(item_id.hir_id())
@@ -841,16 +856,22 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     debug!(?found);
                     if found.is_suggestable(self.tcx, false) {
                         if term.span.is_empty() {
-                            err.subdiagnostic(errors::AddReturnTypeSuggestion::Add {
-                                span: term.span,
-                                found: found.to_string(),
-                            });
+                            err.subdiagnostic(
+                                self.dcx(),
+                                errors::AddReturnTypeSuggestion::Add {
+                                    span: term.span,
+                                    found: found.to_string(),
+                                },
+                            );
                             return true;
                         } else {
-                            err.subdiagnostic(errors::ExpectedReturnTypeLabel::Other {
-                                span: term.span,
-                                expected,
-                            });
+                            err.subdiagnostic(
+                                self.dcx(),
+                                errors::ExpectedReturnTypeLabel::Other {
+                                    span: term.span,
+                                    expected,
+                                },
+                            );
                         }
                     }
                 } else {
@@ -865,10 +886,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     let ty = self.normalize(hir_ty.span, ty);
                     let ty = self.tcx.instantiate_bound_regions_with_erased(ty);
                     if self.can_coerce(expected, ty) {
-                        err.subdiagnostic(errors::ExpectedReturnTypeLabel::Other {
-                            span: hir_ty.span,
-                            expected,
-                        });
+                        err.subdiagnostic(
+                            self.dcx(),
+                            errors::ExpectedReturnTypeLabel::Other { span: hir_ty.span, expected },
+                        );
                         self.try_suggest_return_impl_trait(err, expected, ty, fn_id);
                         return true;
                     }
@@ -889,10 +910,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// ```
     fn try_suggest_return_impl_trait(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
-        fn_id: hir::HirId,
+        fn_id: LocalDefId,
     ) {
         // Only apply the suggestion if:
         //  - the return type is a generic parameter
@@ -906,9 +927,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let ty::Param(expected_ty_as_param) = expected.kind() else { return };
 
-        let fn_node = self.tcx.opt_hir_node(fn_id);
+        let fn_node = self.tcx.hir_node_by_def_id(fn_id);
 
-        let Some(hir::Node::Item(hir::Item {
+        let hir::Node::Item(hir::Item {
             kind:
                 hir::ItemKind::Fn(
                     hir::FnSig {
@@ -919,7 +940,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     _body_id,
                 ),
             ..
-        })) = fn_node
+        }) = fn_node
         else {
             return;
         };
@@ -994,13 +1015,13 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(in super::super) fn suggest_missing_break_or_return_expr(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &'tcx hir::Expr<'tcx>,
         fn_decl: &hir::FnDecl<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
         id: hir::HirId,
-        fn_id: hir::HirId,
+        fn_id: LocalDefId,
     ) {
         if !expected.is_unit() {
             return;
@@ -1037,46 +1058,70 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             return;
         }
 
-        if let hir::FnRetTy::Return(ty) = fn_decl.output {
-            let ty = self.astconv().ast_ty_to_ty(ty);
-            let bound_vars = self.tcx.late_bound_vars(fn_id);
-            let ty = self
-                .tcx
-                .instantiate_bound_regions_with_erased(Binder::bind_with_vars(ty, bound_vars));
-            let ty = match self.tcx.asyncness(fn_id.owner) {
-                ty::Asyncness::Yes => self.get_impl_future_output_ty(ty).unwrap_or_else(|| {
-                    span_bug!(fn_decl.output.span(), "failed to get output type of async function")
-                }),
-                ty::Asyncness::No => ty,
-            };
-            let ty = self.normalize(expr.span, ty);
-            if self.can_coerce(found, ty) {
-                if let Some(node) = self.tcx.opt_hir_node(fn_id)
-                    && let Some(owner_node) = node.as_owner()
-                    && let Some(span) = expr.span.find_ancestor_inside(owner_node.span())
-                {
-                    err.multipart_suggestion(
-                        "you might have meant to return this value",
-                        vec![
-                            (span.shrink_to_lo(), "return ".to_string()),
-                            (span.shrink_to_hi(), ";".to_string()),
-                        ],
-                        Applicability::MaybeIncorrect,
-                    );
-                }
+        let scope = self.tcx.hir().parent_iter(id).find(|(_, node)| {
+            matches!(
+                node,
+                Node::Expr(Expr { kind: ExprKind::Closure(..), .. })
+                    | Node::Item(_)
+                    | Node::TraitItem(_)
+                    | Node::ImplItem(_)
+            )
+        });
+        let in_closure =
+            matches!(scope, Some((_, Node::Expr(Expr { kind: ExprKind::Closure(..), .. }))));
+
+        let can_return = match fn_decl.output {
+            hir::FnRetTy::Return(ty) => {
+                let ty = self.astconv().ast_ty_to_ty(ty);
+                let bound_vars = self.tcx.late_bound_vars(self.tcx.local_def_id_to_hir_id(fn_id));
+                let ty = self
+                    .tcx
+                    .instantiate_bound_regions_with_erased(Binder::bind_with_vars(ty, bound_vars));
+                let ty = match self.tcx.asyncness(fn_id) {
+                    ty::Asyncness::Yes => self.get_impl_future_output_ty(ty).unwrap_or_else(|| {
+                        span_bug!(
+                            fn_decl.output.span(),
+                            "failed to get output type of async function"
+                        )
+                    }),
+                    ty::Asyncness::No => ty,
+                };
+                let ty = self.normalize(expr.span, ty);
+                self.can_coerce(found, ty)
             }
+            hir::FnRetTy::DefaultReturn(_) if in_closure => {
+                self.ret_coercion.as_ref().map_or(false, |ret| {
+                    let ret_ty = ret.borrow().expected_ty();
+                    self.can_coerce(found, ret_ty)
+                })
+            }
+            _ => false,
+        };
+        if can_return
+            && let Some(span) = expr.span.find_ancestor_inside(
+                self.tcx.hir().span_with_body(self.tcx.local_def_id_to_hir_id(fn_id)),
+            )
+        {
+            err.multipart_suggestion(
+                "you might have meant to return this value",
+                vec![
+                    (span.shrink_to_lo(), "return ".to_string()),
+                    (span.shrink_to_hi(), ";".to_string()),
+                ],
+                Applicability::MaybeIncorrect,
+            );
         }
     }
 
     pub(in super::super) fn suggest_missing_parentheses(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
     ) -> bool {
         let sp = self.tcx.sess.source_map().start_point(expr.span).with_parent(None);
-        if let Some(sp) = self.tcx.sess.parse_sess.ambiguous_block_expr_parse.borrow().get(&sp) {
+        if let Some(sp) = self.tcx.sess.psess.ambiguous_block_expr_parse.borrow().get(&sp) {
             // `{ 42 } &&x` (#61475) or `{ 42 } && if x { 1 } else { 0 }`
-            err.subdiagnostic(ExprParenthesesNeeded::surrounding(*sp));
+            err.subdiagnostic(self.dcx(), ExprParenthesesNeeded::surrounding(*sp));
             true
         } else {
             false
@@ -1088,7 +1133,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// if it was possibly mistaken array syntax.
     pub(crate) fn suggest_block_to_brackets_peeling_refs(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         mut expr: &hir::Expr<'_>,
         mut expr_ty: Ty<'tcx>,
         mut expected_ty: Ty<'tcx>,
@@ -1115,7 +1160,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_clone_for_ref(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expr_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -1150,7 +1195,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_copied_cloned_or_as_ref(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expr_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -1190,7 +1235,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 } else {
                     return false;
                 };
-                diag.subdiagnostic(subdiag);
+                diag.subdiagnostic(self.dcx(), subdiag);
                 return true;
             }
         }
@@ -1200,7 +1245,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_into(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expr_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -1263,7 +1308,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// When expecting a `bool` and finding an `Option`, suggests using `let Some(..)` or `.is_some()`
     pub(crate) fn suggest_option_to_bool(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expr_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -1320,7 +1365,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// in case the block was mistaken array syntax, e.g. `{ 1 }` -> `[ 1 ]`.
     pub(crate) fn suggest_block_to_brackets(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         blk: &hir::Block<'_>,
         blk_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -1360,7 +1405,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     #[instrument(skip(self, err))]
     pub(crate) fn suggest_floating_point_literal(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expected_ty: Ty<'tcx>,
     ) -> bool {
@@ -1431,7 +1476,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     #[instrument(skip(self, err))]
     pub(crate) fn suggest_null_ptr_for_literal_zero_given_to_ptr_arg(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expected_ty: Ty<'tcx>,
     ) -> bool {
@@ -1469,7 +1514,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_associated_const(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         expected_ty: Ty<'tcx>,
     ) -> bool {
@@ -1556,14 +1601,14 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn is_local_statement(&self, id: hir::HirId) -> bool {
         let node = self.tcx.hir_node(id);
-        matches!(node, Node::Stmt(Stmt { kind: StmtKind::Local(..), .. }))
+        matches!(node, Node::Stmt(Stmt { kind: StmtKind::Let(..), .. }))
     }
 
     /// Suggest that `&T` was cloned instead of `T` because `T` does not implement `Clone`,
     /// which is a side-effect of autoref.
     pub(crate) fn note_type_is_not_clone(
         &self,
-        diag: &mut Diagnostic,
+        diag: &mut Diag<'_>,
         expected_ty: Ty<'tcx>,
         found_ty: Ty<'tcx>,
         expr: &hir::Expr<'_>,
@@ -1682,15 +1727,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 None,
                 hir::Path { segments: [_], res: crate::Res::Local(binding), .. },
             )) => {
-                let Some(hir::Node::Pat(hir::Pat { hir_id, .. })) = self.tcx.opt_hir_node(*binding)
-                else {
-                    return expr;
-                };
-                let Some(parent) = self.tcx.opt_hir_node(self.tcx.hir().parent_id(*hir_id)) else {
+                let hir::Node::Pat(hir::Pat { hir_id, .. }) = self.tcx.hir_node(*binding) else {
                     return expr;
                 };
 
-                match parent {
+                match self.tcx.parent_hir_node(*hir_id) {
                     // foo.clone()
                     hir::Node::Local(hir::Local { init: Some(init), .. }) => {
                         self.note_type_is_not_clone_inner_expr(init)
@@ -1701,8 +1742,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         kind: hir::PatKind::Tuple(pats, ..),
                         ..
                     }) => {
-                        let Some(hir::Node::Local(hir::Local { init: Some(init), .. })) =
-                            self.tcx.opt_hir_node(self.tcx.hir().parent_id(*pat_hir_id))
+                        let hir::Node::Local(hir::Local { init: Some(init), .. }) =
+                            self.tcx.parent_hir_node(*pat_hir_id)
                         else {
                             return expr;
                         };
@@ -1734,10 +1775,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     call_expr_kind
                     && let hir::Path { segments: [_], res: crate::Res::Local(binding), .. } =
                         call_expr_path
-                    && let Some(hir::Node::Pat(hir::Pat { hir_id, .. })) =
-                        self.tcx.opt_hir_node(*binding)
-                    && let Some(closure) = self.tcx.opt_hir_node(self.tcx.hir().parent_id(*hir_id))
-                    && let hir::Node::Local(hir::Local { init: Some(init), .. }) = closure
+                    && let hir::Node::Pat(hir::Pat { hir_id, .. }) = self.tcx.hir_node(*binding)
+                    && let hir::Node::Local(hir::Local { init: Some(init), .. }) =
+                        self.tcx.parent_hir_node(*hir_id)
                     && let Expr {
                         kind: hir::ExprKind::Closure(hir::Closure { body: body_id, .. }),
                         ..
@@ -1750,45 +1790,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 }
             }
             _ => expr,
-        }
-    }
-
-    /// A common error is to add an extra semicolon:
-    ///
-    /// ```compile_fail,E0308
-    /// fn foo() -> usize {
-    ///     22;
-    /// }
-    /// ```
-    ///
-    /// This routine checks if the final statement in a block is an
-    /// expression with an explicit semicolon whose type is compatible
-    /// with `expected_ty`. If so, it suggests removing the semicolon.
-    pub(crate) fn consider_removing_semicolon(
-        &self,
-        blk: &'tcx hir::Block<'tcx>,
-        expected_ty: Ty<'tcx>,
-        err: &mut Diagnostic,
-    ) -> bool {
-        if let Some((span_semi, boxed)) = self.err_ctxt().could_remove_semicolon(blk, expected_ty) {
-            if let StatementAsExpression::NeedsBoxing = boxed {
-                err.span_suggestion_verbose(
-                    span_semi,
-                    "consider removing this semicolon and boxing the expression",
-                    "",
-                    Applicability::HasPlaceholders,
-                );
-            } else {
-                err.span_suggestion_short(
-                    span_semi,
-                    "remove this semicolon to return this value",
-                    "",
-                    Applicability::MachineApplicable,
-                );
-            }
-            true
-        } else {
-            false
         }
     }
 
@@ -1813,7 +1814,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_missing_unwrap_expect(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
@@ -1896,15 +1897,15 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_coercing_result_via_try_operator(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         expected: Ty<'tcx>,
         found: Ty<'tcx>,
     ) -> bool {
         let map = self.tcx.hir();
         let returned = matches!(
-            map.find_parent(expr.hir_id),
-            Some(hir::Node::Expr(hir::Expr { kind: hir::ExprKind::Ret(_), .. }))
+            self.tcx.parent_hir_node(expr.hir_id),
+            hir::Node::Expr(hir::Expr { kind: hir::ExprKind::Ret(_), .. })
         ) || map.get_return_block(expr.hir_id).is_some();
         if returned
             && let ty::Adt(e, args_e) = expected.kind()
@@ -1943,7 +1944,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// sole field is of the found type, suggest such variants. (Issue #42764)
     pub(crate) fn suggest_compatible_variants(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expected: Ty<'tcx>,
         expr_ty: Ty<'tcx>,
@@ -1976,21 +1977,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
                 // Unroll desugaring, to make sure this works for `for` loops etc.
                 loop {
-                    parent = self.tcx.hir().parent_id(id);
-                    if let Some(parent_span) = self.tcx.hir().opt_span(parent) {
-                        if parent_span.find_ancestor_inside(expr.span).is_some() {
-                            // The parent node is part of the same span, so is the result of the
-                            // same expansion/desugaring and not the 'real' parent node.
-                            id = parent;
-                            continue;
-                        }
+                    parent = self.tcx.parent_hir_id(id);
+                    let parent_span = self.tcx.hir().span(parent);
+                    if parent_span.find_ancestor_inside(expr.span).is_some() {
+                        // The parent node is part of the same span, so is the result of the
+                        // same expansion/desugaring and not the 'real' parent node.
+                        id = parent;
+                        continue;
                     }
                     break;
                 }
 
-                if let Some(hir::Node::Block(&hir::Block {
-                    span: block_span, expr: Some(e), ..
-                })) = self.tcx.opt_hir_node(parent)
+                if let hir::Node::Block(&hir::Block { span: block_span, expr: Some(e), .. }) =
+                    self.tcx.hir_node(parent)
                 {
                     if e.hir_id == id {
                         if let Some(span) = expr.span.find_ancestor_inside(block_span) {
@@ -2134,23 +2133,23 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_non_zero_new_unwrap(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         expected: Ty<'tcx>,
         expr_ty: Ty<'tcx>,
     ) -> bool {
         let tcx = self.tcx;
-        let (adt, substs, unwrap) = match expected.kind() {
+        let (adt, args, unwrap) = match expected.kind() {
             // In case Option<NonZero*> is wanted, but * is provided, suggest calling new
-            ty::Adt(adt, substs) if tcx.is_diagnostic_item(sym::Option, adt.did()) => {
-                let nonzero_type = substs.type_at(0); // Unwrap option type.
-                let ty::Adt(adt, substs) = nonzero_type.kind() else {
+            ty::Adt(adt, args) if tcx.is_diagnostic_item(sym::Option, adt.did()) => {
+                let nonzero_type = args.type_at(0); // Unwrap option type.
+                let ty::Adt(adt, args) = nonzero_type.kind() else {
                     return false;
                 };
-                (adt, substs, "")
+                (adt, args, "")
             }
             // In case `NonZero<*>` is wanted but `*` is provided, also add `.unwrap()` to satisfy types.
-            ty::Adt(adt, substs) => (adt, substs, ".unwrap()"),
+            ty::Adt(adt, args) => (adt, args, ".unwrap()"),
             _ => return false,
         };
 
@@ -2172,7 +2171,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             ("NonZeroI128", tcx.types.i128),
         ];
 
-        let int_type = substs.type_at(0);
+        let int_type = args.type_at(0);
 
         let Some(nonzero_alias) = coercable_types.iter().find_map(|(nonzero_alias, t)| {
             if *t == int_type && self.can_coerce(expr_ty, *t) { Some(nonzero_alias) } else { None }
@@ -2217,31 +2216,28 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             return None;
         };
 
-        let local_parent = self.tcx.hir().parent_id(local_id);
-        let Some(Node::Param(hir::Param { hir_id: param_hir_id, .. })) =
-            self.tcx.opt_hir_node(local_parent)
+        let Node::Param(hir::Param { hir_id: param_hir_id, .. }) =
+            self.tcx.parent_hir_node(local_id)
         else {
             return None;
         };
 
-        let param_parent = self.tcx.hir().parent_id(*param_hir_id);
-        let Some(Node::Expr(hir::Expr {
+        let Node::Expr(hir::Expr {
             hir_id: expr_hir_id,
             kind: hir::ExprKind::Closure(hir::Closure { fn_decl: closure_fn_decl, .. }),
             ..
-        })) = self.tcx.opt_hir_node(param_parent)
+        }) = self.tcx.parent_hir_node(*param_hir_id)
         else {
             return None;
         };
 
-        let expr_parent = self.tcx.hir().parent_id(*expr_hir_id);
-        let hir = self.tcx.opt_hir_node(expr_parent);
+        let hir = self.tcx.parent_hir_node(*expr_hir_id);
         let closure_params_len = closure_fn_decl.inputs.len();
         let (
-            Some(Node::Expr(hir::Expr {
+            Node::Expr(hir::Expr {
                 kind: hir::ExprKind::MethodCall(method_path, receiver, ..),
                 ..
-            })),
+            }),
             1,
         ) = (hir, closure_params_len)
         else {
@@ -2416,10 +2412,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         None => String::new(),
                     };
 
-                    if let Some(hir::Node::Expr(hir::Expr {
-                        kind: hir::ExprKind::Assign(..),
-                        ..
-                    })) = self.tcx.hir().find_parent(expr.hir_id)
+                    if let hir::Node::Expr(hir::Expr { kind: hir::ExprKind::Assign(..), .. }) =
+                        self.tcx.parent_hir_node(expr.hir_id)
                     {
                         if mutability.is_mut() {
                             // Suppressing this diagnostic, we'll properly print it in `check_expr_assign`
@@ -2450,10 +2444,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     };
 
                     // Suggest dereferencing the lhs for expressions such as `&T <= T`
-                    if let Some(hir::Node::Expr(hir::Expr {
+                    if let hir::Node::Expr(hir::Expr {
                         kind: hir::ExprKind::Binary(_, lhs, ..),
                         ..
-                    })) = self.tcx.hir().find_parent(expr.hir_id)
+                    }) = self.tcx.parent_hir_node(expr.hir_id)
                         && let &ty::Ref(..) = self.check_expr(lhs).kind()
                     {
                         let (sugg, verbose) = make_sugg(lhs, lhs.span, "*");
@@ -2609,7 +2603,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         || (checked_ty.is_box() && steps == 1)
                         // We can always deref a binop that takes its arguments by ref.
                         || matches!(
-                            self.tcx.hir().get_parent(expr.hir_id),
+                            self.tcx.parent_hir_node(expr.hir_id),
                             hir::Node::Expr(hir::Expr { kind: hir::ExprKind::Binary(op, ..), .. })
                                 if !op.node.is_by_value()
                         )
@@ -2671,11 +2665,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Returns whether the given expression is an `else if`.
     fn is_else_if_block(&self, expr: &hir::Expr<'_>) -> bool {
         if let hir::ExprKind::If(..) = expr.kind {
-            let parent_id = self.tcx.hir().parent_id(expr.hir_id);
-            if let Some(Node::Expr(hir::Expr {
-                kind: hir::ExprKind::If(_, _, Some(else_expr)),
-                ..
-            })) = self.tcx.opt_hir_node(parent_id)
+            if let Node::Expr(hir::Expr {
+                kind: hir::ExprKind::If(_, _, Some(else_expr)), ..
+            }) = self.tcx.parent_hir_node(expr.hir_id)
             {
                 return else_expr.hir_id == expr.hir_id;
             }
@@ -2685,7 +2677,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     pub(crate) fn suggest_cast(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         checked_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -2712,7 +2704,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let mut sugg = vec![];
 
-        if let Some(hir::Node::ExprField(field)) = self.tcx.hir().find_parent(expr.hir_id) {
+        if let hir::Node::ExprField(field) = self.tcx.parent_hir_node(expr.hir_id) {
             // `expr` is a literal field for a struct, only suggest if appropriate
             if field.is_shorthand {
                 // This is a field literal
@@ -2813,7 +2805,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let in_const_context = self.tcx.hir().is_inside_const_context(expr.hir_id);
 
         let suggest_fallible_into_or_lhs_from =
-            |err: &mut Diagnostic, exp_to_found_is_fallible: bool| {
+            |err: &mut Diag<'_>, exp_to_found_is_fallible: bool| {
                 // If we know the expression the expected type is derived from, we might be able
                 // to suggest a widening conversion rather than a narrowing one (which may
                 // panic). For example, given x: u8 and y: u32, if we know the span of "x",
@@ -2853,9 +2845,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             };
 
         let suggest_to_change_suffix_or_into =
-            |err: &mut Diagnostic,
-             found_to_exp_is_fallible: bool,
-             exp_to_found_is_fallible: bool| {
+            |err: &mut Diag<'_>, found_to_exp_is_fallible: bool, exp_to_found_is_fallible: bool| {
                 let exp_is_lhs = expected_ty_expr.is_some_and(|e| self.tcx.hir().is_lhs(e.hir_id));
 
                 if exp_is_lhs {
@@ -3051,7 +3041,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// Identify when the user has written `foo..bar()` instead of `foo.bar()`.
     pub(crate) fn suggest_method_call_on_range_literal(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'tcx>,
         checked_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -3064,8 +3054,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         else {
             return;
         };
-        let parent = self.tcx.hir().parent_id(expr.hir_id);
-        if let Some(hir::Node::ExprField(_)) = self.tcx.opt_hir_node(parent) {
+        if let hir::Node::ExprField(_) = self.tcx.parent_hir_node(expr.hir_id) {
             // Ignore `Foo { field: a..Default::default() }`
             return;
         }
@@ -3130,7 +3119,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     /// block without a tail expression.
     pub(crate) fn suggest_return_binding_for_missing_tail_expr(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         checked_ty: Ty<'tcx>,
         expected_ty: Ty<'tcx>,
@@ -3144,11 +3133,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         let hir::def::Res::Local(hir_id) = path.res else {
             return;
         };
-        let Some(hir::Node::Pat(pat)) = self.tcx.opt_hir_node(hir_id) else {
+        let hir::Node::Pat(pat) = self.tcx.hir_node(hir_id) else {
             return;
         };
-        let Some(hir::Node::Local(hir::Local { ty: None, init: Some(init), .. })) =
-            self.tcx.hir().find_parent(pat.hir_id)
+        let hir::Node::Local(hir::Local { ty: None, init: Some(init), .. }) =
+            self.tcx.parent_hir_node(pat.hir_id)
         else {
             return;
         };

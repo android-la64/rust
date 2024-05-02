@@ -172,11 +172,19 @@ impl<'a, 'tcx> SpanEncoder for EncodeContext<'a, 'tcx> {
                 // previously saved offset must be smaller than the current position.
                 let offset = self.opaque.position() - last_location;
                 if offset < last_location {
-                    SpanTag::indirect(true).encode(self);
-                    offset.encode(self);
+                    let needed = bytes_needed(offset);
+                    SpanTag::indirect(true, needed as u8).encode(self);
+                    self.opaque.write_with(|dest| {
+                        *dest = offset.to_le_bytes();
+                        needed
+                    });
                 } else {
-                    SpanTag::indirect(false).encode(self);
-                    last_location.encode(self);
+                    let needed = bytes_needed(last_location);
+                    SpanTag::indirect(false, needed as u8).encode(self);
+                    self.opaque.write_with(|dest| {
+                        *dest = last_location.to_le_bytes();
+                        needed
+                    });
                 }
             }
             Entry::Vacant(v) => {
@@ -210,6 +218,10 @@ impl<'a, 'tcx> SpanEncoder for EncodeContext<'a, 'tcx> {
             }
         }
     }
+}
+
+fn bytes_needed(n: usize) -> usize {
+    (usize::BITS - n.leading_zeros()).div_ceil(u8::BITS) as usize
 }
 
 impl<'a, 'tcx> Encodable<EncodeContext<'a, 'tcx>> for SpanData {
@@ -386,7 +398,7 @@ impl<'a, 'tcx> TyEncoder for EncodeContext<'a, 'tcx> {
     }
 }
 
-// Shorthand for `$self.$tables.$table.set_some($def_id.index, $self.lazy_value($value))`, which would
+// Shorthand for `$self.$tables.$table.set_some($def_id.index, $self.lazy($value))`, which would
 // normally need extra variables to avoid errors about multiple mutable borrows.
 macro_rules! record {
     ($self:ident.$tables:ident.$table:ident[$def_id:expr] <- $value:expr) => {{
@@ -398,7 +410,7 @@ macro_rules! record {
     }};
 }
 
-// Shorthand for `$self.$tables.$table.set_some($def_id.index, $self.lazy_value($value))`, which would
+// Shorthand for `$self.$tables.$table.set_some($def_id.index, $self.lazy_array($value))`, which would
 // normally need extra variables to avoid errors about multiple mutable borrows.
 macro_rules! record_array {
     ($self:ident.$tables:ident.$table:ident[$def_id:expr] <- $value:expr) => {{
@@ -421,7 +433,7 @@ macro_rules! record_defaulted_array {
 }
 
 impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
-    fn emit_lazy_distance(&mut self, position: NonZeroUsize) {
+    fn emit_lazy_distance(&mut self, position: NonZero<usize>) {
         let pos = position.get();
         let distance = match self.lazy_state {
             LazyState::NoNode => bug!("emit_lazy_distance: outside of a metadata node"),
@@ -439,7 +451,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                 position.get() - last_pos.get()
             }
         };
-        self.lazy_state = LazyState::Previous(NonZeroUsize::new(pos).unwrap());
+        self.lazy_state = LazyState::Previous(NonZero::new(pos).unwrap());
         self.emit_usize(distance);
     }
 
@@ -447,7 +459,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
     where
         T::Value<'tcx>: Encodable<EncodeContext<'a, 'tcx>>,
     {
-        let pos = NonZeroUsize::new(self.position()).unwrap();
+        let pos = NonZero::new(self.position()).unwrap();
 
         assert_eq!(self.lazy_state, LazyState::NoNode);
         self.lazy_state = LazyState::NodeStart(pos);
@@ -466,7 +478,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
     where
         T::Value<'tcx>: Encodable<EncodeContext<'a, 'tcx>>,
     {
-        let pos = NonZeroUsize::new(self.position()).unwrap();
+        let pos = NonZero::new(self.position()).unwrap();
 
         assert_eq!(self.lazy_state, LazyState::NoNode);
         self.lazy_state = LazyState::NodeStart(pos);
@@ -851,7 +863,7 @@ fn should_encode_span(def_kind: DefKind) -> bool {
         | DefKind::LifetimeParam
         | DefKind::Fn
         | DefKind::Const
-        | DefKind::Static(_)
+        | DefKind::Static { .. }
         | DefKind::Ctor(..)
         | DefKind::AssocFn
         | DefKind::AssocConst
@@ -882,7 +894,7 @@ fn should_encode_attrs(def_kind: DefKind) -> bool {
         | DefKind::AssocTy
         | DefKind::Fn
         | DefKind::Const
-        | DefKind::Static(_)
+        | DefKind::Static { nested: false, .. }
         | DefKind::AssocFn
         | DefKind::AssocConst
         | DefKind::Macro(_)
@@ -903,6 +915,7 @@ fn should_encode_attrs(def_kind: DefKind) -> bool {
         | DefKind::InlineConst
         | DefKind::OpaqueTy
         | DefKind::LifetimeParam
+        | DefKind::Static { nested: true, .. }
         | DefKind::GlobalAsm => false,
     }
 }
@@ -924,7 +937,7 @@ fn should_encode_expn_that_defined(def_kind: DefKind) -> bool {
         | DefKind::Fn
         | DefKind::Const
         | DefKind::ConstParam
-        | DefKind::Static(_)
+        | DefKind::Static { .. }
         | DefKind::Ctor(..)
         | DefKind::AssocFn
         | DefKind::AssocConst
@@ -956,7 +969,7 @@ fn should_encode_visibility(def_kind: DefKind) -> bool {
         | DefKind::AssocTy
         | DefKind::Fn
         | DefKind::Const
-        | DefKind::Static(..)
+        | DefKind::Static { nested: false, .. }
         | DefKind::Ctor(..)
         | DefKind::AssocFn
         | DefKind::AssocConst
@@ -969,6 +982,7 @@ fn should_encode_visibility(def_kind: DefKind) -> bool {
         | DefKind::LifetimeParam
         | DefKind::AnonConst
         | DefKind::InlineConst
+        | DefKind::Static { nested: true, .. }
         | DefKind::OpaqueTy
         | DefKind::GlobalAsm
         | DefKind::Impl { .. }
@@ -989,7 +1003,7 @@ fn should_encode_stability(def_kind: DefKind) -> bool {
         | DefKind::AssocConst
         | DefKind::TyParam
         | DefKind::ConstParam
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::Const
         | DefKind::Fn
         | DefKind::ForeignMod
@@ -1045,21 +1059,22 @@ fn should_encode_mir(
             (true, mir_opt_base)
         }
         // Constants
-        DefKind::AnonConst
-        | DefKind::InlineConst
-        | DefKind::AssocConst
-        | DefKind::Static(..)
-        | DefKind::Const => (true, false),
+        DefKind::AnonConst | DefKind::InlineConst | DefKind::AssocConst | DefKind::Const => {
+            (true, false)
+        }
         // Coroutines require optimized MIR to compute layout.
         DefKind::Closure if tcx.is_coroutine(def_id.to_def_id()) => (false, true),
         // Full-fledged functions + closures
         DefKind::AssocFn | DefKind::Fn | DefKind::Closure => {
             let generics = tcx.generics_of(def_id);
-            let opt = tcx.sess.opts.unstable_opts.always_encode_mir
+            let mut opt = tcx.sess.opts.unstable_opts.always_encode_mir
                 || (tcx.sess.opts.output_types.should_codegen()
                     && reachable_set.contains(&def_id)
                     && (generics.requires_monomorphization(tcx)
                         || tcx.cross_crate_inlinable(def_id)));
+            if let Some(intrinsic) = tcx.intrinsic(def_id) {
+                opt &= !intrinsic.must_be_overridden;
+            }
             // The function has a `const` modifier or is in a `#[const_trait]`.
             let is_const_fn = tcx.is_const_fn_raw(def_id.to_def_id())
                 || tcx.is_const_default_method(def_id.to_def_id());
@@ -1086,7 +1101,7 @@ fn should_encode_variances<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, def_kind: Def
         | DefKind::AssocConst
         | DefKind::TyParam
         | DefKind::ConstParam
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::Const
         | DefKind::ForeignMod
         | DefKind::Impl { .. }
@@ -1118,7 +1133,7 @@ fn should_encode_generics(def_kind: DefKind) -> bool {
         | DefKind::AssocTy
         | DefKind::Fn
         | DefKind::Const
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::Ctor(..)
         | DefKind::AssocFn
         | DefKind::AssocConst
@@ -1150,7 +1165,7 @@ fn should_encode_type(tcx: TyCtxt<'_>, def_id: LocalDefId, def_kind: DefKind) ->
         | DefKind::Field
         | DefKind::Fn
         | DefKind::Const
-        | DefKind::Static(..)
+        | DefKind::Static { nested: false, .. }
         | DefKind::TyAlias
         | DefKind::ForeignTy
         | DefKind::Impl { .. }
@@ -1192,6 +1207,7 @@ fn should_encode_type(tcx: TyCtxt<'_>, def_id: LocalDefId, def_kind: DefKind) ->
         | DefKind::Mod
         | DefKind::ForeignMod
         | DefKind::Macro(..)
+        | DefKind::Static { nested: true, .. }
         | DefKind::Use
         | DefKind::LifetimeParam
         | DefKind::GlobalAsm
@@ -1209,7 +1225,7 @@ fn should_encode_fn_sig(def_kind: DefKind) -> bool {
         | DefKind::Variant
         | DefKind::Field
         | DefKind::Const
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::Ctor(..)
         | DefKind::TyAlias
         | DefKind::OpaqueTy
@@ -1250,7 +1266,7 @@ fn should_encode_constness(def_kind: DefKind) -> bool {
         | DefKind::Const
         | DefKind::AssocConst
         | DefKind::AnonConst
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::TyAlias
         | DefKind::OpaqueTy
         | DefKind::Impl { of_trait: false }
@@ -1282,7 +1298,7 @@ fn should_encode_const(def_kind: DefKind) -> bool {
         | DefKind::Ctor(..)
         | DefKind::Field
         | DefKind::Fn
-        | DefKind::Static(..)
+        | DefKind::Static { .. }
         | DefKind::TyAlias
         | DefKind::OpaqueTy
         | DefKind::ForeignTy
@@ -1323,8 +1339,8 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             is_doc_hidden: false,
         };
         let attr_iter = tcx
-            .opt_local_def_id_to_hir_id(def_id)
-            .map_or(Default::default(), |hir_id| tcx.hir().attrs(hir_id))
+            .hir()
+            .attrs(tcx.local_def_id_to_hir_id(def_id))
             .iter()
             .filter(|attr| analyze_attr(attr, &mut state));
 
@@ -1388,13 +1404,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             if should_encode_fn_sig(def_kind) {
                 record!(self.tables.fn_sig[def_id] <- tcx.fn_sig(def_id));
             }
-            // FIXME: Some anonymous constants produced by `#[rustc_legacy_const_generics]`
-            // do not have corresponding HIR nodes, so some queries usually making sense for
-            // anonymous constants will not work on them and panic. It's not clear whether it
-            // can cause any observable issues or not.
-            let anon_const_without_hir = def_kind == DefKind::AnonConst
-                && tcx.opt_hir_node(tcx.local_def_id_to_hir_id(local_id)).is_none();
-            if should_encode_generics(def_kind) && !anon_const_without_hir {
+            if should_encode_generics(def_kind) {
                 let g = tcx.generics_of(def_id);
                 record!(self.tables.generics_of[def_id] <- g);
                 record!(self.tables.explicit_predicates_of[def_id] <- self.tcx.explicit_predicates_of(def_id));
@@ -1408,7 +1418,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                     }
                 }
             }
-            if should_encode_type(tcx, local_id, def_kind) && !anon_const_without_hir {
+            if should_encode_type(tcx, local_id, def_kind) {
                 record!(self.tables.type_of[def_id] <- self.tcx.type_of(def_id));
             }
             if should_encode_constness(def_kind) {
@@ -1417,7 +1427,9 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             if let DefKind::Fn | DefKind::AssocFn = def_kind {
                 self.tables.asyncness.set_some(def_id.index, tcx.asyncness(def_id));
                 record_array!(self.tables.fn_arg_names[def_id] <- tcx.fn_arg_names(def_id));
-                self.tables.is_intrinsic.set(def_id.index, tcx.is_intrinsic(def_id));
+            }
+            if let Some(name) = tcx.intrinsic(def_id) {
+                record!(self.tables.intrinsic[def_id] <- name);
             }
             if let DefKind::TyParam = def_kind {
                 let default = self.tcx.object_lifetime_default(def_id);
@@ -1452,6 +1464,19 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
                 && let Some(coroutine_kind) = self.tcx.coroutine_kind(def_id)
             {
                 self.tables.coroutine_kind.set(def_id.index, Some(coroutine_kind))
+            }
+            if def_kind == DefKind::Closure
+                && tcx.type_of(def_id).skip_binder().is_coroutine_closure()
+            {
+                self.tables
+                    .coroutine_for_closure
+                    .set_some(def_id.index, self.tcx.coroutine_for_closure(def_id).into());
+            }
+            if let DefKind::Static { .. } = def_kind {
+                if !self.tcx.is_foreign_item(def_id) {
+                    let data = self.tcx.eval_static_initializer(def_id).unwrap();
+                    record!(self.tables.eval_static_initializer[def_id] <- data);
+                }
             }
             if let DefKind::Enum | DefKind::Struct | DefKind::Union = def_kind {
                 self.encode_info_for_adt(local_id);
@@ -1782,7 +1807,7 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             let stability = tcx.lookup_stability(CRATE_DEF_ID);
             let macros =
                 self.lazy_array(tcx.resolutions(()).proc_macros.iter().map(|p| p.local_def_index));
-            for (i, span) in self.tcx.sess.parse_sess.proc_macro_quoted_spans() {
+            for (i, span) in self.tcx.sess.psess.proc_macro_quoted_spans() {
                 let span = self.lazy(span);
                 self.tables.proc_macro_quoted_spans.set_some(i, span);
             }
@@ -1968,12 +1993,11 @@ impl<'a, 'tcx> EncodeContext<'a, 'tcx> {
             let def_id = id.owner_id.to_def_id();
 
             self.tables.defaultness.set_some(def_id.index, tcx.defaultness(def_id));
-            self.tables.impl_polarity.set_some(def_id.index, tcx.impl_polarity(def_id));
 
-            if of_trait && let Some(trait_ref) = tcx.impl_trait_ref(def_id) {
-                record!(self.tables.impl_trait_ref[def_id] <- trait_ref);
+            if of_trait && let Some(header) = tcx.impl_trait_header(def_id) {
+                record!(self.tables.impl_trait_header[def_id] <- header);
 
-                let trait_ref = trait_ref.instantiate_identity();
+                let trait_ref = header.trait_ref.instantiate_identity();
                 let simplified_self_ty = fast_reject::simplify_type(
                     self.tcx,
                     trait_ref.self_ty(),

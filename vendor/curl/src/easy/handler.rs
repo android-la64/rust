@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::convert::TryFrom;
 use std::ffi::{CStr, CString};
 use std::fmt;
 use std::io::{self, SeekFrom, Write};
@@ -111,7 +112,7 @@ pub trait Handler {
     /// `transfer` method and then using `read_function` to configure a
     /// callback that can reference stack-local data.
     fn read(&mut self, data: &mut [u8]) -> Result<usize, ReadError> {
-        drop(data);
+        let _ = data; // ignore unused
         Ok(0)
     }
 
@@ -135,7 +136,7 @@ pub trait Handler {
     /// By default data this option is not set, and this corresponds to the
     /// `CURLOPT_SEEKFUNCTION` and `CURLOPT_SEEKDATA` options.
     fn seek(&mut self, whence: SeekFrom) -> SeekResult {
-        drop(whence);
+        let _ = whence; // ignore unused
         SeekResult::CantSeek
     }
 
@@ -185,7 +186,7 @@ pub trait Handler {
     /// By default this option is not set and corresponds to the
     /// `CURLOPT_HEADERFUNCTION` and `CURLOPT_HEADERDATA` options.
     fn header(&mut self, data: &[u8]) -> bool {
-        drop(data);
+        let _ = data; // ignore unused
         true
     }
 
@@ -221,7 +222,7 @@ pub trait Handler {
     /// By default this function calls an internal method and corresponds to
     /// `CURLOPT_PROGRESSFUNCTION` and `CURLOPT_PROGRESSDATA`.
     fn progress(&mut self, dltotal: f64, dlnow: f64, ultotal: f64, ulnow: f64) -> bool {
-        drop((dltotal, dlnow, ultotal, ulnow));
+        let _ = (dltotal, dlnow, ultotal, ulnow); // ignore unused
         true
     }
 
@@ -452,12 +453,11 @@ pub enum HttpVersion {
     V2PriorKnowledge = curl_sys::CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE as isize,
 
     /// Setting this value will make libcurl attempt to use HTTP/3 directly to
-    /// server given in the URL. Note that this cannot gracefully downgrade to
-    /// earlier HTTP version if the server doesn't support HTTP/3.
+    /// server given in the URL but fallback to earlier HTTP versions if the HTTP/3
+    /// connection establishment fails.
     ///
-    /// For more reliably upgrading to HTTP/3, set the preferred version to
-    /// something lower and let the server announce its HTTP/3 support via
-    /// Alt-Svc:.
+    /// Note: the meaning of this settings depends on the linked libcurl.
+    /// For CURL < 7.88.0, there is no fallback if HTTP/3 connection fails.
     ///
     /// (Added in CURL 7.66.0)
     V3 = curl_sys::CURL_HTTP_VERSION_3 as isize,
@@ -570,6 +570,10 @@ pub struct Auth {
 #[derive(Clone)]
 pub struct SslOpt {
     bits: c_long,
+}
+/// Structure which stores possible post redirection options to pass to `post_redirections`.
+pub struct PostRedirections {
+    bits: c_ulong,
 }
 
 impl<H: Handler> Easy2<H> {
@@ -805,6 +809,21 @@ impl<H> Easy2<H> {
         } else {
             self.setopt_ptr(curl_sys::CURLOPT_UNIX_SOCKET_PATH, 0 as _)
         }
+    }
+
+    /// Provides the ABSTRACT UNIX SOCKET which this handle will work with.
+    ///
+    /// This function is an alternative to [`Easy2::unix_socket`] and [`Easy2::unix_socket_path`] that supports
+    /// ABSTRACT_UNIX_SOCKET(`man 7 unix` on Linux) address.
+    ///
+    /// By default this option is not set and corresponds to
+    /// [`CURLOPT_ABSTRACT_UNIX_SOCKET`](https://curl.haxx.se/libcurl/c/CURLOPT_ABSTRACT_UNIX_SOCKET.html).
+    ///
+    /// NOTE: this API can only be used on Linux OS.
+    #[cfg(target_os = "linux")]
+    pub fn abstract_unix_socket(&mut self, addr: &[u8]) -> Result<(), Error> {
+        let addr = CString::new(addr)?;
+        self.setopt_str(curl_sys::CURLOPT_ABSTRACT_UNIX_SOCKET, &addr)
     }
 
     // =========================================================================
@@ -1459,7 +1478,14 @@ impl<H> Easy2<H> {
         self.setopt_long(curl_sys::CURLOPT_MAXREDIRS, max as c_long)
     }
 
-    // TODO: post_redirections
+    /// Set the policy for handling redirects to POST requests.
+    ///
+    /// By default a POST is changed to a GET when following a redirect. Setting any
+    /// of the `PostRedirections` flags will preserve the POST method for the
+    /// selected response codes.
+    pub fn post_redirections(&mut self, redirects: &PostRedirections) -> Result<(), Error> {
+        self.setopt_long(curl_sys::CURLOPT_POSTREDIR, redirects.bits as c_long)
+    }
 
     /// Make an HTTP PUT request.
     ///
@@ -1898,10 +1924,15 @@ impl<H> Easy2<H> {
     /// By default this option is not set and corresponds to
     /// `CURLOPT_TIMEOUT_MS`.
     pub fn timeout(&mut self, timeout: Duration) -> Result<(), Error> {
-        // TODO: checked arithmetic and casts
-        // TODO: use CURLOPT_TIMEOUT if the timeout is too great
-        let ms = timeout.as_secs() * 1000 + timeout.subsec_millis() as u64;
-        self.setopt_long(curl_sys::CURLOPT_TIMEOUT_MS, ms as c_long)
+        let ms = timeout.as_millis();
+        match c_long::try_from(ms) {
+            Ok(amt) => self.setopt_long(curl_sys::CURLOPT_TIMEOUT_MS, amt),
+            Err(_) => {
+                let amt = c_long::try_from(ms / 1000)
+                    .map_err(|_| Error::new(curl_sys::CURLE_BAD_FUNCTION_ARGUMENT))?;
+                self.setopt_long(curl_sys::CURLOPT_TIMEOUT, amt)
+            }
+        }
     }
 
     /// Set the low speed limit in bytes per second.
@@ -2022,8 +2053,15 @@ impl<H> Easy2<H> {
     /// By default this value is 300 seconds and corresponds to
     /// `CURLOPT_CONNECTTIMEOUT_MS`.
     pub fn connect_timeout(&mut self, timeout: Duration) -> Result<(), Error> {
-        let ms = timeout.as_secs() * 1000 + timeout.subsec_millis() as u64;
-        self.setopt_long(curl_sys::CURLOPT_CONNECTTIMEOUT_MS, ms as c_long)
+        let ms = timeout.as_millis();
+        match c_long::try_from(ms) {
+            Ok(amt) => self.setopt_long(curl_sys::CURLOPT_CONNECTTIMEOUT_MS, amt),
+            Err(_) => {
+                let amt = c_long::try_from(ms / 1000)
+                    .map_err(|_| Error::new(curl_sys::CURLE_BAD_FUNCTION_ARGUMENT))?;
+                self.setopt_long(curl_sys::CURLOPT_CONNECTTIMEOUT, amt)
+            }
+        }
     }
 
     /// Specify which IP protocol version to use
@@ -2605,16 +2643,12 @@ impl<H> Easy2<H> {
     ///
     /// You'll find more details about cipher lists on this URL:
     ///
-    /// https://www.openssl.org/docs/apps/ciphers.html
+    /// <https://www.openssl.org/docs/apps/ciphers.html>
     ///
     /// For NSS, valid examples of cipher lists include 'rsa_rc4_128_md5',
     /// ´rsa_aes_128_sha´, etc. With NSS you don't add/remove ciphers. If one
     /// uses this option then all known ciphers are disabled and only those
     /// passed in are enabled.
-    ///
-    /// You'll find more details about the NSS cipher lists on this URL:
-    ///
-    /// http://git.fedorahosted.org/cgit/mod_nss.git/plain/docs/mod_nss.html#Directives
     ///
     /// By default this option is not set and corresponds to
     /// `CURLOPT_SSL_CIPHER_LIST`.
@@ -2636,16 +2670,12 @@ impl<H> Easy2<H> {
     ///
     /// You'll find more details about cipher lists on this URL:
     ///
-    /// https://www.openssl.org/docs/apps/ciphers.html
+    /// <https://www.openssl.org/docs/apps/ciphers.html>
     ///
     /// For NSS, valid examples of cipher lists include 'rsa_rc4_128_md5',
     /// ´rsa_aes_128_sha´, etc. With NSS you don't add/remove ciphers. If one
     /// uses this option then all known ciphers are disabled and only those
     /// passed in are enabled.
-    ///
-    /// You'll find more details about the NSS cipher lists on this URL:
-    ///
-    /// http://git.fedorahosted.org/cgit/mod_nss.git/plain/docs/mod_nss.html#Directives
     ///
     /// By default this option is not set and corresponds to
     /// `CURLOPT_PROXY_SSL_CIPHER_LIST`.
@@ -2696,7 +2726,7 @@ impl<H> Easy2<H> {
     // /// Fetches this handle's private pointer-sized piece of data.
     // ///
     // /// This corresponds to `CURLINFO_PRIVATE` and defaults to 0.
-    // pub fn private(&mut self) -> Result<usize, Error> {
+    // pub fn private(&self) -> Result<usize, Error> {
     //     self.getopt_ptr(curl_sys::CURLINFO_PRIVATE).map(|p| p as usize)
     // }
 
@@ -2721,7 +2751,7 @@ impl<H> Easy2<H> {
     /// total latency since in the best case, an additional server roundtrip is required
     /// and in the worst case, the request is delayed by `CURLOPT_EXPECT_100_TIMEOUT_MS`.
     ///
-    /// More info: https://curl.se/libcurl/c/CURLOPT_EXPECT_100_TIMEOUT_MS.html
+    /// More info: <https://curl.se/libcurl/c/CURLOPT_EXPECT_100_TIMEOUT_MS.html>
     ///
     /// By default this option is not set and corresponds to
     /// `CURLOPT_EXPECT_100_TIMEOUT_MS`.
@@ -2736,7 +2766,7 @@ impl<H> Easy2<H> {
     ///
     //// This corresponds to `CURLINFO_CONDITION_UNMET` and may return an error if the
     /// option is not supported
-    pub fn time_condition_unmet(&mut self) -> Result<bool, Error> {
+    pub fn time_condition_unmet(&self) -> Result<bool, Error> {
         self.getopt_long(curl_sys::CURLINFO_CONDITION_UNMET)
             .map(|r| r != 0)
     }
@@ -2750,7 +2780,7 @@ impl<H> Easy2<H> {
     ///
     /// Returns `Ok(None)` if no effective url is listed or `Err` if an error
     /// happens or the underlying bytes aren't valid utf-8.
-    pub fn effective_url(&mut self) -> Result<Option<&str>, Error> {
+    pub fn effective_url(&self) -> Result<Option<&str>, Error> {
         self.getopt_str(curl_sys::CURLINFO_EFFECTIVE_URL)
     }
 
@@ -2763,7 +2793,7 @@ impl<H> Easy2<H> {
     ///
     /// Returns `Ok(None)` if no effective url is listed or `Err` if an error
     /// happens or the underlying bytes aren't valid utf-8.
-    pub fn effective_url_bytes(&mut self) -> Result<Option<&[u8]>, Error> {
+    pub fn effective_url_bytes(&self) -> Result<Option<&[u8]>, Error> {
         self.getopt_bytes(curl_sys::CURLINFO_EFFECTIVE_URL)
     }
 
@@ -2775,7 +2805,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_RESPONSE_CODE` and returns an error if this
     /// option is not supported.
-    pub fn response_code(&mut self) -> Result<u32, Error> {
+    pub fn response_code(&self) -> Result<u32, Error> {
         self.getopt_long(curl_sys::CURLINFO_RESPONSE_CODE)
             .map(|c| c as u32)
     }
@@ -2787,7 +2817,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_HTTP_CONNECTCODE` and returns an error if this
     /// option is not supported.
-    pub fn http_connectcode(&mut self) -> Result<u32, Error> {
+    pub fn http_connectcode(&self) -> Result<u32, Error> {
         self.getopt_long(curl_sys::CURLINFO_HTTP_CONNECTCODE)
             .map(|c| c as u32)
     }
@@ -2806,7 +2836,7 @@ impl<H> Easy2<H> {
     ///
     /// This corresponds to `CURLINFO_FILETIME` and may return an error if the
     /// option is not supported
-    pub fn filetime(&mut self) -> Result<Option<i64>, Error> {
+    pub fn filetime(&self) -> Result<Option<i64>, Error> {
         self.getopt_long(curl_sys::CURLINFO_FILETIME).map(|r| {
             if r == -1 {
                 None
@@ -2825,7 +2855,7 @@ impl<H> Easy2<H> {
     ///
     /// This corresponds to `CURLINFO_SIZE_DOWNLOAD` and may return an error if the
     /// option is not supported
-    pub fn download_size(&mut self) -> Result<f64, Error> {
+    pub fn download_size(&self) -> Result<f64, Error> {
         self.getopt_double(curl_sys::CURLINFO_SIZE_DOWNLOAD)
             .map(|r| r as f64)
     }
@@ -2836,7 +2866,7 @@ impl<H> Easy2<H> {
     ///
     /// This corresponds to `CURLINFO_SIZE_UPLOAD` and may return an error if the
     /// option is not supported
-    pub fn upload_size(&mut self) -> Result<f64, Error> {
+    pub fn upload_size(&self) -> Result<f64, Error> {
         self.getopt_double(curl_sys::CURLINFO_SIZE_UPLOAD)
             .map(|r| r as f64)
     }
@@ -2848,7 +2878,7 @@ impl<H> Easy2<H> {
     ///
     /// This corresponds to `CURLINFO_CONTENT_LENGTH_DOWNLOAD` and may return an error if the
     /// option is not supported
-    pub fn content_length_download(&mut self) -> Result<f64, Error> {
+    pub fn content_length_download(&self) -> Result<f64, Error> {
         self.getopt_double(curl_sys::CURLINFO_CONTENT_LENGTH_DOWNLOAD)
             .map(|r| r as f64)
     }
@@ -2860,7 +2890,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_TOTAL_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn total_time(&mut self) -> Result<Duration, Error> {
+    pub fn total_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_TOTAL_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2872,7 +2902,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_NAMELOOKUP_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn namelookup_time(&mut self) -> Result<Duration, Error> {
+    pub fn namelookup_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_NAMELOOKUP_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2884,7 +2914,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_CONNECT_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn connect_time(&mut self) -> Result<Duration, Error> {
+    pub fn connect_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_CONNECT_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2899,7 +2929,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_APPCONNECT_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn appconnect_time(&mut self) -> Result<Duration, Error> {
+    pub fn appconnect_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_APPCONNECT_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2914,7 +2944,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_PRETRANSFER_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn pretransfer_time(&mut self) -> Result<Duration, Error> {
+    pub fn pretransfer_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_PRETRANSFER_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2927,7 +2957,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_STARTTRANSFER_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn starttransfer_time(&mut self) -> Result<Duration, Error> {
+    pub fn starttransfer_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_STARTTRANSFER_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2941,7 +2971,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_REDIRECT_TIME` and may return an error if the
     /// option isn't supported.
-    pub fn redirect_time(&mut self) -> Result<Duration, Error> {
+    pub fn redirect_time(&self) -> Result<Duration, Error> {
         self.getopt_double(curl_sys::CURLINFO_REDIRECT_TIME)
             .map(double_seconds_to_duration)
     }
@@ -2950,7 +2980,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_REDIRECT_COUNT` and may return an error if the
     /// option isn't supported.
-    pub fn redirect_count(&mut self) -> Result<u32, Error> {
+    pub fn redirect_count(&self) -> Result<u32, Error> {
         self.getopt_long(curl_sys::CURLINFO_REDIRECT_COUNT)
             .map(|c| c as u32)
     }
@@ -2965,7 +2995,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_REDIRECT_URL` and may return an error if the
     /// url isn't valid utf-8 or an error happens.
-    pub fn redirect_url(&mut self) -> Result<Option<&str>, Error> {
+    pub fn redirect_url(&self) -> Result<Option<&str>, Error> {
         self.getopt_str(curl_sys::CURLINFO_REDIRECT_URL)
     }
 
@@ -2978,7 +3008,7 @@ impl<H> Easy2<H> {
     /// URL.
     ///
     /// Corresponds to `CURLINFO_REDIRECT_URL` and may return an error.
-    pub fn redirect_url_bytes(&mut self) -> Result<Option<&[u8]>, Error> {
+    pub fn redirect_url_bytes(&self) -> Result<Option<&[u8]>, Error> {
         self.getopt_bytes(curl_sys::CURLINFO_REDIRECT_URL)
     }
 
@@ -2986,7 +3016,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_HEADER_SIZE` and may return an error if the
     /// option isn't supported.
-    pub fn header_size(&mut self) -> Result<u64, Error> {
+    pub fn header_size(&self) -> Result<u64, Error> {
         self.getopt_long(curl_sys::CURLINFO_HEADER_SIZE)
             .map(|c| c as u64)
     }
@@ -2995,7 +3025,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_REQUEST_SIZE` and may return an error if the
     /// option isn't supported.
-    pub fn request_size(&mut self) -> Result<u64, Error> {
+    pub fn request_size(&self) -> Result<u64, Error> {
         self.getopt_long(curl_sys::CURLINFO_REQUEST_SIZE)
             .map(|c| c as u64)
     }
@@ -3009,7 +3039,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_CONTENT_TYPE` and may return an error if the
     /// option isn't supported.
-    pub fn content_type(&mut self) -> Result<Option<&str>, Error> {
+    pub fn content_type(&self) -> Result<Option<&str>, Error> {
         self.getopt_str(curl_sys::CURLINFO_CONTENT_TYPE)
     }
 
@@ -3022,7 +3052,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_CONTENT_TYPE` and may return an error if the
     /// option isn't supported.
-    pub fn content_type_bytes(&mut self) -> Result<Option<&[u8]>, Error> {
+    pub fn content_type_bytes(&self) -> Result<Option<&[u8]>, Error> {
         self.getopt_bytes(curl_sys::CURLINFO_CONTENT_TYPE)
     }
 
@@ -3033,7 +3063,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_OS_ERRNO` and may return an error if the
     /// option isn't supported.
-    pub fn os_errno(&mut self) -> Result<i32, Error> {
+    pub fn os_errno(&self) -> Result<i32, Error> {
         self.getopt_long(curl_sys::CURLINFO_OS_ERRNO)
             .map(|c| c as i32)
     }
@@ -3046,7 +3076,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_PRIMARY_IP` and may return an error if the
     /// option isn't supported.
-    pub fn primary_ip(&mut self) -> Result<Option<&str>, Error> {
+    pub fn primary_ip(&self) -> Result<Option<&str>, Error> {
         self.getopt_str(curl_sys::CURLINFO_PRIMARY_IP)
     }
 
@@ -3054,7 +3084,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_PRIMARY_PORT` and may return an error if the
     /// option isn't supported.
-    pub fn primary_port(&mut self) -> Result<u16, Error> {
+    pub fn primary_port(&self) -> Result<u16, Error> {
         self.getopt_long(curl_sys::CURLINFO_PRIMARY_PORT)
             .map(|c| c as u16)
     }
@@ -3067,7 +3097,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_LOCAL_IP` and may return an error if the
     /// option isn't supported.
-    pub fn local_ip(&mut self) -> Result<Option<&str>, Error> {
+    pub fn local_ip(&self) -> Result<Option<&str>, Error> {
         self.getopt_str(curl_sys::CURLINFO_LOCAL_IP)
     }
 
@@ -3075,7 +3105,7 @@ impl<H> Easy2<H> {
     ///
     /// Corresponds to `CURLINFO_LOCAL_PORT` and may return an error if the
     /// option isn't supported.
-    pub fn local_port(&mut self) -> Result<u16, Error> {
+    pub fn local_port(&self) -> Result<u16, Error> {
         self.getopt_long(curl_sys::CURLINFO_LOCAL_PORT)
             .map(|c| c as u16)
     }
@@ -3395,7 +3425,7 @@ impl<H> Easy2<H> {
         unsafe { self.cvt(curl_sys::curl_easy_setopt(self.inner.handle, opt, blob_ptr)) }
     }
 
-    fn getopt_bytes(&mut self, opt: curl_sys::CURLINFO) -> Result<Option<&[u8]>, Error> {
+    fn getopt_bytes(&self, opt: curl_sys::CURLINFO) -> Result<Option<&[u8]>, Error> {
         unsafe {
             let p = self.getopt_ptr(opt)?;
             if p.is_null() {
@@ -3406,7 +3436,7 @@ impl<H> Easy2<H> {
         }
     }
 
-    fn getopt_ptr(&mut self, opt: curl_sys::CURLINFO) -> Result<*const c_char, Error> {
+    fn getopt_ptr(&self, opt: curl_sys::CURLINFO) -> Result<*const c_char, Error> {
         unsafe {
             let mut p = ptr::null();
             let rc = curl_sys::curl_easy_getinfo(self.inner.handle, opt, &mut p);
@@ -3415,7 +3445,7 @@ impl<H> Easy2<H> {
         }
     }
 
-    fn getopt_str(&mut self, opt: curl_sys::CURLINFO) -> Result<Option<&str>, Error> {
+    fn getopt_str(&self, opt: curl_sys::CURLINFO) -> Result<Option<&str>, Error> {
         match self.getopt_bytes(opt) {
             Ok(None) => Ok(None),
             Err(e) => Err(e),
@@ -3426,7 +3456,7 @@ impl<H> Easy2<H> {
         }
     }
 
-    fn getopt_long(&mut self, opt: curl_sys::CURLINFO) -> Result<c_long, Error> {
+    fn getopt_long(&self, opt: curl_sys::CURLINFO) -> Result<c_long, Error> {
         unsafe {
             let mut p = 0;
             let rc = curl_sys::curl_easy_getinfo(self.inner.handle, opt, &mut p);
@@ -3435,7 +3465,7 @@ impl<H> Easy2<H> {
         }
     }
 
-    fn getopt_double(&mut self, opt: curl_sys::CURLINFO) -> Result<c_double, Error> {
+    fn getopt_double(&self, opt: curl_sys::CURLINFO) -> Result<c_double, Error> {
         unsafe {
             let mut p = 0 as c_double;
             let rc = curl_sys::curl_easy_getinfo(self.inner.handle, opt, &mut p);
@@ -3764,6 +3794,14 @@ impl Auth {
         self.flag(curl_sys::CURLAUTH_AWS_SIGV4, on)
     }
 
+    /// HTTP Auto authentication.
+    ///
+    /// This is a combination for CURLAUTH_BASIC | CURLAUTH_DIGEST |
+    /// CURLAUTH_GSSNEGOTIATE | CURLAUTH_NTLM
+    pub fn auto(&mut self, on: bool) -> &mut Auth {
+        self.flag(curl_sys::CURLAUTH_ANY, on)
+    }
+
     fn flag(&mut self, bit: c_ulong, on: bool) -> &mut Auth {
         if on {
             self.bits |= bit as c_long;
@@ -3798,6 +3836,46 @@ impl SslOpt {
         SslOpt { bits: 0 }
     }
 
+    /// Tell libcurl to automatically locate and use a client certificate for authentication,
+    /// when requested by the server.
+    ///
+    /// This option is only supported for Schannel (the native Windows SSL library).
+    /// Prior to 7.77.0 this was the default behavior in libcurl with Schannel.
+    ///
+    /// Since the server can request any certificate that supports client authentication in
+    /// the OS certificate store it could be a privacy violation and unexpected. (Added in 7.77.0)
+    pub fn auto_client_cert(&mut self, on: bool) -> &mut SslOpt {
+        self.flag(curl_sys::CURLSSLOPT_AUTO_CLIENT_CERT, on)
+    }
+
+    /// Tell libcurl to use the operating system's native CA store for certificate verification.
+    ///
+    /// Works only on Windows when built to use OpenSSL.
+    ///
+    /// This option is experimental and behavior is subject to change. (Added in 7.71.0)
+    pub fn native_ca(&mut self, on: bool) -> &mut SslOpt {
+        self.flag(curl_sys::CURLSSLOPT_NATIVE_CA, on)
+    }
+
+    /// Tells libcurl to ignore certificate revocation checks in case of missing or
+    /// offline distribution points for those SSL backends where such behavior is present.
+    ///
+    /// This option is only supported for Schannel (the native Windows SSL library).
+    ///
+    /// If combined with CURLSSLOPT_NO_REVOKE, the latter takes precedence. (Added in 7.70.0)
+    pub fn revoke_best_effort(&mut self, on: bool) -> &mut SslOpt {
+        self.flag(curl_sys::CURLSSLOPT_REVOKE_BEST_EFFORT, on)
+    }
+
+    /// Tells libcurl to not accept "partial" certificate chains, which it otherwise does by default.
+    ///
+    /// This option is only supported for OpenSSL and will fail the certificate verification
+    /// if the chain ends with an intermediate certificate and not with a root cert.
+    /// (Added in 7.68.0)
+    pub fn no_partial_chain(&mut self, on: bool) -> &mut SslOpt {
+        self.flag(curl_sys::CURLSSLOPT_NO_PARTIALCHAIN, on)
+    }
+
     /// Tells libcurl to disable certificate revocation checks for those SSL
     /// backends where such behavior is present.
     ///
@@ -3805,7 +3883,7 @@ impl SslOpt {
     /// SSL library), with an exception in the case of Windows' Untrusted
     /// Publishers blacklist which it seems can't be bypassed. This option may
     /// have broader support to accommodate other SSL backends in the future.
-    /// https://curl.haxx.se/docs/ssl-compared.html
+    /// <https://curl.haxx.se/docs/ssl-compared.html>
     pub fn no_revoke(&mut self, on: bool) -> &mut SslOpt {
         self.flag(curl_sys::CURLSSLOPT_NO_REVOKE, on)
     }
@@ -3844,6 +3922,69 @@ impl fmt::Debug for SslOpt {
             .field(
                 "allow_beast",
                 &(self.bits & curl_sys::CURLSSLOPT_ALLOW_BEAST != 0),
+            )
+            .finish()
+    }
+}
+
+impl PostRedirections {
+    /// Create an empty PostRedirection setting with no flags set.
+    pub fn new() -> PostRedirections {
+        PostRedirections { bits: 0 }
+    }
+
+    /// Configure POST method behaviour on a 301 redirect. Setting the value
+    /// to true will preserve the method when following the redirect, else
+    /// the method is changed to GET.
+    pub fn redirect_301(&mut self, on: bool) -> &mut PostRedirections {
+        self.flag(curl_sys::CURL_REDIR_POST_301, on)
+    }
+
+    /// Configure POST method behaviour on a 302 redirect. Setting the value
+    /// to true will preserve the method when following the redirect, else
+    /// the method is changed to GET.
+    pub fn redirect_302(&mut self, on: bool) -> &mut PostRedirections {
+        self.flag(curl_sys::CURL_REDIR_POST_302, on)
+    }
+
+    /// Configure POST method behaviour on a 303 redirect. Setting the value
+    /// to true will preserve the method when following the redirect, else
+    /// the method is changed to GET.
+    pub fn redirect_303(&mut self, on: bool) -> &mut PostRedirections {
+        self.flag(curl_sys::CURL_REDIR_POST_303, on)
+    }
+
+    /// Configure POST method behaviour for all redirects. Setting the value
+    /// to true will preserve the method when following the redirect, else
+    /// the method is changed to GET.
+    pub fn redirect_all(&mut self, on: bool) -> &mut PostRedirections {
+        self.flag(curl_sys::CURL_REDIR_POST_ALL, on)
+    }
+
+    fn flag(&mut self, bit: c_ulong, on: bool) -> &mut PostRedirections {
+        if on {
+            self.bits |= bit;
+        } else {
+            self.bits &= !bit;
+        }
+        self
+    }
+}
+
+impl fmt::Debug for PostRedirections {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("PostRedirections")
+            .field(
+                "redirect_301",
+                &(self.bits & curl_sys::CURL_REDIR_POST_301 != 0),
+            )
+            .field(
+                "redirect_302",
+                &(self.bits & curl_sys::CURL_REDIR_POST_302 != 0),
+            )
+            .field(
+                "redirect_303",
+                &(self.bits & curl_sys::CURL_REDIR_POST_303 != 0),
             )
             .finish()
     }

@@ -8,7 +8,7 @@ use crate::core::package::PackageSet;
 use crate::core::SourceId;
 use crate::core::{Dependency, Package, PackageId};
 use crate::sources::IndexSummary;
-use crate::util::{CargoResult, Config};
+use crate::util::{CargoResult, GlobalContext};
 
 /// An abstraction of different sources of Cargo packages.
 ///
@@ -95,13 +95,17 @@ pub trait Source {
     /// This may trigger a download if necessary. This should only be used
     /// when a single package is needed (as in the case for `cargo install`).
     /// Otherwise downloads should be batched together via [`PackageSet`].
-    fn download_now(self: Box<Self>, package: PackageId, config: &Config) -> CargoResult<Package>
+    fn download_now(
+        self: Box<Self>,
+        package: PackageId,
+        gctx: &GlobalContext,
+    ) -> CargoResult<Package>
     where
         Self: std::marker::Sized,
     {
         let mut sources = SourceMap::new();
         sources.insert(self);
-        let pkg_set = PackageSet::new(&[package], sources, config)?;
+        let pkg_set = PackageSet::new(&[package], sources, gctx)?;
         let pkg = pkg_set.get_one(package)?;
         Ok(Package::clone(pkg))
     }
@@ -179,7 +183,10 @@ pub enum QueryKind {
     /// Path/Git sources may return all dependencies that are at that URI,
     /// whereas an `Registry` source may return dependencies that have the same
     /// canonicalization.
-    Fuzzy,
+    Alternatives,
+    /// Match a denpendency in all ways and will normalize the package name.
+    /// Each source defines what normalizing means.
+    Normalized,
 }
 
 /// A download status that represents if a [`Package`] has already been

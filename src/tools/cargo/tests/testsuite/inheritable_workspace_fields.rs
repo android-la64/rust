@@ -43,6 +43,7 @@ fn permit_additional_workspace_fields() {
               [package]
               name = "bar"
               version = "0.1.0"
+              edition = "2015"
               authors = []
               workspace = ".."
               "#,
@@ -55,7 +56,7 @@ fn permit_additional_workspace_fields() {
         .with_stderr(
             "\
 [CHECKING] bar v0.1.0 ([CWD]/bar)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -85,6 +86,7 @@ fn deny_optional_dependencies() {
               [package]
               name = "bar"
               version = "0.1.0"
+              edition = "2015"
               authors = []
               workspace = ".."
               "#,
@@ -173,7 +175,7 @@ fn inherit_own_workspace_fields() {
 [PACKAGED] [..]
 [UPLOADING] foo v1.2.3 [..]
 [UPLOADED] foo v1.2.3 to registry `crates-io`
-note: Waiting for `foo v1.2.3` to be available at registry `crates-io`.
+[NOTE] waiting for `foo v1.2.3` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] foo v1.2.3 at registry `crates-io`
 ",
@@ -259,6 +261,7 @@ fn inherit_own_dependencies() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -296,7 +299,7 @@ fn inherit_own_dependencies() {
 [DOWNLOADED] dep-build v0.8.2 ([..])
 [CHECKING] dep v0.1.2
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -323,7 +326,7 @@ fn inherit_own_dependencies() {
 [PACKAGED] [..]
 [UPLOADING] bar v0.2.0 [..]
 [UPLOADED] bar v0.2.0 to registry `crates-io`
-note: Waiting for `bar v0.2.0` to be available at registry `crates-io`.
+[NOTE] waiting for `bar v0.2.0` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] bar v0.2.0 at registry `crates-io`
 ",
@@ -388,6 +391,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
             &format!(
                 r#"{}
 [package]
+edition = "2015"
 name = "bar"
 version = "0.2.0"
 authors = []
@@ -417,6 +421,7 @@ fn inherit_own_detailed_dependencies() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -444,7 +449,7 @@ fn inherit_own_detailed_dependencies() {
 [DOWNLOADED] dep v0.1.2 ([..])
 [CHECKING] dep v0.1.2
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -469,7 +474,7 @@ fn inherit_own_detailed_dependencies() {
 [PACKAGED] [..]
 [UPLOADING] bar v0.2.0 [..]
 [UPLOADED] bar v0.2.0 to registry `crates-io`
-note: Waiting for `bar v0.2.0` to be available at registry `crates-io`.
+[NOTE] waiting for `bar v0.2.0` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] bar v0.2.0 at registry `crates-io`
 ",
@@ -516,6 +521,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
             &format!(
                 r#"{}
 [package]
+edition = "2015"
 name = "bar"
 version = "0.2.0"
 authors = []
@@ -543,6 +549,7 @@ fn inherit_from_own_undefined_field() {
             [package]
             name = "foo"
             version = "1.2.5"
+            edition = "2015"
             authors = ["rustaceans"]
             description.workspace = true
 
@@ -589,6 +596,7 @@ fn inherited_dependencies_union_features() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, features = ["dancy"] }
@@ -614,7 +622,7 @@ fn inherited_dependencies_union_features() {
 [CHECKING] [..]
 [CHECKING] dep v0.1.0
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -709,7 +717,7 @@ fn inherit_workspace_fields() {
 [PACKAGED] [..]
 [UPLOADING] bar v1.2.3 [..]
 [UPLOADED] bar v1.2.3 to registry `crates-io`
-note: Waiting for `bar v1.2.3` to be available at registry `crates-io`.
+[NOTE] waiting for `bar v1.2.3` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] bar v1.2.3 at registry `crates-io`
 ",
@@ -813,6 +821,7 @@ fn inherit_dependencies() {
             workspace = ".."
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep.workspace = true
@@ -839,7 +848,7 @@ fn inherit_dependencies() {
 [DOWNLOADED] dep-build v0.8.2 ([..])
 [CHECKING] dep v0.1.2
 [CHECKING] bar v0.2.0 ([CWD]/bar)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -867,7 +876,7 @@ fn inherit_dependencies() {
 [PACKAGED] [..]
 [UPLOADING] bar v0.2.0 [..]
 [UPLOADED] bar v0.2.0 to registry `crates-io`
-note: Waiting for `bar v0.2.0` to be available at registry `crates-io`.
+[NOTE] waiting for `bar v0.2.0` to be available at registry `crates-io`.
 You may press ctrl-c to skip waiting; the crate should be available shortly.
 [PUBLISHED] bar v0.2.0 at registry `crates-io`
 ",
@@ -932,6 +941,7 @@ You may press ctrl-c to skip waiting; the crate should be available shortly.
             &format!(
                 r#"{}
 [package]
+edition = "2015"
 name = "bar"
 version = "0.2.0"
 authors = []
@@ -970,6 +980,7 @@ fn inherit_target_dependencies() {
             workspace = ".."
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [target.'cfg(unix)'.dependencies]
             dep.workspace = true
@@ -990,7 +1001,7 @@ fn inherit_target_dependencies() {
 [DOWNLOADED] dep v0.1.2 ([..])
 [CHECKING] dep v0.1.2
 [CHECKING] bar v0.2.0 ([CWD]/bar)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1020,6 +1031,7 @@ fn inherit_dependency_override_optional() {
             workspace = ".."
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, optional = true }
@@ -1033,7 +1045,7 @@ fn inherit_dependency_override_optional() {
             "\
 [UPDATING] `[..]` index
 [CHECKING] bar v0.2.0 ([CWD]/bar)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1057,6 +1069,7 @@ fn inherit_dependency_features() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, features = ["fancy"] }
@@ -1080,7 +1093,7 @@ fn inherit_dependency_features() {
 [CHECKING] fancy_dep v0.2.4
 [CHECKING] dep v0.1.0
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1131,6 +1144,7 @@ fn inherit_detailed_dependencies() {
             workspace = ".."
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             detailed.workspace = true
@@ -1147,7 +1161,7 @@ fn inherit_detailed_dependencies() {
 [UPDATING] git repository `{}`\n\
 [CHECKING] detailed v0.5.0 ({}?branch=branchy#[..])\n\
 [CHECKING] bar v0.2.0 ([CWD]/bar)\n\
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]\n",
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
             path2url(&git_root),
             path2url(&git_root),
         ))
@@ -1173,6 +1187,7 @@ fn inherit_path_dependencies() {
             workspace = ".."
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep.workspace = true
@@ -1188,7 +1203,7 @@ fn inherit_path_dependencies() {
             "\
 [CHECKING] dep v0.9.0 ([CWD]/dep)
 [CHECKING] bar v0.2.0 ([CWD]/bar)
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1219,6 +1234,7 @@ fn error_workspace_false() {
             name = "bar"
             workspace = ".."
             version = "1.2.3"
+            edition = "2015"
             authors = ["rustaceans"]
             description = { workspace = false }
         "#,
@@ -1232,9 +1248,9 @@ fn error_workspace_false() {
         .with_stderr(
             "\
 [ERROR] `workspace` cannot be false
- --> Cargo.toml:7:41
+ --> Cargo.toml:8:41
   |
-7 |             description = { workspace = false }
+8 |             description = { workspace = false }
   |                                         ^^^^^
   |
 ",
@@ -1255,6 +1271,7 @@ fn error_workspace_dependency_looked_for_workspace_itself() {
             [package]
             name = "bar"
             version = "1.2.3"
+            edition = "2015"
 
             [dependencies]
             dep.workspace = true
@@ -1309,6 +1326,7 @@ fn error_malformed_workspace_root() {
             name = "bar"
             workspace = ".."
             version = "1.2.3"
+            edition = "2015"
             authors = ["rustaceans"]
         "#,
         )
@@ -1346,6 +1364,7 @@ fn error_no_root_workspace() {
             name = "bar"
             workspace = ".."
             version = "1.2.3"
+            edition = "2015"
             authors = ["rustaceans"]
             description.workspace = true
         "#,
@@ -1391,6 +1410,7 @@ fn error_inherit_unspecified_dependency() {
             name = "bar"
             workspace = ".."
             version = "1.2.3"
+            edition = "2015"
             authors = ["rustaceans"]
             [dependencies]
             foo.workspace = true
@@ -1433,6 +1453,7 @@ fn warn_inherit_def_feat_true_member_def_feat_false() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, default-features = false }
@@ -1458,7 +1479,7 @@ true for `workspace.dependencies.dep`, this could become a hard error in the fut
 [CHECKING] fancy_dep v0.2.4
 [CHECKING] dep v0.1.0
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1481,6 +1502,7 @@ fn warn_inherit_simple_member_def_feat_false() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, default-features = false }
@@ -1506,7 +1528,7 @@ not specified for `workspace.dependencies.dep`, this could become a hard error i
 [CHECKING] fancy_dep v0.2.4
 [CHECKING] dep v0.1.0
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1529,6 +1551,7 @@ fn inherit_def_feat_false_member_def_feat_true() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
             [dependencies]
             dep = { workspace = true, default-features = true }
@@ -1552,7 +1575,7 @@ fn inherit_def_feat_false_member_def_feat_true() {
 [CHECKING] fancy_dep v0.2.4
 [CHECKING] dep v0.1.0
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1575,6 +1598,7 @@ fn cannot_inherit_in_patch() {
             [package]
             name = "foo"
             version = "0.2.0"
+            edition = "2015"
 
             [patch.crates-io]
             bar.workspace = true
@@ -1621,6 +1645,7 @@ fn warn_inherit_unused_manifest_key_dep() {
             [package]
             name = "bar"
             version = "0.2.0"
+            edition = "2015"
             authors = []
 
             [dependencies]
@@ -1640,7 +1665,7 @@ fn warn_inherit_unused_manifest_key_dep() {
 [DOWNLOADED] dep v0.1.0 ([..])
 [CHECKING] [..]
 [CHECKING] bar v0.2.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1661,6 +1686,7 @@ fn warn_unused_workspace_package_field() {
 
             [package]
             name = "foo"
+            edition = "2015"
         "#,
         )
         .file("src/main.rs", "fn main() {}")
@@ -1671,7 +1697,7 @@ fn warn_unused_workspace_package_field() {
             "\
 [WARNING] [CWD]/Cargo.toml: unused manifest key: workspace.package.name
 [CHECKING] foo v0.0.0 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();
@@ -1746,7 +1772,7 @@ fn warn_inherit_unused_manifest_key_package() {
 [WARNING] [CWD]/Cargo.toml: unused manifest key: package.rust-version.xyz
 [WARNING] [CWD]/Cargo.toml: unused manifest key: package.version.xyz
 [CHECKING] bar v1.2.3 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
         )
         .run();

@@ -1,11 +1,16 @@
 use super::*;
+use metadata::HasAttributes;
 
-pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn writer(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
+    if !def.flags().contains(metadata::TypeAttributes::WindowsRuntime) {
+        return quote! {};
+    }
+
     if writer.sys {
         if def.interface_impls().next().is_some() {
             let name = to_ident(def.name());
             quote! {
-                pub type #name = *mut ::core::ffi::c_void;
+                pub type #name = *mut core::ffi::c_void;
             }
         } else {
             quote! {}
@@ -15,22 +20,21 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 }
 
-fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
-    if def.extends() == Some(TypeName::Attribute) {
+fn gen_class(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
+    if def.extends() == Some(metadata::TypeName::Attribute) {
         return TokenStream::new();
     }
 
     let name = to_ident(def.name());
-    let interfaces = type_interfaces(&Type::TypeDef(def, Vec::new()));
+    let interfaces = metadata::type_interfaces(&metadata::Type::TypeDef(def, Vec::new()));
     let mut methods = quote! {};
     let mut method_names = MethodNames::new();
 
-    let cfg = type_def_cfg(def, &[]);
-    let doc = writer.cfg_doc(&cfg);
+    let cfg = cfg::type_def_cfg(writer, def, &[]);
     let features = writer.cfg_features(&cfg);
 
     for interface in &interfaces {
-        if let Type::TypeDef(def, generics) = &interface.ty {
+        if let metadata::Type::TypeDef(def, generics) = &interface.ty {
             let mut virtual_names = MethodNames::new();
 
             for method in def.methods() {
@@ -40,20 +44,20 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 
     let factories = interfaces.iter().filter_map(|interface| match interface.kind {
-        InterfaceKind::Static => {
-            if let Type::TypeDef(def, generics) = &interface.ty {
+        metadata::InterfaceKind::Static => {
+            if let metadata::Type::TypeDef(def, generics) = &interface.ty {
                 if def.methods().next().is_some() {
                     let interface_type = writer.type_name(&interface.ty);
-                    let features = writer.cfg_features(&type_def_cfg(*def, generics));
+                    let features = writer.cfg_features(&cfg::type_def_cfg(writer, *def, generics));
 
                     return Some(quote! {
                         #[doc(hidden)]
                         #features
-                        pub fn #interface_type<R, F: FnOnce(&#interface_type) -> ::windows_core::Result<R>>(
+                        pub fn #interface_type<R, F: FnOnce(&#interface_type) -> windows_core::Result<R>>(
                             callback: F,
-                        ) -> ::windows_core::Result<R> {
-                            static SHARED: ::windows_core::imp::FactoryCache<#name, #interface_type> =
-                                ::windows_core::imp::FactoryCache::new();
+                        ) -> windows_core::Result<R> {
+                            static SHARED: windows_core::imp::FactoryCache<#name, #interface_type> =
+                                windows_core::imp::FactoryCache::new();
                             SHARED.call(callback)
                         }
                     });
@@ -67,14 +71,14 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
     if def.interface_impls().next().is_some() {
         let new = if type_def_has_default_constructor(def) {
             quote! {
-                pub fn new() -> ::windows_core::Result<Self> {
+                pub fn new() -> windows_core::Result<Self> {
                     Self::IActivationFactory(|f| f.ActivateInstance::<Self>())
                 }
-                fn IActivationFactory<R, F: FnOnce(&::windows_core::imp::IGenericFactory) -> ::windows_core::Result<R>>(
+                fn IActivationFactory<R, F: FnOnce(&windows_core::imp::IGenericFactory) -> windows_core::Result<R>>(
                     callback: F,
-                ) -> ::windows_core::Result<R> {
-                    static SHARED: ::windows_core::imp::FactoryCache<#name, ::windows_core::imp::IGenericFactory> =
-                        ::windows_core::imp::FactoryCache::new();
+                ) -> windows_core::Result<R> {
+                    static SHARED: windows_core::imp::FactoryCache<#name, windows_core::imp::IGenericFactory> =
+                        windows_core::imp::FactoryCache::new();
                     SHARED.call(callback)
                 }
             }
@@ -83,30 +87,32 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
         };
 
         let mut tokens = quote! {
-            #doc
             #features
             #[repr(transparent)]
-            #[derive(::core::cmp::PartialEq, ::core::cmp::Eq, ::core::fmt::Debug, ::core::clone::Clone)]
-            pub struct #name(::windows_core::IUnknown);
+            #[derive(PartialEq, Eq, core::fmt::Debug, Clone)]
+            pub struct #name(windows_core::IUnknown);
+        };
+
+        tokens.combine(&gen_conversions(writer, def, &name, &interfaces, &cfg));
+
+        tokens.combine(&quote! {
             #features
             impl #name {
                 #new
                 #methods
                 #(#factories)*
             }
-        };
+        });
 
         tokens.combine(&writer.interface_winrt_trait(def, &[], &name, &TokenStream::new(), &TokenStream::new(), &features));
         tokens.combine(&writer.interface_trait(def, &[], &name, &TokenStream::new(), &features, true));
         tokens.combine(&writer.runtime_name_trait(def, &[], &name, &TokenStream::new(), &features));
         tokens.combine(&writer.async_get(def, &[], &name, &TokenStream::new(), &TokenStream::new(), &features));
         tokens.combine(&iterators::writer(writer, def, &[], &name, &TokenStream::new(), &TokenStream::new(), &cfg));
-        tokens.combine(&gen_conversions(writer, def, &name, &interfaces, &cfg));
         tokens.combine(&writer.agile(def, &name, &TokenStream::new(), &features));
         tokens
     } else {
         let mut tokens = quote! {
-            #doc
             #features
             pub struct #name;
             #features
@@ -121,48 +127,52 @@ fn gen_class(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 }
 
-fn gen_conversions(writer: &Writer, def: TypeDef, name: &TokenStream, interfaces: &[Interface], cfg: &Cfg) -> TokenStream {
+fn gen_conversions(writer: &Writer, def: metadata::TypeDef, ident: &TokenStream, interfaces: &[metadata::Interface], cfg: &cfg::Cfg) -> TokenStream {
     let features = writer.cfg_features(cfg);
     let mut tokens = quote! {
         #features
-        ::windows_core::imp::interface_hierarchy!(#name, ::windows_core::IUnknown, ::windows_core::IInspectable);
+        windows_core::imp::interface_hierarchy!(#ident, windows_core::IUnknown, windows_core::IInspectable);
     };
+
+    let mut hierarchy = format!("windows_core::imp::required_hierarchy!({ident}");
+    let mut hierarchy_cfg = cfg.clone();
+    let mut hierarchy_added = false;
 
     for interface in interfaces {
         if type_is_exclusive(&interface.ty) {
             continue;
         }
 
-        if interface.kind != InterfaceKind::Default && interface.kind != InterfaceKind::None && interface.kind != InterfaceKind::Base {
+        if interface.kind != metadata::InterfaceKind::Default && interface.kind != metadata::InterfaceKind::None && interface.kind != metadata::InterfaceKind::Base {
             continue;
         }
 
         let into = writer.type_name(&interface.ty);
-        let features = writer.cfg_features(&cfg.union(&type_cfg(&interface.ty)));
-
-        tokens.combine(&quote! {
-            #features
-            impl ::windows_core::CanTryInto<#into> for #name {}
-        });
+        write!(&mut hierarchy, ", {into}").unwrap();
+        hierarchy_cfg = hierarchy_cfg.union(&cfg::type_cfg(writer, &interface.ty));
+        hierarchy_added = true;
     }
 
-    for def in type_def_bases(def) {
+    for def in metadata::type_def_bases(def) {
         let into = writer.type_def_name(def, &[]);
-        let features = writer.cfg_features(&cfg.union(&type_def_cfg(def, &[])));
+        write!(&mut hierarchy, ", {into}").unwrap();
+        hierarchy_cfg = hierarchy_cfg.union(&cfg::type_def_cfg(writer, def, &[]));
+        hierarchy_added = true;
+    }
 
-        tokens.combine(&quote! {
-            #features
-            impl ::windows_core::CanTryInto<#into> for #name {}
-        });
+    if hierarchy_added {
+        hierarchy.push_str(");");
+        tokens.combine(&writer.cfg_features(&hierarchy_cfg));
+        tokens.push_str(&hierarchy);
     }
 
     tokens
 }
 
-fn type_def_has_default_constructor(row: TypeDef) -> bool {
+fn type_def_has_default_constructor(row: metadata::TypeDef) -> bool {
     for attribute in row.attributes() {
         if attribute.name() == "ActivatableAttribute" {
-            if attribute.args().iter().any(|arg| matches!(arg.1, Value::TypeName(_))) {
+            if attribute.args().iter().any(|arg| matches!(arg.1, metadata::Value::TypeName(_))) {
                 continue;
             } else {
                 return true;
@@ -172,9 +182,9 @@ fn type_def_has_default_constructor(row: TypeDef) -> bool {
     false
 }
 
-fn type_is_exclusive(ty: &Type) -> bool {
+fn type_is_exclusive(ty: &metadata::Type) -> bool {
     match ty {
-        Type::TypeDef(row, _) => type_def_is_exclusive(*row),
+        metadata::Type::TypeDef(row, _) => metadata::type_def_is_exclusive(*row),
         _ => false,
     }
 }

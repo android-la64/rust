@@ -1,15 +1,21 @@
-#![feature(stdsimd)]
+#![allow(internal_features)]
+#![feature(stdarch_internal)]
+#![cfg_attr(target_arch = "arm", feature(stdarch_arm_feature_detection))]
+#![cfg_attr(target_arch = "powerpc", feature(stdarch_powerpc_feature_detection))]
+#![cfg_attr(target_arch = "powerpc64", feature(stdarch_powerpc_feature_detection))]
 #![allow(clippy::unwrap_used, clippy::use_debug, clippy::print_stdout)]
-#![cfg(any(
-    target_arch = "arm",
-    target_arch = "aarch64",
-    target_arch = "x86",
-    target_arch = "x86_64",
-    target_arch = "powerpc",
-    target_arch = "powerpc64"
-))]
 
-#[macro_use]
+#[cfg_attr(
+    any(
+        target_arch = "arm",
+        target_arch = "aarch64",
+        target_arch = "x86",
+        target_arch = "x86_64",
+        target_arch = "powerpc",
+        target_arch = "powerpc64"
+    ),
+    macro_use
+)]
 extern crate std_detect;
 
 #[test]
@@ -20,7 +26,7 @@ fn all() {
 }
 
 #[test]
-#[cfg(all(target_arch = "arm", any(target_os = "freebsd"),))]
+#[cfg(all(target_arch = "arm", target_os = "freebsd"))]
 fn arm_freebsd() {
     println!("neon: {}", is_arm_feature_detected!("neon"));
     println!("pmull: {}", is_arm_feature_detected!("pmull"));
@@ -30,7 +36,7 @@ fn arm_freebsd() {
 }
 
 #[test]
-#[cfg(all(target_arch = "arm", any(target_os = "linux", target_os = "android"),))]
+#[cfg(all(target_arch = "arm", any(target_os = "linux", target_os = "android")))]
 fn arm_linux() {
     println!("neon: {}", is_arm_feature_detected!("neon"));
     println!("pmull: {}", is_arm_feature_detected!("pmull"));
@@ -131,6 +137,38 @@ fn aarch64_bsd() {
     println!("pacg: {:?}", is_aarch64_feature_detected!("pacg"));
     println!("aes: {:?}", is_aarch64_feature_detected!("aes"));
     println!("sha2: {:?}", is_aarch64_feature_detected!("sha2"));
+}
+
+#[test]
+#[cfg(all(target_arch = "aarch64", target_os = "macos"))]
+fn aarch64_macos() {
+    println!("asimd: {:?}", is_aarch64_feature_detected!("asimd"));
+    println!("fp: {:?}", is_aarch64_feature_detected!("fp"));
+    println!("fp16: {:?}", is_aarch64_feature_detected!("fp16"));
+    println!("pmull: {:?}", is_aarch64_feature_detected!("pmull"));
+    println!("crc: {:?}", is_aarch64_feature_detected!("crc"));
+    println!("lse: {:?}", is_aarch64_feature_detected!("lse"));
+    println!("lse2: {:?}", is_aarch64_feature_detected!("lse2"));
+    println!("rdm: {:?}", is_aarch64_feature_detected!("rdm"));
+    println!("rcpc: {:?}", is_aarch64_feature_detected!("rcpc"));
+    println!("rcpc2: {:?}", is_aarch64_feature_detected!("rcpc2"));
+    println!("dotprod: {:?}", is_aarch64_feature_detected!("dotprod"));
+    println!("fhm: {:?}", is_aarch64_feature_detected!("fhm"));
+    println!("flagm: {:?}", is_aarch64_feature_detected!("flagm"));
+    println!("ssbs: {:?}", is_aarch64_feature_detected!("ssbs"));
+    println!("sb: {:?}", is_aarch64_feature_detected!("sb"));
+    println!("paca: {:?}", is_aarch64_feature_detected!("paca"));
+    println!("dpb: {:?}", is_aarch64_feature_detected!("dpb"));
+    println!("dpb2: {:?}", is_aarch64_feature_detected!("dpb2"));
+    println!("frintts: {:?}", is_aarch64_feature_detected!("frintts"));
+    println!("i8mm: {:?}", is_aarch64_feature_detected!("i8mm"));
+    println!("bf16: {:?}", is_aarch64_feature_detected!("bf16"));
+    println!("bti: {:?}", is_aarch64_feature_detected!("bti"));
+    println!("fcma: {:?}", is_aarch64_feature_detected!("fcma"));
+    println!("jsconv: {:?}", is_aarch64_feature_detected!("jsconv"));
+    println!("aes: {:?}", is_aarch64_feature_detected!("aes"));
+    println!("sha2: {:?}", is_aarch64_feature_detected!("sha2"));
+    println!("sha3: {:?}", is_aarch64_feature_detected!("sha3"));
 }
 
 #[test]

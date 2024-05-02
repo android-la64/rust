@@ -20,7 +20,7 @@ use crate::core::{Dependency, PackageId, PackageIdSpec, SourceId, Summary};
 use crate::core::{Edition, Feature, Features, WorkspaceConfig};
 use crate::util::errors::*;
 use crate::util::interning::InternedString;
-use crate::util::{short_hash, Config, Filesystem};
+use crate::util::{short_hash, Filesystem, GlobalContext};
 
 pub enum EitherManifest {
     Real(Manifest),
@@ -41,7 +41,13 @@ impl EitherManifest {
 /// This is deserialized using the [`TomlManifest`] type.
 #[derive(Clone, Debug)]
 pub struct Manifest {
+    // alternate forms of manifests:
+    contents: Rc<String>,
+    document: Rc<toml_edit::ImDocument<String>>,
+    resolved_toml: Rc<TomlManifest>,
     summary: Summary,
+
+    // this form of manifest:
     targets: Vec<Target>,
     default_kind: Option<CompileKind>,
     forced_kind: Option<CompileKind>,
@@ -56,7 +62,6 @@ pub struct Manifest {
     replace: Vec<(PackageIdSpec, Dependency)>,
     patch: HashMap<Url, Vec<Dependency>>,
     workspace: WorkspaceConfig,
-    original: Rc<TomlManifest>,
     unstable_features: Features,
     edition: Edition,
     rust_version: Option<RustVersion>,
@@ -386,7 +391,11 @@ compact_debug! {
 
 impl Manifest {
     pub fn new(
+        contents: Rc<String>,
+        document: Rc<toml_edit::ImDocument<String>>,
+        resolved_toml: Rc<TomlManifest>,
         summary: Summary,
+
         default_kind: Option<CompileKind>,
         forced_kind: Option<CompileKind>,
         targets: Vec<Target>,
@@ -405,14 +414,17 @@ impl Manifest {
         rust_version: Option<RustVersion>,
         im_a_teapot: Option<bool>,
         default_run: Option<String>,
-        original: Rc<TomlManifest>,
         metabuild: Option<Vec<String>>,
         resolve_behavior: Option<ResolveBehavior>,
         lint_rustflags: Vec<String>,
         embedded: bool,
     ) -> Manifest {
         Manifest {
+            contents,
+            document,
+            resolved_toml,
             summary,
+
             default_kind,
             forced_kind,
             targets,
@@ -430,7 +442,6 @@ impl Manifest {
             unstable_features,
             edition,
             rust_version,
-            original,
             im_a_teapot,
             default_run,
             metabuild,
@@ -438,6 +449,25 @@ impl Manifest {
             lint_rustflags,
             embedded,
         }
+    }
+
+    /// The raw contents of the original TOML
+    pub fn contents(&self) -> &str {
+        self.contents.as_str()
+    }
+    /// Collection of spans for the original TOML
+    pub fn document(&self) -> &toml_edit::ImDocument<String> {
+        &self.document
+    }
+    /// The [`TomlManifest`] with all fields expanded
+    pub fn resolved_toml(&self) -> &TomlManifest {
+        &self.resolved_toml
+    }
+    pub fn summary(&self) -> &Summary {
+        &self.summary
+    }
+    pub fn summary_mut(&mut self) -> &mut Summary {
+        &mut self.summary
     }
 
     pub fn dependencies(&self) -> &[Dependency] {
@@ -464,12 +494,6 @@ impl Manifest {
     pub fn package_id(&self) -> PackageId {
         self.summary.package_id()
     }
-    pub fn summary(&self) -> &Summary {
-        &self.summary
-    }
-    pub fn summary_mut(&mut self) -> &mut Summary {
-        &mut self.summary
-    }
     pub fn targets(&self) -> &[Target] {
         &self.targets
     }
@@ -494,9 +518,6 @@ impl Manifest {
     }
     pub fn replace(&self) -> &[(PackageIdSpec, Dependency)] {
         &self.replace
-    }
-    pub fn original(&self) -> &TomlManifest {
-        &self.original
     }
     pub fn patch(&self) -> &HashMap<Url, Vec<Dependency>> {
         &self.patch
@@ -559,10 +580,10 @@ impl Manifest {
     }
 
     // Just a helper function to test out `-Z` flags on Cargo
-    pub fn print_teapot(&self, config: &Config) {
+    pub fn print_teapot(&self, gctx: &GlobalContext) {
         if let Some(teapot) = self.im_a_teapot {
-            if config.cli_unstable().print_im_a_teapot {
-                crate::drop_println!(config, "im-a-teapot = {}", teapot);
+            if gctx.cli_unstable().print_im_a_teapot {
+                crate::drop_println!(gctx, "im-a-teapot = {}", teapot);
             }
         }
     }

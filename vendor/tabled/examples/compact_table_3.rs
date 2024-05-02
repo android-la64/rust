@@ -3,7 +3,7 @@
 //!
 //! * Note how the multiline data is accepted, but then truncated in the display.
 
-use tabled::{settings::Style, tables::CompactTable};
+use tabled::{settings::style::Style, tables::CompactTable};
 
 fn main() {
     let data = [

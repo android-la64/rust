@@ -1,7 +1,8 @@
-// revisions: current next
-// compile-flags: -Zverbose-internals
-//[next] compile-flags: -Znext-solver
-// normalize-stderr-test "DefId\([^\)]+\)" -> "DefId(..)"
+//@ revisions: current next
+//@ ignore-compare-mode-next-solver (explicit revisions)
+//@ compile-flags: -Zverbose-internals
+//@[next] compile-flags: -Znext-solver
+//@ normalize-stderr-test "DefId\([^\)]+\)" -> "DefId(..)"
 
 #![feature(rustc_attrs)]
 #![rustc_hidden_type_of_opaques]

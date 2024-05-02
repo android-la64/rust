@@ -7,7 +7,7 @@ use crate::{
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::convert::{From, TryFrom};
+use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::fmt;
 use std::path::Path;
@@ -2034,7 +2034,7 @@ impl Networks {
     /// Refreshes the network interfaces' content. If you didn't run [`Networks::refresh_list`]
     /// before, calling this method won't do anything as no interfaces are present.
     ///
-    /// ⚠️ If a user is added or removed, this method won't take it into account. Use
+    /// ⚠️ If a network interface is added or removed, this method won't take it into account. Use
     /// [`Networks::refresh_list`] instead.
     ///
     /// ⚠️ If you didn't call [`Networks::refresh_list`] beforehand, this method will do nothing
@@ -2077,10 +2077,19 @@ pub struct NetworkData {
 impl NetworkData {
     /// Returns the number of received bytes since the last refresh.
     ///
+    /// If you want the total number of bytes received, take a look at the
+    /// [`total_received`](NetworkData::total_received) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("in: {} B", network.received());
     /// }
@@ -2090,6 +2099,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of received bytes.
+    ///
+    /// If you want the amount of received bytes since the last refresh, take a look at the
+    /// [`received`](NetworkData::received) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2105,10 +2117,19 @@ impl NetworkData {
 
     /// Returns the number of transmitted bytes since the last refresh.
     ///
+    /// If you want the total number of bytes transmitted, take a look at the
+    /// [`total_transmitted`](NetworkData::total_transmitted) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("out: {} B", network.transmitted());
     /// }
@@ -2118,6 +2139,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of transmitted bytes.
+    ///
+    /// If you want the amount of transmitted bytes since the last refresh, take a look at the
+    /// [`transmitted`](NetworkData::transmitted) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2133,10 +2157,19 @@ impl NetworkData {
 
     /// Returns the number of incoming packets since the last refresh.
     ///
+    /// If you want the total number of packets received, take a look at the
+    /// [`total_packets_received`](NetworkData::total_packets_received) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("in: {}", network.packets_received());
     /// }
@@ -2146,6 +2179,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of incoming packets.
+    ///
+    /// If you want the amount of received packets since the last refresh, take a look at the
+    /// [`packets_received`](NetworkData::packets_received) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2161,10 +2197,19 @@ impl NetworkData {
 
     /// Returns the number of outcoming packets since the last refresh.
     ///
+    /// If you want the total number of packets transmitted, take a look at the
+    /// [`total_packets_transmitted`](NetworkData::total_packets_transmitted) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("out: {}", network.packets_transmitted());
     /// }
@@ -2174,6 +2219,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of outcoming packets.
+    ///
+    /// If you want the amount of transmitted packets since the last refresh, take a look at the
+    /// [`packets_transmitted`](NetworkData::packets_transmitted) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2189,10 +2237,19 @@ impl NetworkData {
 
     /// Returns the number of incoming errors since the last refresh.
     ///
+    /// If you want the total number of errors on received packets, take a look at the
+    /// [`total_errors_on_received`](NetworkData::total_errors_on_received) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("in: {}", network.errors_on_received());
     /// }
@@ -2202,6 +2259,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of incoming errors.
+    ///
+    /// If you want the amount of errors on received packets since the last refresh, take a look at
+    /// the [`errors_on_received`](NetworkData::errors_on_received) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2217,10 +2277,19 @@ impl NetworkData {
 
     /// Returns the number of outcoming errors since the last refresh.
     ///
+    /// If you want the total number of errors on transmitted packets, take a look at the
+    /// [`total_errors_on_transmitted`](NetworkData::total_errors_on_transmitted) method.
+    ///
     /// ```no_run
     /// use sysinfo::Networks;
+    /// use std::{thread, time};
     ///
-    /// let networks = Networks::new_with_refreshed_list();
+    /// let mut networks = Networks::new_with_refreshed_list();
+    /// // Waiting a bit to get data from network...
+    /// thread::sleep(time::Duration::from_millis(10));
+    /// // Refreshing again to generate diff.
+    /// networks.refresh();
+    ///
     /// for (interface_name, network) in &networks {
     ///     println!("out: {}", network.errors_on_transmitted());
     /// }
@@ -2230,6 +2299,9 @@ impl NetworkData {
     }
 
     /// Returns the total number of outcoming errors.
+    ///
+    /// If you want the amount of errors on transmitted packets since the last refresh, take a look at
+    /// the [`errors_on_transmitted`](NetworkData::errors_on_transmitted) method.
     ///
     /// ```no_run
     /// use sysinfo::Networks;
@@ -2771,6 +2843,146 @@ impl Users {
     }
 }
 
+/// Interacting with groups.
+///
+/// ```no_run
+/// use sysinfo::Groups;
+///
+/// let mut groups = Groups::new();
+/// for group in groups.list() {
+///     println!("{}", group.name());
+/// }
+/// ```
+pub struct Groups {
+    groups: Vec<Group>,
+}
+
+impl Default for Groups {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<Groups> for Vec<Group> {
+    fn from(groups: Groups) -> Self {
+        groups.groups
+    }
+}
+
+impl From<Vec<Group>> for Groups {
+    fn from(groups: Vec<Group>) -> Self {
+        Self { groups }
+    }
+}
+
+impl std::ops::Deref for Groups {
+    type Target = [Group];
+
+    fn deref(&self) -> &Self::Target {
+        self.list()
+    }
+}
+
+impl std::ops::DerefMut for Groups {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.list_mut()
+    }
+}
+
+impl<'a> IntoIterator for &'a Groups {
+    type Item = &'a Group;
+    type IntoIter = std::slice::Iter<'a, Group>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list().iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut Groups {
+    type Item = &'a mut Group;
+    type IntoIter = std::slice::IterMut<'a, Group>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list_mut().iter_mut()
+    }
+}
+
+impl Groups {
+    /// Creates a new empty [`Groups`][crate::Groups] type.
+    ///
+    /// If you want it to be filled directly, take a look at [`Groups::new_with_refreshed_list`].
+    ///
+    /// ```no_run
+    /// use sysinfo::Groups;
+    ///
+    /// let mut groups = Groups::new();
+    /// groups.refresh_list();
+    /// for group in groups.list() {
+    ///     println!("{group:?}");
+    /// }
+    /// ```
+    pub fn new() -> Self {
+        Self { groups: Vec::new() }
+    }
+
+    /// Creates a new [`Groups`][crate::Groups] type with the user list loaded.
+    /// It is a combination of [`Groups::new`] and [`Groups::refresh_list`].
+    ///
+    /// ```no_run
+    /// use sysinfo::Groups;
+    ///
+    /// let mut groups = Groups::new_with_refreshed_list();
+    /// for group in groups.list() {
+    ///     println!("{group:?}");
+    /// }
+    /// ```
+    pub fn new_with_refreshed_list() -> Self {
+        let mut groups = Self::new();
+        groups.refresh_list();
+        groups
+    }
+
+    /// Returns the users list.
+    ///
+    /// ```no_run
+    /// use sysinfo::Groups;
+    ///
+    /// let groups = Groups::new_with_refreshed_list();
+    /// for group in groups.list() {
+    ///     println!("{group:?}");
+    /// }
+    /// ```
+    pub fn list(&self) -> &[Group] {
+        &self.groups
+    }
+
+    /// Returns the groups list.
+    ///
+    /// ```no_run
+    /// use sysinfo::Groups;
+    ///
+    /// let mut groups = Groups::new_with_refreshed_list();
+    /// groups.list_mut().sort_by(|user1, user2| {
+    ///     user1.name().partial_cmp(user2.name()).unwrap()
+    /// });
+    /// ```
+    pub fn list_mut(&mut self) -> &mut [Group] {
+        &mut self.groups
+    }
+
+    /// The group list will be emptied then completely recomputed.
+    ///
+    /// ```no_run
+    /// use sysinfo::Users;
+    ///
+    /// let mut users = Users::new();
+    /// users.refresh_list();
+    /// ```
+    pub fn refresh_list(&mut self) {
+        crate::sys::get_groups(&mut self.groups);
+    }
+}
+
 /// An enum representing signals on UNIX-like systems.
 ///
 /// On non-unix systems, this enum is mostly useless and is only there to keep coherency between
@@ -3118,9 +3330,15 @@ impl User {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub(crate) struct GroupInner {
+    pub(crate) id: Gid,
+    pub(crate) name: String,
+}
+
 /// Type containing group information.
 ///
-/// It is returned by [`User::groups`].
+/// It is returned by [`User::groups`] or [`Groups::list`].
 ///
 /// ```no_run
 /// use sysinfo::Users;
@@ -3141,8 +3359,7 @@ impl User {
 /// ```
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Group {
-    pub(crate) id: Gid,
-    pub(crate) name: String,
+    pub(crate) inner: GroupInner,
 }
 
 impl Group {
@@ -3162,7 +3379,7 @@ impl Group {
     /// }
     /// ```
     pub fn id(&self) -> &Gid {
-        &self.id
+        self.inner.id()
     }
 
     /// Returns the name of the group.
@@ -3179,7 +3396,7 @@ impl Group {
     /// }
     /// ```
     pub fn name(&self) -> &str {
-        &self.name
+        self.inner.name()
     }
 }
 

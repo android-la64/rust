@@ -6,7 +6,8 @@ use rustc_errors::SuggestionStyle;
 use rustc_hir::def::{DefKind, DocLinkResMap, Namespace, Res};
 use rustc_hir::HirId;
 use rustc_lint_defs::Applicability;
-use rustc_resolve::rustdoc::source_span_for_markdown_range;
+use rustc_resolve::rustdoc::{prepare_to_doc_link_resolution, source_span_for_markdown_range};
+use rustc_span::def_id::DefId;
 use rustc_span::Symbol;
 
 use crate::clean::utils::find_nearest_parent_module;
@@ -28,22 +29,24 @@ pub(crate) fn visit_item(cx: &DocContext<'_>, item: &Item) {
         return;
     };
 
-    let doc = item.doc_value();
-    if doc.is_empty() {
-        return;
+    let hunks = prepare_to_doc_link_resolution(&item.attrs.doc_strings);
+    for (item_id, doc) in hunks {
+        if let Some(item_id) = item_id.or(item.def_id())
+            && !doc.is_empty()
+        {
+            check_redundant_explicit_link_for_did(cx, item, item_id, hir_id, &doc);
+        }
     }
+}
 
-    if item.link_names(&cx.cache).is_empty() {
-        // If there's no link names in this item,
-        // then we skip resolution querying to
-        // avoid from panicking.
-        return;
-    }
-
-    let Some(item_id) = item.def_id() else {
-        return;
-    };
-    let Some(local_item_id) = item_id.as_local() else {
+fn check_redundant_explicit_link_for_did<'md>(
+    cx: &DocContext<'_>,
+    item: &Item,
+    did: DefId,
+    hir_id: HirId,
+    doc: &'md str,
+) {
+    let Some(local_item_id) = did.as_local() else {
         return;
     };
 
@@ -53,12 +56,26 @@ pub(crate) fn visit_item(cx: &DocContext<'_>, item: &Item) {
         return;
     }
     let is_private = !cx.render_options.document_private
-        && !cx.cache.effective_visibilities.is_directly_public(cx.tcx, item_id);
+        && !cx.cache.effective_visibilities.is_directly_public(cx.tcx, did);
     if is_private {
         return;
     }
 
-    check_redundant_explicit_link(cx, item, hir_id, &doc);
+    let module_id = match cx.tcx.def_kind(did) {
+        DefKind::Mod if item.inner_docs(cx.tcx) => did,
+        _ => find_nearest_parent_module(cx.tcx, did).unwrap(),
+    };
+
+    let Some(resolutions) =
+        cx.tcx.resolutions(()).doc_link_resolutions.get(&module_id.expect_local())
+    else {
+        // If there's no resolutions in this module,
+        // then we skip resolution querying to
+        // avoid from panicking.
+        return;
+    };
+
+    check_redundant_explicit_link(cx, item, hir_id, &doc, &resolutions);
 }
 
 fn check_redundant_explicit_link<'md>(
@@ -66,6 +83,7 @@ fn check_redundant_explicit_link<'md>(
     item: &Item,
     hir_id: HirId,
     doc: &'md str,
+    resolutions: &DocLinkResMap,
 ) -> Option<()> {
     let mut broken_line_callback = |link: BrokenLink<'md>| Some((link.reference, "".into()));
     let mut offset_iter = Parser::new_with_broken_link_callback(
@@ -74,12 +92,6 @@ fn check_redundant_explicit_link<'md>(
         Some(&mut broken_line_callback),
     )
     .into_offset_iter();
-    let item_id = item.def_id()?;
-    let module_id = match cx.tcx.def_kind(item_id) {
-        DefKind::Mod if item.inner_docs(cx.tcx) => item_id,
-        _ => find_nearest_parent_module(cx.tcx, item_id).unwrap(),
-    };
-    let resolutions = cx.tcx.doc_link_resolutions(module_id);
 
     while let Some((event, link_range)) = offset_iter.next() {
         match event {

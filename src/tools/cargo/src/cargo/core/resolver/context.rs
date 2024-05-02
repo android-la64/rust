@@ -15,7 +15,7 @@ use tracing::debug;
 // risk of being cloned *a lot* so we want to make this as cheap to clone as
 // possible.
 #[derive(Clone)]
-pub struct Context {
+pub struct ResolverContext {
     pub age: ContextAge,
     pub activations: Activations,
     /// list the features that are activated for each package
@@ -70,9 +70,9 @@ impl PackageId {
     }
 }
 
-impl Context {
-    pub fn new() -> Context {
-        Context {
+impl ResolverContext {
+    pub fn new() -> ResolverContext {
+        ResolverContext {
             age: 0,
             resolve_features: im_rc::HashMap::new(),
             links: im_rc::HashMap::new(),
@@ -227,12 +227,5 @@ impl Context {
             }
         }
         graph
-    }
-}
-
-impl Graph<PackageId, im_rc::HashSet<Dependency>> {
-    pub fn parents_of(&self, p: PackageId) -> impl Iterator<Item = (PackageId, bool)> + '_ {
-        self.edges(&p)
-            .map(|(grand, d)| (*grand, d.iter().any(|x| x.is_public())))
     }
 }

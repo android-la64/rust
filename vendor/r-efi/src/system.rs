@@ -391,6 +391,40 @@ pub struct ConfigurationTable {
     pub vendor_table: *mut core::ffi::c_void,
 }
 
+pub const RT_PROPERTIES_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xeb66918a,
+    0x7eef,
+    0x402a,
+    0x84,
+    0x2e,
+    &[0x93, 0x1d, 0x21, 0xc3, 0x8a, 0xe9],
+);
+
+pub const RT_PROPERTIES_TABLE_VERSION: u16 = 0x0001;
+
+pub const RT_SUPPORTED_GET_TIME: u32 = 0x0000001;
+pub const RT_SUPPORTED_SET_TIME: u32 = 0x0000002;
+pub const RT_SUPPORTED_GET_WAKEUP_TIME: u32 = 0x0000004;
+pub const RT_SUPPORTED_SET_WAKEUP_TIME: u32 = 0x0000008;
+pub const RT_SUPPORTED_GET_VARIABLE: u32 = 0x00000010;
+pub const RT_SUPPORTED_GET_NEXT_VARIABLE_NAME: u32 = 0x00000020;
+pub const RT_SUPPORTED_SET_VARIABLE: u32 = 0x00000040;
+pub const RT_SUPPORTED_SET_VIRTUAL_ADDRESS_MAP: u32 = 0x00000080;
+pub const RT_SUPPORTED_CONVERT_POINTER: u32 = 0x00000100;
+pub const RT_SUPPORTED_GET_NEXT_HIGH_MONOTONIC_COUNT: u32 = 0x00000200;
+pub const RT_SUPPORTED_RESET_SYSTEM: u32 = 0x00000400;
+pub const RT_SUPPORTED_UPDATE_CAPSULE: u32 = 0x00000800;
+pub const RT_SUPPORTED_QUERY_CAPSULE_CAPABILITIES: u32 = 0x00001000;
+pub const RT_SUPPORTED_QUERY_VARIABLE_INFO: u32 = 0x00002000;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct RtPropertiesTable {
+    pub version: u16,
+    pub length: u16,
+    pub runtime_services_supported: u32,
+}
+
 pub const PROPERTIES_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
     0x880aaca3,
     0x4adc,
@@ -432,6 +466,131 @@ pub struct MemoryAttributesTable<const N: usize = 0> {
     pub reserved: u32,
     pub entry: [MemoryDescriptor; N],
 }
+
+pub const CONFORMANCE_PROFILES_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0x36122546,
+    0xf7e7,
+    0x4c8f,
+    0xbd,
+    0x9b,
+    &[0xeb, 0x85, 0x25, 0xb5, 0x0c, 0x0b],
+);
+
+pub const CONFORMANCE_PROFILES_TABLE_VERSION: u16 = 0x0001;
+
+pub const CONFORMANCE_PROFILES_UEFI_SPEC_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0x523c91af,
+    0xa195,
+    0x4382,
+    0x81,
+    0x8d,
+    &[0x29, 0x5f, 0xe4, 0x00, 0x64, 0x65],
+);
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ConformanceProfilesTable<const N: usize = 0> {
+    pub version: u16,
+    pub number_of_profiles: u16,
+    pub conformance_profiles: [crate::base::Guid; N],
+}
+
+//
+// External Configuration Tables
+//
+// This lists the Guids of configuration tables of other industry standards, as listed in
+// the UEFI specification. See each standard for details on the data included in each table.
+//
+
+pub const ACPI_10_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xeb9d2d30,
+    0x2d88,
+    0x11d3,
+    0x9a,
+    0x16,
+    &[0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d],
+);
+
+pub const ACPI_20_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0x8868e871,
+    0xe4f1,
+    0x11d3,
+    0xbc,
+    0x22,
+    &[0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81],
+);
+
+pub const DTB_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xb1b621d5,
+    0xf19c,
+    0x41a5,
+    0x83,
+    0x0b,
+    &[0xd9, 0x15, 0x2c, 0x69, 0xaa, 0xe0],
+);
+
+pub const JSON_CAPSULE_DATA_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0x35e7a725,
+    0x8dd2,
+    0x4cac,
+    0x80,
+    0x11,
+    &[0x33, 0xcd, 0xa8, 0x10, 0x90, 0x56],
+);
+
+pub const JSON_CAPSULE_RESULT_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xdbc461c3,
+    0xb3de,
+    0x422a,
+    0xb9,
+    0xb4,
+    &[0x98, 0x86, 0xfd, 0x49, 0xa1, 0xe5],
+);
+
+pub const JSON_CONFIG_DATA_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0x87367f87,
+    0x1119,
+    0x41ce,
+    0xaa,
+    0xec,
+    &[0x8b, 0xe0, 0x11, 0x1f, 0x55, 0x8a],
+);
+
+pub const MPS_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xeb9d2d2f,
+    0x2d88,
+    0x11d3,
+    0x9a,
+    0x16,
+    &[0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d],
+);
+
+pub const SAL_SYSTEM_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xeb9d2d32,
+    0x2d88,
+    0x11d3,
+    0x9a,
+    0x16,
+    &[0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d],
+);
+
+pub const SMBIOS_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xeb9d2d31,
+    0x2d88,
+    0x11d3,
+    0x9a,
+    0x16,
+    &[0x00, 0x90, 0x27, 0x3f, 0xc1, 0x4d],
+);
+
+pub const SMBIOS3_TABLE_GUID: crate::base::Guid = crate::base::Guid::from_fields(
+    0xf2fd1544,
+    0x9794,
+    0x4a2c,
+    0x99,
+    0x2e,
+    &[0xe5, 0xbb, 0xcf, 0x20, 0xe3, 0x94],
+);
 
 //
 // Global Tables

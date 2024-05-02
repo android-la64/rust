@@ -1,6 +1,6 @@
 use crate::{
-    parser::{Pattern, Spanned},
-    rustc_stderr::{Message, Span},
+    parser::{Pattern, Span, Spanned},
+    rustc_stderr::Message,
     Mode,
 };
 use std::{num::NonZeroUsize, path::PathBuf, process::ExitStatus};
@@ -25,12 +25,19 @@ pub enum Error {
         /// Can be `None` when it is expected outside the current file
         expected_line: Option<NonZeroUsize>,
     },
+    /// A diagnostic code matcher was declared but had no matching error.
+    CodeNotFound {
+        /// The code that was not found, and the span of where that code was declared.
+        code: Spanned<String>,
+        /// Can be `None` when it is expected outside the current file
+        expected_line: Option<NonZeroUsize>,
+    },
     /// A ui test checking for failure does not have any failure patterns
     NoPatternsFound,
     /// A ui test checking for success has failure patterns
     PatternFoundInPassTest {
         /// Span of a flag changing the mode (if changed from default).
-        mode: Option<Span>,
+        mode: Span,
         /// Span of the pattern
         span: Span,
     },
@@ -43,7 +50,7 @@ pub enum Error {
         /// The contents of the file.
         expected: Vec<u8>,
         /// A command, that when run, causes the output to get blessed instead of erroring.
-        bless_command: String,
+        bless_command: Option<String>,
     },
     /// There were errors that don't have a pattern.
     ErrorsWithoutPattern {
@@ -59,6 +66,8 @@ pub enum Error {
         /// The character range in which it was defined.
         span: Span,
     },
+    /// An invalid setting was used.
+    ConfigError(String),
     /// Conflicting comments
     MultipleRevisionsWithResults {
         /// The comment being looked for

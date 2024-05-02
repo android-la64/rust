@@ -17,10 +17,10 @@ use hir_ty::{
 };
 
 use crate::{
-    Adt, AsAssocItem, AssocItemContainer, Const, ConstParam, Enum, ExternCrateDecl, Field,
-    Function, GenericParam, HasCrate, HasVisibility, LifetimeParam, Macro, Module, SelfParam,
-    Static, Struct, Trait, TraitAlias, TupleField, TyBuilder, Type, TypeAlias, TypeOrConstParam,
-    TypeParam, Union, Variant,
+    Adt, AsAssocItem, AssocItem, AssocItemContainer, Const, ConstParam, Enum, ExternCrateDecl,
+    Field, Function, GenericParam, HasCrate, HasVisibility, LifetimeParam, Macro, Module,
+    SelfParam, Static, Struct, Trait, TraitAlias, TupleField, TyBuilder, Type, TypeAlias,
+    TypeOrConstParam, TypeParam, Union, Variant,
 };
 
 impl HirDisplay for Function {
@@ -158,7 +158,8 @@ impl HirDisplay for Adt {
 
 impl HirDisplay for Struct {
     fn hir_fmt(&self, f: &mut HirFormatter<'_>) -> Result<(), HirDisplayError> {
-        write_visibility(self.module(f.db).id, self.visibility(f.db), f)?;
+        let module_id = self.module(f.db).id;
+        write_visibility(module_id, self.visibility(f.db), f)?;
         f.write_str("struct ")?;
         write!(f, "{}", self.name(f.db).display(f.db.upcast()))?;
         let def_id = GenericDefId::AdtId(AdtId::StructId(self.id));
@@ -171,6 +172,7 @@ impl HirDisplay for Struct {
 
             while let Some((id, _)) = it.next() {
                 let field = Field { parent: (*self).into(), id };
+                write_visibility(module_id, field.visibility(f.db), f)?;
                 field.ty(f.db).hir_fmt(f)?;
                 if it.peek().is_some() {
                     f.write_str(", ")?;
@@ -593,6 +595,35 @@ impl HirDisplay for Trait {
         let def_id = GenericDefId::TraitId(self.id);
         write_generic_params(def_id, f)?;
         write_where_clause(def_id, f)?;
+
+        if let Some(limit) = f.entity_limit {
+            let assoc_items = self.items(f.db);
+            let count = assoc_items.len().min(limit);
+            if count == 0 {
+                if assoc_items.is_empty() {
+                    f.write_str(" {}")?;
+                } else {
+                    f.write_str(" { /* … */ }")?;
+                }
+            } else {
+                f.write_str(" {\n")?;
+                for item in &assoc_items[..count] {
+                    f.write_str("    ")?;
+                    match item {
+                        AssocItem::Function(func) => func.hir_fmt(f),
+                        AssocItem::Const(cst) => cst.hir_fmt(f),
+                        AssocItem::TypeAlias(type_alias) => type_alias.hir_fmt(f),
+                    }?;
+                    f.write_str(";\n")?;
+                }
+
+                if assoc_items.len() > count {
+                    f.write_str("    /* … */\n")?;
+                }
+                f.write_str("}")?;
+            }
+        }
+
         Ok(())
     }
 }

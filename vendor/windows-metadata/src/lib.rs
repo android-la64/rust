@@ -1,3 +1,9 @@
+/*!
+Learn more about Rust for Windows here: <https://github.com/microsoft/windows-rs>
+*/
+
+#![doc(hidden)]
+
 use std::cmp::Ordering;
 use std::collections::*;
 
@@ -91,6 +97,7 @@ pub enum Value {
     EnumDef(TypeDef, Box<Self>),
 }
 
+#[derive(Debug)]
 pub struct MethodDefSig {
     pub call_flags: MethodCallAttributes,
     pub return_type: Type,

@@ -7,8 +7,8 @@
 
 use std::{
     collections::HashMap,
-    fmt::{Display, Formatter},
-    io::Write,
+    fmt::{self, Display, Formatter},
+    io::{self, Write},
 };
 
 use owo_colors::{
@@ -17,7 +17,7 @@ use owo_colors::{
 };
 
 use papergrid::{
-    color::Color,
+    ansi::ANSIFmt,
     config::spanned::SpannedConfig,
     config::{Borders, Position},
     dimension::spanned::SpannedGridDimension,
@@ -39,7 +39,7 @@ fn main() {
 
     let grid = Grid::new(records, &dimension, &cfg, &colors);
 
-    grid.build(UTF8Stdout(std::io::stdout())).unwrap();
+    grid.build(UTF8Stdout(io::stdout())).unwrap();
     println!();
 }
 
@@ -69,28 +69,27 @@ fn generate_table_config() -> SpannedConfig {
 #[derive(Debug, Clone, Default)]
 struct Style(OStyle);
 
-impl Color for Style {
-    fn fmt_prefix<W: std::fmt::Write>(&self, f: &mut W) -> std::fmt::Result {
-        let buf = OStylePrefix(&self.0).to_string();
-        f.write_str(&buf)
+impl ANSIFmt for Style {
+    fn fmt_ansi_prefix<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
+        struct Prefix<'a>(&'a OStyle);
+
+        impl Display for Prefix<'_> {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                self.0.fmt_prefix(f)
+            }
+        }
+
+        f.write_fmt(format_args!("{}", Prefix(&self.0)))
     }
 }
 
-struct OStylePrefix<'a>(&'a OStyle);
+struct UTF8Stdout(io::Stdout);
 
-impl Display for OStylePrefix<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt_prefix(f)
-    }
-}
-
-struct UTF8Stdout(std::io::Stdout);
-
-impl std::fmt::Write for UTF8Stdout {
-    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+impl fmt::Write for UTF8Stdout {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
         let mut buf = s.as_bytes();
         loop {
-            let n = self.0.write(buf).map_err(|_| std::fmt::Error::default())?;
+            let n = self.0.write(buf).map_err(|_| fmt::Error)?;
             if n == buf.len() {
                 break;
             }
@@ -98,7 +97,7 @@ impl std::fmt::Write for UTF8Stdout {
             buf = &buf[n..];
         }
 
-        self.0.flush().map_err(|_| std::fmt::Error::default())?;
+        self.0.flush().map_err(|_| fmt::Error)?;
 
         Ok(())
     }

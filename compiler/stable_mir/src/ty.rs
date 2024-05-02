@@ -4,9 +4,9 @@ use super::{
     with, DefId, Error, Symbol,
 };
 use crate::abi::Layout;
-use crate::crate_def::CrateDef;
 use crate::mir::alloc::{read_target_int, read_target_uint, AllocId};
 use crate::target::MachineInfo;
+use crate::{crate_def::CrateDef, mir::mono::StaticDef};
 use crate::{Filename, Opaque};
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Range;
@@ -128,12 +128,37 @@ impl Const {
 
     /// Creates an interned usize constant.
     fn try_from_target_usize(val: u64) -> Result<Self, Error> {
-        with(|cx| cx.usize_to_const(val))
+        with(|cx| cx.try_new_const_uint(val.into(), UintTy::Usize))
     }
 
     /// Try to evaluate to a target `usize`.
     pub fn eval_target_usize(&self) -> Result<u64, Error> {
         with(|cx| cx.eval_target_usize(self))
+    }
+
+    /// Create a constant that represents a new zero-sized constant of type T.
+    /// Fails if the type is not a ZST or if it doesn't have a known size.
+    pub fn try_new_zero_sized(ty: Ty) -> Result<Const, Error> {
+        with(|cx| cx.try_new_const_zst(ty))
+    }
+
+    /// Build a new constant that represents the given string.
+    ///
+    /// Note that there is no guarantee today about duplication of the same constant.
+    /// I.e.: Calling this function multiple times with the same argument may or may not return
+    /// the same allocation.
+    pub fn from_str(value: &str) -> Const {
+        with(|cx| cx.new_const_str(value))
+    }
+
+    /// Build a new constant that represents the given boolean value.
+    pub fn from_bool(value: bool) -> Const {
+        with(|cx| cx.new_const_bool(value))
+    }
+
+    /// Build a new constant that represents the given unsigned integer.
+    pub fn try_from_uint(value: u128, uint_ty: UintTy) -> Result<Const, Error> {
+        with(|cx| cx.try_new_const_uint(value, uint_ty))
     }
 }
 
@@ -324,7 +349,9 @@ impl TyKind {
 
     #[inline]
     pub fn is_cstr(&self) -> bool {
-        let TyKind::RigidTy(RigidTy::Adt(def, _)) = self else { return false };
+        let TyKind::RigidTy(RigidTy::Adt(def, _)) = self else {
+            return false;
+        };
         with(|cx| cx.adt_is_cstr(*def))
     }
 
@@ -540,8 +567,42 @@ pub enum Movability {
 }
 
 crate_def! {
+    pub ForeignModuleDef;
+}
+
+impl ForeignModuleDef {
+    pub fn module(&self) -> ForeignModule {
+        with(|cx| cx.foreign_module(*self))
+    }
+}
+
+pub struct ForeignModule {
+    pub def_id: ForeignModuleDef,
+    pub abi: Abi,
+}
+
+impl ForeignModule {
+    pub fn items(&self) -> Vec<ForeignDef> {
+        with(|cx| cx.foreign_items(self.def_id))
+    }
+}
+
+crate_def! {
     /// Hold information about a ForeignItem in a crate.
     pub ForeignDef;
+}
+
+impl ForeignDef {
+    pub fn kind(&self) -> ForeignItemKind {
+        with(|cx| cx.foreign_item_kind(*self))
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum ForeignItemKind {
+    Fn(FnDef),
+    Static(StaticDef),
+    Type(Ty),
 }
 
 crate_def! {
@@ -872,7 +933,6 @@ pub enum Abi {
     System { unwind: bool },
     RustIntrinsic,
     RustCall,
-    PlatformIntrinsic,
     Unadjusted,
     RustCold,
     RiscvInterruptM,
@@ -999,10 +1059,13 @@ pub struct BoundTy {
 }
 
 pub type Bytes = Vec<Option<u8>>;
+
+/// Size in bytes.
 pub type Size = usize;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Prov(pub AllocId);
+
 pub type Align = u64;
 pub type Promoted = u32;
 pub type InitMaskMaterialized = Vec<u64>;

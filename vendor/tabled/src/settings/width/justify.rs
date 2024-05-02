@@ -2,7 +2,7 @@
 
 use crate::{
     grid::config::ColoredConfig,
-    grid::records::{ExactRecords, PeekableRecords, Records, RecordsMut},
+    grid::records::{ExactRecords, IntoRecords, PeekableRecords, Records, RecordsMut},
     settings::{
         measurement::{Max, Measurement, Min},
         CellOption, TableOption, Width,
@@ -73,11 +73,12 @@ impl Justify<Min> {
     }
 }
 
-impl<R, D, W> TableOption<R, D, ColoredConfig> for Justify<W>
+impl<R, D, W> TableOption<R, ColoredConfig, D> for Justify<W>
 where
     W: Measurement<Width>,
     R: Records + ExactRecords + PeekableRecords + RecordsMut<String>,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(self, records: &mut R, cfg: &mut ColoredConfig, _: &mut D) {
         let width = self.width.measure(&*records, cfg);

@@ -1,5 +1,3 @@
-#![deny(rustc::untranslatable_diagnostic)]
-#![deny(rustc::diagnostic_outside_of_impl)]
 //! This pass type-checks the MIR to ensure it is not broken.
 
 use std::rc::Rc;
@@ -39,7 +37,7 @@ use rustc_mir_dataflow::points::DenseLocationMap;
 use rustc_span::def_id::CRATE_DEF_ID;
 use rustc_span::source_map::Spanned;
 use rustc_span::symbol::sym;
-use rustc_span::{Span, DUMMY_SP};
+use rustc_span::Span;
 use rustc_target::abi::{FieldIdx, FIRST_VARIANT};
 use rustc_trait_selection::traits::query::type_op::custom::scrape_region_constraints;
 use rustc_trait_selection::traits::query::type_op::custom::CustomTypeOp;
@@ -51,7 +49,7 @@ use rustc_mir_dataflow::impls::MaybeInitializedPlaces;
 use rustc_mir_dataflow::move_paths::MoveData;
 use rustc_mir_dataflow::ResultsCursor;
 
-use crate::session_diagnostics::{MoveUnsized, SimdShuffleLastConst};
+use crate::session_diagnostics::{MoveUnsized, SimdIntrinsicArgConst};
 use crate::{
     borrow_set::BorrowSet,
     constraints::{OutlivesConstraint, OutlivesConstraintSet},
@@ -156,10 +154,6 @@ pub(crate) fn type_check<'mir, 'tcx>(
     } = free_region_relations::create(
         infcx,
         param_env,
-        // FIXME(-Znext-solver): These are unnormalized. Normalize them.
-        infcx.tcx.arena.alloc_from_iter(
-            param_env.caller_bounds().iter().filter_map(|clause| clause.as_type_outlives_clause()),
-        ),
         implicit_region_bound,
         universal_regions,
         &mut constraints,
@@ -217,7 +211,6 @@ pub(crate) fn type_check<'mir, 'tcx>(
                 CustomTypeOp::new(
                     |ocx| {
                         ocx.infcx.register_member_constraints(
-                            param_env,
                             opaque_type_key,
                             decl.hidden_type.ty,
                             decl.hidden_type.span,
@@ -227,14 +220,13 @@ pub(crate) fn type_check<'mir, 'tcx>(
                     "opaque_type_map",
                 ),
             );
-            let mut hidden_type = infcx.resolve_vars_if_possible(decl.hidden_type);
+            let hidden_type = infcx.resolve_vars_if_possible(decl.hidden_type);
             trace!("finalized opaque type {:?} to {:#?}", opaque_type_key, hidden_type.ty.kind());
             if hidden_type.has_non_region_infer() {
-                let reported = infcx.dcx().span_delayed_bug(
+                infcx.dcx().span_bug(
                     decl.hidden_type.span,
                     format!("could not resolve {:#?}", hidden_type.ty.kind()),
                 );
-                hidden_type.ty = Ty::new_error(infcx.tcx, reported);
             }
 
             (opaque_type_key, hidden_type)
@@ -808,6 +800,14 @@ impl<'a, 'b, 'tcx> TypeVerifier<'a, 'b, 'tcx> {
                         }),
                     };
                 }
+                ty::CoroutineClosure(_, args) => {
+                    return match args.as_coroutine_closure().upvar_tys().get(field.index()) {
+                        Some(&ty) => Ok(ty),
+                        None => Err(FieldAccessError::OutOfRange {
+                            field_count: args.as_coroutine_closure().upvar_tys().len(),
+                        }),
+                    };
+                }
                 ty::Coroutine(_, args) => {
                     // Only prefix fields (upvars and current state) are
                     // accessible without a variant index.
@@ -1013,7 +1013,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
     ) -> Self {
         let mut checker = Self {
             infcx,
-            last_span: DUMMY_SP,
+            last_span: body.span,
             body,
             user_type_annotations: &body.user_type_annotations,
             param_env,
@@ -1066,7 +1066,6 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                             &cause,
                             param_env,
                             hidden_ty.ty,
-                            true,
                             &mut obligations,
                         )?;
 
@@ -1088,10 +1087,9 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         );
 
         if result.is_err() {
-            self.infcx.dcx().span_delayed_bug(
-                self.body.span,
-                "failed re-defining predefined opaques in mir typeck",
-            );
+            self.infcx
+                .dcx()
+                .span_bug(self.body.span, "failed re-defining predefined opaques in mir typeck");
         }
     }
 
@@ -1136,6 +1134,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             self.borrowck_context.universal_regions,
             self.region_bound_pairs,
             self.implicit_region_bound,
+            self.param_env,
             self.known_type_outlives_obligations,
             locations,
             locations.span(self.body),
@@ -1430,7 +1429,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         return;
                     }
                 };
-                let (sig, map) = tcx.instantiate_bound_regions(sig, |br| {
+                let (unnormalized_sig, map) = tcx.instantiate_bound_regions(sig, |br| {
                     use crate::renumber::RegionCtxt;
 
                     let region_ctxt_fn = || {
@@ -1452,7 +1451,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                         region_ctxt_fn,
                     )
                 });
-                debug!(?sig);
+                debug!(?unnormalized_sig);
                 // IMPORTANT: We have to prove well formed for the function signature before
                 // we normalize it, as otherwise types like `<&'a &'b () as Trait>::Assoc`
                 // get normalized away, causing us to ignore the `'b: 'a` bound used by the function.
@@ -1462,7 +1461,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 //
                 // See #91068 for an example.
                 self.prove_predicates(
-                    sig.inputs_and_output.iter().map(|ty| {
+                    unnormalized_sig.inputs_and_output.iter().map(|ty| {
                         ty::Binder::dummy(ty::PredicateKind::Clause(ty::ClauseKind::WellFormed(
                             ty.into(),
                         )))
@@ -1470,7 +1469,23 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     term_location.to_locations(),
                     ConstraintCategory::Boring,
                 );
-                let sig = self.normalize(sig, term_location);
+
+                let sig = self.normalize(unnormalized_sig, term_location);
+                // HACK(#114936): `WF(sig)` does not imply `WF(normalized(sig))`
+                // with built-in `Fn` implementations, since the impl may not be
+                // well-formed itself.
+                if sig != unnormalized_sig {
+                    self.prove_predicates(
+                        sig.inputs_and_output.iter().map(|ty| {
+                            ty::Binder::dummy(ty::PredicateKind::Clause(
+                                ty::ClauseKind::WellFormed(ty.into()),
+                            ))
+                        }),
+                        term_location.to_locations(),
+                        ConstraintCategory::Boring,
+                    );
+                }
+
                 self.check_call_dest(body, term, &sig, *destination, *target, term_location);
 
                 // The ordinary liveness rules will ensure that all
@@ -1648,16 +1663,22 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
 
         let func_ty = func.ty(body, self.infcx.tcx);
         if let ty::FnDef(def_id, _) = *func_ty.kind() {
-            if self.tcx().is_intrinsic(def_id) {
-                match self.tcx().item_name(def_id) {
-                    sym::simd_shuffle => {
-                        if !matches!(args[2], Spanned { node: Operand::Constant(_), .. }) {
-                            self.tcx()
-                                .dcx()
-                                .emit_err(SimdShuffleLastConst { span: term.source_info.span });
-                        }
-                    }
-                    _ => {}
+            // Some of the SIMD intrinsics are special: they need a particular argument to be a constant.
+            // (Eventually this should use const-generics, but those are not up for the task yet:
+            // https://github.com/rust-lang/rust/issues/85229.)
+            if let Some(name @ (sym::simd_shuffle | sym::simd_insert | sym::simd_extract)) =
+                self.tcx().intrinsic(def_id).map(|i| i.name)
+            {
+                let idx = match name {
+                    sym::simd_shuffle => 2,
+                    _ => 1,
+                };
+                if !matches!(args[idx], Spanned { node: Operand::Constant(_), .. }) {
+                    self.tcx().dcx().emit_err(SimdIntrinsicArgConst {
+                        span: term.source_info.span,
+                        arg: idx + 1,
+                        intrinsic: name.to_string(),
+                    });
                 }
             }
         }
@@ -1749,8 +1770,8 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 self.assert_iscleanup(body, block_data, real_target, is_cleanup);
                 self.assert_iscleanup_unwind(body, block_data, unwind, is_cleanup);
             }
-            TerminatorKind::InlineAsm { destination, unwind, .. } => {
-                if let Some(target) = destination {
+            TerminatorKind::InlineAsm { ref targets, unwind, .. } => {
+                for &target in targets {
                     self.assert_iscleanup(body, block_data, target, is_cleanup);
                 }
                 self.assert_iscleanup_unwind(body, block_data, unwind, is_cleanup);
@@ -1875,6 +1896,14 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     }),
                 }
             }
+            AggregateKind::CoroutineClosure(_, args) => {
+                match args.as_coroutine_closure().upvar_tys().get(field_index.as_usize()) {
+                    Some(ty) => Ok(*ty),
+                    None => Err(FieldAccessError::OutOfRange {
+                        field_count: args.as_coroutine_closure().upvar_tys().len(),
+                    }),
+                }
+            }
             AggregateKind::Array(ty) => Ok(ty),
             AggregateKind::Tuple => {
                 unreachable!("This should have been covered in check_rvalues");
@@ -1971,6 +2000,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                     ConstraintCategory::SizedBound,
                 );
             }
+            &Rvalue::NullaryOp(NullOp::UbCheck(_), _) => {}
 
             Rvalue::ShallowInitBox(operand, ty) => {
                 self.check_operand(operand, location);
@@ -2478,6 +2508,7 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 AggregateKind::Tuple => None,
                 AggregateKind::Closure(_, _) => None,
                 AggregateKind::Coroutine(_, _) => None,
+                AggregateKind::CoroutineClosure(_, _) => None,
             },
         }
     }
@@ -2705,7 +2736,9 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
             // desugaring. A closure gets desugared to a struct, and
             // these extra requirements are basically like where
             // clauses on the struct.
-            AggregateKind::Closure(def_id, args) | AggregateKind::Coroutine(def_id, args) => (
+            AggregateKind::Closure(def_id, args)
+            | AggregateKind::CoroutineClosure(def_id, args)
+            | AggregateKind::Coroutine(def_id, args) => (
                 def_id,
                 self.prove_closure_bounds(
                     tcx,
@@ -2740,9 +2773,10 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
                 self.borrowck_context.universal_regions,
                 self.region_bound_pairs,
                 self.implicit_region_bound,
+                self.param_env,
                 self.known_type_outlives_obligations,
                 locations,
-                DUMMY_SP,                   // irrelevant; will be overridden.
+                self.body.span,             // irrelevant; will be overridden.
                 ConstraintCategory::Boring, // same as above.
                 self.borrowck_context.constraints,
             )
@@ -2754,10 +2788,15 @@ impl<'a, 'tcx> TypeChecker<'a, 'tcx> {
         let typeck_root_args = ty::GenericArgs::identity_for_item(tcx, typeck_root_def_id);
 
         let parent_args = match tcx.def_kind(def_id) {
-            DefKind::Closure if tcx.is_coroutine(def_id.to_def_id()) => {
-                args.as_coroutine().parent_args()
+            // We don't want to dispatch on 3 different kind of closures here, so take
+            // advantage of the fact that the `parent_args` is the same length as the
+            // `typeck_root_args`.
+            DefKind::Closure => {
+                // FIXME(async_closures): It may be useful to add a debug assert here
+                // to actually call `type_of` and check the `parent_args` are the same
+                // length as the `typeck_root_args`.
+                &args[..typeck_root_args.len()]
             }
-            DefKind::Closure => args.as_closure().parent_args(),
             DefKind::InlineConst => args.as_inline_const().parent_args(),
             other => bug!("unexpected item {:?}", other),
         };

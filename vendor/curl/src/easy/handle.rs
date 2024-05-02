@@ -10,7 +10,7 @@ use curl_sys;
 use libc::c_void;
 
 use crate::easy::handler::{self, InfoType, ReadError, SeekResult, WriteError};
-use crate::easy::handler::{Auth, NetRc, ProxyType, SslOpt};
+use crate::easy::handler::{Auth, NetRc, PostRedirections, ProxyType, SslOpt};
 use crate::easy::handler::{HttpVersion, IpResolve, SslVersion, TimeCondition};
 use crate::easy::{Easy2, Handler};
 use crate::easy::{Form, List};
@@ -168,6 +168,14 @@ impl Easy {
     /// Same as [`Easy2::unix_socket_path`](struct.Easy2.html#method.unix_socket_path)
     pub fn unix_socket_path<P: AsRef<Path>>(&mut self, path: Option<P>) -> Result<(), Error> {
         self.inner.unix_socket_path(path)
+    }
+
+    /// Same as [`Easy2::abstract_unix_socket`](struct.Easy2.html#method.abstract_unix_socket)
+    ///
+    /// NOTE: this API can only be used on Linux OS.
+    #[cfg(target_os = "linux")]
+    pub fn abstract_unix_socket(&mut self, addr: &[u8]) -> Result<(), Error> {
+        self.inner.abstract_unix_socket(addr)
     }
 
     // =========================================================================
@@ -792,6 +800,11 @@ impl Easy {
     /// Same as [`Easy2::max_redirections`](struct.Easy2.html#method.max_redirections)
     pub fn max_redirections(&mut self, max: u32) -> Result<(), Error> {
         self.inner.max_redirections(max)
+    }
+
+    /// Same as [`Easy2::post_redirections`](struct.Easy2.html#method.post_redirections)
+    pub fn post_redirections(&mut self, redirects: &PostRedirections) -> Result<(), Error> {
+        self.inner.post_redirections(redirects)
     }
 
     /// Same as [`Easy2::put`](struct.Easy2.html#method.put)

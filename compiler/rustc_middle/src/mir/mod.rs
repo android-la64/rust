@@ -2,7 +2,7 @@
 //!
 //! [rustc dev guide]: https://rustc-dev-guide.rust-lang.org/mir/index.html
 
-use crate::mir::interpret::{AllocRange, ConstAllocation, Scalar};
+use crate::mir::interpret::{AllocRange, Scalar};
 use crate::mir::visit::MirVisitable;
 use crate::ty::codec::{TyDecoder, TyEncoder};
 use crate::ty::fold::{FallibleTypeFolder, TypeFoldable};
@@ -10,11 +10,11 @@ use crate::ty::print::{pretty_print_const, with_no_trimmed_paths};
 use crate::ty::print::{FmtPrinter, Printer};
 use crate::ty::visit::TypeVisitableExt;
 use crate::ty::{self, List, Ty, TyCtxt};
-use crate::ty::{AdtDef, InstanceDef, UserTypeAnnotationIndex};
+use crate::ty::{AdtDef, Instance, InstanceDef, UserTypeAnnotationIndex};
 use crate::ty::{GenericArg, GenericArgsRef};
 
 use rustc_data_structures::captures::Captures;
-use rustc_errors::{DiagnosticArgValue, DiagnosticMessage, ErrorGuaranteed, IntoDiagnosticArg};
+use rustc_errors::{DiagArgName, DiagArgValue, DiagMessage, ErrorGuaranteed, IntoDiagArg};
 use rustc_hir::def::{CtorKind, Namespace};
 use rustc_hir::def_id::{DefId, CRATE_DEF_ID};
 use rustc_hir::{self, CoroutineDesugaring, CoroutineKind, ImplicitSelfKind};
@@ -27,6 +27,8 @@ pub use rustc_ast::Mutability;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_data_structures::graph::dominators::Dominators;
+use rustc_data_structures::stack::ensure_sufficient_stack;
+use rustc_index::bit_set::BitSet;
 use rustc_index::{Idx, IndexSlice, IndexVec};
 use rustc_serialize::{Decodable, Encodable};
 use rustc_span::symbol::Symbol;
@@ -138,8 +140,12 @@ fn to_profiler_name(type_name: &'static str) -> &'static str {
 /// loop that goes over each available MIR and applies `run_pass`.
 pub trait MirPass<'tcx> {
     fn name(&self) -> &'static str {
-        let name = std::any::type_name::<Self>();
-        if let Some((_, tail)) = name.rsplit_once(':') { tail } else { name }
+        // FIXME Simplify the implementation once more `str` methods get const-stable.
+        // See copypaste in `MirLint`
+        const {
+            let name = std::any::type_name::<Self>();
+            crate::util::common::c_name(name)
+        }
     }
 
     fn profiler_name(&self) -> &'static str {
@@ -260,6 +266,25 @@ pub struct CoroutineInfo<'tcx> {
     /// Coroutine drop glue. This field is populated after the state transform pass.
     pub coroutine_drop: Option<Body<'tcx>>,
 
+    /// The body of the coroutine, modified to take its upvars by move rather than by ref.
+    ///
+    /// This is used by coroutine-closures, which must return a different flavor of coroutine
+    /// when called using `AsyncFnOnce::call_once`. It is produced by the `ByMoveBody` pass which
+    /// is run right after building the initial MIR, and will only be populated for coroutines
+    /// which come out of the async closure desugaring.
+    ///
+    /// This body should be processed in lockstep with the containing body -- any optimization
+    /// passes, etc, should be applied to this body as well. This is done automatically if
+    /// using `run_passes`.
+    pub by_move_body: Option<Body<'tcx>>,
+
+    /// The body of the coroutine, modified to take its upvars by mutable ref rather than by
+    /// immutable ref.
+    ///
+    /// FIXME(async_closures): This is literally the same body as the parent body. Find a better
+    /// way to represent the by-mut signature (or cap the closure-kind of the coroutine).
+    pub by_mut_body: Option<Body<'tcx>>,
+
     /// The layout of a coroutine. This field is populated after the state transform pass.
     pub coroutine_layout: Option<CoroutineLayout<'tcx>>,
 
@@ -279,6 +304,8 @@ impl<'tcx> CoroutineInfo<'tcx> {
             coroutine_kind,
             yield_ty: Some(yield_ty),
             resume_ty: Some(resume_ty),
+            by_move_body: None,
+            by_mut_body: None,
             coroutine_drop: None,
             coroutine_layout: None,
         }
@@ -376,6 +403,12 @@ pub struct Body<'tcx> {
 
     pub tainted_by_errors: Option<ErrorGuaranteed>,
 
+    /// Branch coverage information collected during MIR building, to be used by
+    /// the `InstrumentCoverage` pass.
+    ///
+    /// Only present if branch coverage is enabled and this function is eligible.
+    pub coverage_branch_info: Option<Box<coverage::BranchInfo>>,
+
     /// Per-function coverage information added by the `InstrumentCoverage`
     /// pass, to be used in conjunction with the coverage statements injected
     /// into this body's blocks.
@@ -423,6 +456,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             injection_phase: None,
             tainted_by_errors,
+            coverage_branch_info: None,
             function_coverage_info: None,
         };
         body.is_polymorphic = body.has_non_region_param();
@@ -452,6 +486,7 @@ impl<'tcx> Body<'tcx> {
             is_polymorphic: false,
             injection_phase: None,
             tainted_by_errors: None,
+            coverage_branch_info: None,
             function_coverage_info: None,
         };
         body.is_polymorphic = body.has_non_region_param();
@@ -589,6 +624,14 @@ impl<'tcx> Body<'tcx> {
         self.coroutine.as_ref().and_then(|coroutine| coroutine.coroutine_drop.as_ref())
     }
 
+    pub fn coroutine_by_move_body(&self) -> Option<&Body<'tcx>> {
+        self.coroutine.as_ref()?.by_move_body.as_ref()
+    }
+
+    pub fn coroutine_by_mut_body(&self) -> Option<&Body<'tcx>> {
+        self.coroutine.as_ref()?.by_mut_body.as_ref()
+    }
+
     #[inline]
     pub fn coroutine_kind(&self) -> Option<CoroutineKind> {
         self.coroutine.as_ref().map(|coroutine| coroutine.coroutine_kind)
@@ -605,6 +648,129 @@ impl<'tcx> Body<'tcx> {
     #[inline]
     pub fn is_custom_mir(&self) -> bool {
         self.injection_phase.is_some()
+    }
+
+    /// Finds which basic blocks are actually reachable for a specific
+    /// monomorphization of this body.
+    ///
+    /// This is allowed to have false positives; just because this says a block
+    /// is reachable doesn't mean that's necessarily true. It's thus always
+    /// legal for this to return a filled set.
+    ///
+    /// Regardless, the [`BitSet::domain_size`] of the returned set will always
+    /// exactly match the number of blocks in the body so that `contains`
+    /// checks can be done without worrying about panicking.
+    ///
+    /// This is mostly useful because it lets us skip lowering the `false` side
+    /// of `if <T as Trait>::CONST`, as well as `intrinsics::debug_assertions`.
+    pub fn reachable_blocks_in_mono(
+        &self,
+        tcx: TyCtxt<'tcx>,
+        instance: Instance<'tcx>,
+    ) -> BitSet<BasicBlock> {
+        let mut set = BitSet::new_empty(self.basic_blocks.len());
+        self.reachable_blocks_in_mono_from(tcx, instance, &mut set, START_BLOCK);
+        set
+    }
+
+    fn reachable_blocks_in_mono_from(
+        &self,
+        tcx: TyCtxt<'tcx>,
+        instance: Instance<'tcx>,
+        set: &mut BitSet<BasicBlock>,
+        bb: BasicBlock,
+    ) {
+        if !set.insert(bb) {
+            return;
+        }
+
+        let data = &self.basic_blocks[bb];
+
+        if let Some((bits, targets)) = Self::try_const_mono_switchint(tcx, instance, data) {
+            let target = targets.target_for_value(bits);
+            ensure_sufficient_stack(|| {
+                self.reachable_blocks_in_mono_from(tcx, instance, set, target)
+            });
+            return;
+        }
+
+        for target in data.terminator().successors() {
+            ensure_sufficient_stack(|| {
+                self.reachable_blocks_in_mono_from(tcx, instance, set, target)
+            });
+        }
+    }
+
+    /// If this basic block ends with a [`TerminatorKind::SwitchInt`] for which we can evaluate the
+    /// dimscriminant in monomorphization, we return the discriminant bits and the
+    /// [`SwitchTargets`], just so the caller doesn't also have to match on the terminator.
+    fn try_const_mono_switchint<'a>(
+        tcx: TyCtxt<'tcx>,
+        instance: Instance<'tcx>,
+        block: &'a BasicBlockData<'tcx>,
+    ) -> Option<(u128, &'a SwitchTargets)> {
+        // There are two places here we need to evaluate a constant.
+        let eval_mono_const = |constant: &ConstOperand<'tcx>| {
+            let env = ty::ParamEnv::reveal_all();
+            let mono_literal = instance.instantiate_mir_and_normalize_erasing_regions(
+                tcx,
+                env,
+                crate::ty::EarlyBinder::bind(constant.const_),
+            );
+            let Some(bits) = mono_literal.try_eval_bits(tcx, env) else {
+                bug!("Couldn't evaluate constant {:?} in mono {:?}", constant, instance);
+            };
+            bits
+        };
+
+        let TerminatorKind::SwitchInt { discr, targets } = &block.terminator().kind else {
+            return None;
+        };
+
+        // If this is a SwitchInt(const _), then we can just evaluate the constant and return.
+        let discr = match discr {
+            Operand::Constant(constant) => {
+                let bits = eval_mono_const(constant);
+                return Some((bits, targets));
+            }
+            Operand::Move(place) | Operand::Copy(place) => place,
+        };
+
+        // MIR for `if false` actually looks like this:
+        // _1 = const _
+        // SwitchInt(_1)
+        //
+        // And MIR for if intrinsics::debug_assertions() looks like this:
+        // _1 = cfg!(debug_assertions)
+        // SwitchInt(_1)
+        //
+        // So we're going to try to recognize this pattern.
+        //
+        // If we have a SwitchInt on a non-const place, we find the most recent statement that
+        // isn't a storage marker. If that statement is an assignment of a const to our
+        // discriminant place, we evaluate and return the const, as if we've const-propagated it
+        // into the SwitchInt.
+
+        let last_stmt = block.statements.iter().rev().find(|stmt| {
+            !matches!(stmt.kind, StatementKind::StorageDead(_) | StatementKind::StorageLive(_))
+        })?;
+
+        let (place, rvalue) = last_stmt.kind.as_assign()?;
+
+        if discr != place {
+            return None;
+        }
+
+        match rvalue {
+            Rvalue::NullaryOp(NullOp::UbCheck(_), _) => {
+                Some((tcx.sess.opts.debug_assertions as u128, targets))
+            }
+            Rvalue::Use(Operand::Constant(constant)) => {
+                let bits = eval_mono_const(constant);
+                Some((bits, targets))
+            }
+            _ => None,
+        }
     }
 
     /// For a `Location` in this scope, determine what the "caller location" at that point is. This
@@ -1683,13 +1849,13 @@ mod size_asserts {
     use super::*;
     use rustc_data_structures::static_assert_size;
     // tidy-alphabetical-start
-    static_assert_size!(BasicBlockData<'_>, 136);
+    static_assert_size!(BasicBlockData<'_>, 144);
     static_assert_size!(LocalDecl<'_>, 40);
     static_assert_size!(SourceScopeData<'_>, 72);
     static_assert_size!(Statement<'_>, 32);
     static_assert_size!(StatementKind<'_>, 16);
-    static_assert_size!(Terminator<'_>, 104);
-    static_assert_size!(TerminatorKind<'_>, 88);
+    static_assert_size!(Terminator<'_>, 112);
+    static_assert_size!(TerminatorKind<'_>, 96);
     static_assert_size!(VarDebugInfo<'_>, 88);
     // tidy-alphabetical-end
 }

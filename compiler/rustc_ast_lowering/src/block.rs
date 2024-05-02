@@ -32,11 +32,11 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         let mut expr = None;
         while let [s, tail @ ..] = ast_stmts {
             match &s.kind {
-                StmtKind::Local(local) => {
+                StmtKind::Let(local) => {
                     let hir_id = self.lower_node_id(s.id);
                     let local = self.lower_local(local);
                     self.alias_attrs(hir_id, local.hir_id);
-                    let kind = hir::StmtKind::Local(local);
+                    let kind = hir::StmtKind::Let(local);
                     let span = self.lower_span(s.span);
                     stmts.push(hir::Stmt { hir_id, kind, span });
                 }
@@ -85,7 +85,7 @@ impl<'a, 'hir> LoweringContext<'a, 'hir> {
         let ty = l
             .ty
             .as_ref()
-            .map(|t| self.lower_ty(t, &ImplTraitContext::Disallowed(ImplTraitPosition::Variable)));
+            .map(|t| self.lower_ty(t, ImplTraitContext::Disallowed(ImplTraitPosition::Variable)));
         let init = l.kind.init().map(|init| self.lower_expr(init));
         let hir_id = self.lower_node_id(l.id);
         let pat = self.lower_pat(&l.pat);

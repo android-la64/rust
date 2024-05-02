@@ -206,10 +206,10 @@
 //! will require an explicit `.map_err(Error::msg)` when working with a
 //! non-Anyhow error type inside a function that returns Anyhow's error type.
 
-#![doc(html_root_url = "https://docs.rs/anyhow/1.0.79")]
+#![doc(html_root_url = "https://docs.rs/anyhow/1.0.80")]
 #![cfg_attr(error_generic_member_access, feature(error_generic_member_access))]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 #![deny(dead_code, unused_imports, unused_mut)]
 #![cfg_attr(
     not(anyhow_no_unsafe_op_in_unsafe_fn_lint),
@@ -221,6 +221,7 @@
     clippy::enum_glob_use,
     clippy::explicit_auto_deref,
     clippy::extra_unused_type_parameters,
+    clippy::incompatible_msrv,
     clippy::let_underscore_untyped,
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
@@ -245,6 +246,9 @@
 compile_error!("Build script probe failed to compile.");
 
 extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
 
 #[macro_use]
 mod backtrace;

@@ -38,6 +38,7 @@ fn features() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 f_a = []
@@ -50,6 +51,7 @@ fn features() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -62,6 +64,7 @@ fn features_with_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar/" }
@@ -79,6 +82,7 @@ fn features_with_deps() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -91,6 +95,7 @@ fn features_with_opt_deps() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar/", optional = true }
@@ -109,6 +114,7 @@ fn features_with_opt_deps() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "bar" "default" "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -121,6 +127,7 @@ fn features_with_namespaced_features() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "bar/", optional = true }
@@ -138,6 +145,7 @@ fn features_with_namespaced_features() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -150,6 +158,7 @@ fn features_fingerprint() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 f_a = []
@@ -177,6 +186,7 @@ fn features_fingerprint() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [features]
             f_b = []
@@ -195,6 +205,7 @@ fn features_fingerprint() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [features]
             f_a = []
@@ -222,6 +233,7 @@ fn well_known_names_values() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -234,6 +246,7 @@ fn features_test() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 f_a = []
@@ -246,6 +259,7 @@ fn features_test() {
     p.cargo("test -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -258,6 +272,7 @@ fn features_doctest() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 default = ["f_a"]
@@ -272,6 +287,8 @@ fn features_doctest() {
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "default" "f_a" "f_b"))
         .with_stderr_contains(x!("rustdoc" => "cfg" of "feature" with "default" "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
+        .with_stderr_contains(x!("rustdoc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -285,6 +302,7 @@ fn well_known_names_values_test() {
     p.cargo("test -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -299,6 +317,8 @@ fn well_known_names_values_doctest() {
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
         .with_stderr_contains(x!("rustdoc" => "cfg" of "feature" with))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
+        .with_stderr_contains(x!("rustdoc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -311,6 +331,7 @@ fn features_doc() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 default = ["f_a"]
@@ -324,6 +345,7 @@ fn features_doc() {
     p.cargo("doc -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustdoc" => "cfg" of "feature" with "default" "f_a" "f_b"))
+        .with_stderr_contains(x!("rustdoc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -336,6 +358,7 @@ fn build_script_feedback() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -350,6 +373,7 @@ fn build_script_feedback() {
     p.cargo("check -v -Zcheck-cfg")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "foo"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -362,6 +386,7 @@ fn build_script_doc() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -383,7 +408,7 @@ fn build_script_doc() {
 [RUNNING] `[..]/build-script-build`
 [DOCUMENTING] foo [..]
 [RUNNING] `rustdoc [..] src/main.rs [..]
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/foo/index.html
 ",
         )
@@ -402,6 +427,7 @@ fn build_script_override() {
                 [package]
                 name = "foo"
                 version = "0.5.0"
+                edition = "2015"
                 authors = []
                 links = "a"
                 build = "build.rs"
@@ -410,7 +436,7 @@ fn build_script_override() {
         .file("src/main.rs", "fn main() {}")
         .file("build.rs", "")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.a]
@@ -423,6 +449,8 @@ fn build_script_override() {
 
     p.cargo("check -v -Zcheck-cfg")
         .with_stderr_contains(x!("rustc" => "cfg" of "foo"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "feature" with))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .run();
 }
@@ -438,13 +466,14 @@ fn build_script_override_feature_gate() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
                 links = "a"
             "#,
         )
         .file("src/main.rs", "fn main() {}")
         .file("build.rs", "fn main() {}")
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             &format!(
                 r#"
                     [target.{}.a]
@@ -469,6 +498,7 @@ fn build_script_test() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
                 build = "build.rs"
             "#,
@@ -524,6 +554,7 @@ fn build_script_feature_gate() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 build = "build.rs"
             "#,
         )
@@ -552,6 +583,7 @@ fn config_valid() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 f_a = []
@@ -571,6 +603,7 @@ fn config_valid() {
     p.cargo("check -v")
         .masquerade_as_nightly_cargo(&["check-cfg"])
         .with_stderr_contains(x!("rustc" => "cfg" of "feature" with "f_a" "f_b"))
+        .with_stderr_contains(x!("rustc" => "cfg" of "docsrs"))
         .run();
 }
 
@@ -583,6 +616,7 @@ fn config_invalid() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
             "#,
         )
         .file("src/main.rs", "fn main() {}")
@@ -611,6 +645,7 @@ fn config_feature_gate() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [features]
                 f_a = []

@@ -10,6 +10,8 @@ use super::{ImmTy, InterpCx, InterpResult, Machine, Readable, Scalar, Writeable}
 
 impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
     /// Writes the discriminant of the given variant.
+    ///
+    /// If the variant is uninhabited, this is UB.
     #[instrument(skip(self), level = "trace")]
     pub fn write_discriminant(
         &mut self,
@@ -85,6 +87,14 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                     // Write result.
                     let niche_dest = self.project_field(dest, tag_field)?;
                     self.write_immediate(*tag_val, &niche_dest)?;
+                } else {
+                    // The untagged variant is implicitly encoded simply by having a value that is
+                    // outside the niche variants. But what if the data stored here does not
+                    // actually encode this variant? That would be bad! So let's double-check...
+                    let actual_variant = self.read_discriminant(&dest.to_op(self)?)?;
+                    if actual_variant != variant_index {
+                        throw_ub!(InvalidNichedEnumVariantWritten { enum_ty: dest.layout().ty });
+                    }
                 }
             }
         }
@@ -94,6 +104,8 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
 
     /// Read discriminant, return the runtime value as well as the variant index.
     /// Can also legally be called on non-enums (e.g. through the discriminant_value intrinsic)!
+    ///
+    /// Will never return an uninhabited variant.
     #[instrument(skip(self), level = "trace")]
     pub fn read_discriminant(
         &self,
@@ -236,7 +248,9 @@ impl<'mir, 'tcx: 'mir, M: Machine<'mir, 'tcx>> InterpCx<'mir, 'tcx, M> {
                 variant
             }
         };
-        // For consistency with `write_discriminant`, and to make sure that `project_downcast` cannot fail due to strange layouts, we declare immediate UB for uninhabited variants.
+        // Reading the discriminant of an uninhabited variant is UB. This is the basis for the
+        // `uninhabited_enum_branching` MIR pass. It also ensures consistency with
+        // `write_discriminant`.
         if op.layout().for_variant(self, index).abi.is_uninhabited() {
             throw_ub!(UninhabitedEnumVariantRead(index))
         }

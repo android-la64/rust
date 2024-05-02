@@ -14,10 +14,9 @@
 //! [wiki]: https://en.wikipedia.org/wiki/Advanced_Vector_Extensions
 
 use crate::{
-    core_arch::{simd::*, simd_llvm::*, x86::*},
-    intrinsics,
-    mem::{self, transmute},
-    ptr,
+    core_arch::{simd::*, x86::*},
+    intrinsics::simd::*,
+    mem, ptr,
 };
 
 #[cfg(test)]
@@ -851,7 +850,7 @@ pub unsafe fn _mm256_cvtepi32_pd(a: __m128i) -> __m256d {
 #[cfg_attr(test, assert_instr(vcvtdq2ps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cvtepi32_ps(a: __m256i) -> __m256 {
-    vcvtdq2ps(a.as_i32x8())
+    simd_cast(a.as_i32x8())
 }
 
 /// Converts packed double-precision (64-bit) floating-point elements in `a`
@@ -863,7 +862,7 @@ pub unsafe fn _mm256_cvtepi32_ps(a: __m256i) -> __m256 {
 #[cfg_attr(test, assert_instr(vcvtpd2ps))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cvtpd_ps(a: __m256d) -> __m128 {
-    vcvtpd2ps(a)
+    simd_cast(a)
 }
 
 /// Converts packed single-precision (32-bit) floating-point elements in `a`
@@ -1237,7 +1236,7 @@ pub unsafe fn _mm256_broadcast_sd(f: &f64) -> __m256d {
 #[cfg_attr(test, assert_instr(vbroadcastf128))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_broadcast_ps(a: &__m128) -> __m256 {
-    vbroadcastf128ps256(a)
+    simd_shuffle!(*a, _mm_setzero_ps(), [0, 1, 2, 3, 0, 1, 2, 3])
 }
 
 /// Broadcasts 128 bits from memory (composed of 2 packed double-precision
@@ -1249,7 +1248,7 @@ pub unsafe fn _mm256_broadcast_ps(a: &__m128) -> __m256 {
 #[cfg_attr(test, assert_instr(vbroadcastf128))]
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_broadcast_pd(a: &__m128d) -> __m256d {
-    vbroadcastf128pd256(a)
+    simd_shuffle!(*a, _mm_setzero_pd(), [0, 1, 0, 1])
 }
 
 /// Copies `a` to result, then inserts 128 bits (composed of 4 packed
@@ -1329,7 +1328,7 @@ pub unsafe fn _mm256_insertf128_si256<const IMM1: i32>(a: __m256i, b: __m128i) -
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_insert_epi8<const INDEX: i32>(a: __m256i, i: i8) -> __m256i {
     static_assert_uimm_bits!(INDEX, 5);
-    transmute(simd_insert(a.as_i8x32(), INDEX as u32, i))
+    transmute(simd_insert!(a.as_i8x32(), INDEX as u32, i))
 }
 
 /// Copies `a` to result, and inserts the 16-bit integer `i` into result
@@ -1343,7 +1342,7 @@ pub unsafe fn _mm256_insert_epi8<const INDEX: i32>(a: __m256i, i: i8) -> __m256i
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_insert_epi16<const INDEX: i32>(a: __m256i, i: i16) -> __m256i {
     static_assert_uimm_bits!(INDEX, 4);
-    transmute(simd_insert(a.as_i16x16(), INDEX as u32, i))
+    transmute(simd_insert!(a.as_i16x16(), INDEX as u32, i))
 }
 
 /// Copies `a` to result, and inserts the 32-bit integer `i` into result
@@ -1357,7 +1356,7 @@ pub unsafe fn _mm256_insert_epi16<const INDEX: i32>(a: __m256i, i: i16) -> __m25
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_insert_epi32<const INDEX: i32>(a: __m256i, i: i32) -> __m256i {
     static_assert_uimm_bits!(INDEX, 3);
-    transmute(simd_insert(a.as_i32x8(), INDEX as u32, i))
+    transmute(simd_insert!(a.as_i32x8(), INDEX as u32, i))
 }
 
 /// Loads 256-bits (composed of 4 packed double-precision (64-bit)
@@ -1694,6 +1693,15 @@ pub unsafe fn _mm256_lddqu_si256(mem_addr: *const __m256i) -> __m256i {
 /// non-temporal (unlikely to be used again soon)
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_stream_si256)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "avx")]
 #[cfg_attr(test, assert_instr(vmovntps))] // FIXME vmovntdq
@@ -1707,6 +1715,15 @@ pub unsafe fn _mm256_stream_si256(mem_addr: *mut __m256i, a: __m256i) {
 /// flagged as non-temporal (unlikely to be used again soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_stream_pd)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "avx")]
 #[cfg_attr(test, assert_instr(vmovntps))] // FIXME vmovntpd
@@ -1722,6 +1739,15 @@ pub unsafe fn _mm256_stream_pd(mem_addr: *mut f64, a: __m256d) {
 /// soon).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_stream_ps)
+///
+/// # Safety of non-temporal stores
+///
+/// After using this intrinsic, but before any other access to the memory that this intrinsic
+/// mutates, a call to [`_mm_sfence`] must be performed by the thread that used the intrinsic. In
+/// particular, functions that call this intrinsic should generally call `_mm_sfence` before they
+/// return.
+///
+/// See [`_mm_sfence`] for details.
 #[inline]
 #[target_feature(enable = "avx")]
 #[cfg_attr(test, assert_instr(vmovntps))]
@@ -2914,7 +2940,7 @@ pub unsafe fn _mm256_storeu2_m128i(hiaddr: *mut __m128i, loaddr: *mut __m128i, a
 //#[cfg_attr(test, assert_instr(movss))] FIXME
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_cvtss_f32(a: __m256) -> f32 {
-    simd_extract(a, 0)
+    simd_extract!(a, 0)
 }
 
 // LLVM intrinsics used in the above functions
@@ -2948,10 +2974,6 @@ extern "C" {
     fn vcmpsd(a: __m128d, b: __m128d, imm8: i8) -> __m128d;
     #[link_name = "llvm.x86.sse.cmp.ss"]
     fn vcmpss(a: __m128, b: __m128, imm8: i8) -> __m128;
-    #[link_name = "llvm.x86.avx.cvtdq2.ps.256"]
-    fn vcvtdq2ps(a: i32x8) -> __m256;
-    #[link_name = "llvm.x86.avx.cvt.pd2.ps.256"]
-    fn vcvtpd2ps(a: __m256d) -> __m128;
     #[link_name = "llvm.x86.avx.cvt.ps2dq.256"]
     fn vcvtps2dq(a: __m256) -> i32x8;
     #[link_name = "llvm.x86.avx.cvtt.pd2dq.256"]
@@ -2978,10 +3000,6 @@ extern "C" {
     fn vperm2f128pd256(a: __m256d, b: __m256d, imm8: i8) -> __m256d;
     #[link_name = "llvm.x86.avx.vperm2f128.si.256"]
     fn vperm2f128si256(a: i32x8, b: i32x8, imm8: i8) -> i32x8;
-    #[link_name = "llvm.x86.avx.vbroadcastf128.ps.256"]
-    fn vbroadcastf128ps256(a: &__m128) -> __m256;
-    #[link_name = "llvm.x86.avx.vbroadcastf128.pd.256"]
-    fn vbroadcastf128pd256(a: &__m128d) -> __m256d;
     #[link_name = "llvm.x86.avx.maskload.pd.256"]
     fn maskloadpd256(mem_addr: *const i8, mask: i64x4) -> __m256d;
     #[link_name = "llvm.x86.avx.maskstore.pd.256"]

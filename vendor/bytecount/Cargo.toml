@@ -12,7 +12,7 @@
 [package]
 edition = "2018"
 name = "bytecount"
-version = "0.6.4"
+version = "0.6.7"
 authors = [
     "Andre Bogus <bogusandre@gmail.de>",
     "Joshua Landau <joshua@landau.ws>",

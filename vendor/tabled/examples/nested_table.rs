@@ -32,19 +32,20 @@ fn main() {
         &["swim", "quack"],
     );
 
-    let mut table = Builder::from_iter([
+    let data = [
         [animal.to_string()],
         [String::from("▲")],
         [String::from("|")],
         [String::from("|")],
         [duck.to_string()],
-    ])
-    .build();
-    table.with(Style::ascii().remove_horizontal()).with(
-        Modify::new(Segment::all())
-            .with(Padding::new(5, 5, 0, 0))
-            .with(Alignment::center()),
-    );
+    ];
+
+    let mut table = Builder::from_iter(data).build();
+
+    table
+        .with(Style::ascii().remove_horizontal())
+        .with(Padding::new(5, 5, 0, 0))
+        .with(Alignment::center());
 
     println!("{table}");
 }
@@ -62,20 +63,21 @@ fn create_class(name: &str, fields: &[(&str, &str, &str)], methods: &[&str]) -> 
 
     let (table_fields, table_methods) = make_equal_width(table_fields, table_methods);
 
-    let mut table = Builder::from_iter([
+    let data = [
         [name.to_string()],
         [table_fields.to_string()],
         [table_methods.to_string()],
-    ])
-    .build();
+    ];
+
+    let mut table = Builder::from_iter(data).build();
+
+    let style = Style::ascii()
+        .horizontals([(1, HorizontalLine::inherit(Style::ascii()))])
+        .remove_horizontal()
+        .remove_vertical();
 
     table
-        .with(
-            Style::ascii()
-                .horizontals([HorizontalLine::new(1, Style::ascii().get_horizontal())])
-                .remove_horizontal()
-                .remove_vertical(),
-        )
+        .with(style)
         .with(Modify::new(Segment::all()).with(Alignment::left()))
         .with(Modify::new(Rows::first()).with(Alignment::center()));
 

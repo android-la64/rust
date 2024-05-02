@@ -77,6 +77,8 @@ pub enum DirtyReason {
     FsStatusOutdated(FsStatus),
     NothingObvious,
     Forced,
+    /// First time to build something.
+    FreshBuild,
 }
 
 trait ShellExt {
@@ -131,6 +133,11 @@ impl fmt::Display for After {
 }
 
 impl DirtyReason {
+    /// Whether a build is dirty because it is a fresh build being kicked off.
+    pub fn is_fresh_build(&self) -> bool {
+        matches!(self, DirtyReason::FreshBuild)
+    }
+
     fn after(old_time: FileTime, new_time: FileTime, what: &'static str) -> After {
         After {
             old_time,
@@ -168,7 +175,7 @@ impl DirtyReason {
             DirtyReason::LocalLengthsChanged => {
                 s.dirty_because(unit, "the local lengths changed")?;
                 s.note(
-                    "This could happen because of added/removed `cargo::rerun-if` instructions in the build script",
+                    "this could happen because of added/removed `cargo::rerun-if` instructions in the build script",
                 )?;
 
                 Ok(())
@@ -257,6 +264,7 @@ impl DirtyReason {
                 s.dirty_because(unit, "the fingerprint comparison turned up nothing obvious")
             }
             DirtyReason::Forced => s.dirty_because(unit, "forced"),
+            DirtyReason::FreshBuild => s.dirty_because(unit, "fresh build"),
         }
     }
 }

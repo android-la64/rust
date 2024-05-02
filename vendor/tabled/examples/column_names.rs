@@ -2,11 +2,8 @@
 //!
 //! It sets a `clickhouse` like table style (first seen on).
 
-use std::iter::repeat;
-
 use tabled::{
-    grid::config::AlignmentHorizontal,
-    settings::{themes::ColumnNames, Color, Style},
+    settings::{style::Style, themes::ColumnNames, Alignment, Color},
     Table, Tabled,
 };
 
@@ -28,35 +25,20 @@ impl Function {
 }
 
 fn main() {
+    #[rustfmt::skip]
     let data = vec![
-        Function::new(
-            "struct stack *stack_create(int)",
-            "stack_create",
-            "struct stack *",
-        ),
-        Function::new(
-            "void stack_destroy(struct stack *)",
-            "stack_destroy",
-            "void",
-        ),
-        Function::new(
-            "int stack_put(struct stack *, vm_offset_t)",
-            "stack_put",
-            "int",
-        ),
-        Function::new(
-            "void stack_copy(const struct stack *, struct stack *)",
-            "stack_copy",
-            "void",
-        ),
+        Function::new("struct stack *stack_create(int)", "stack_create", "struct stack *"),
+        Function::new("void stack_destroy(struct stack *)", "stack_destroy", "void"),
+        Function::new("int stack_put(struct stack *, vm_offset_t)", "stack_put", "int"),
+        Function::new("void stack_copy(const struct stack *, struct stack *)", "stack_copy", "void"),
     ];
 
     let mut table = Table::new(data);
 
     table.with(Style::modern().remove_horizontal()).with(
         ColumnNames::default()
-            .set_colors(repeat(Color::BOLD | Color::BG_BLUE | Color::FG_WHITE).take(3))
-            .set_alignment(AlignmentHorizontal::Center),
+            .color(Color::BOLD | Color::BG_BLUE | Color::FG_WHITE)
+            .alignment(Alignment::center()),
     );
 
     println!("{table}");

@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-command"
-version = "0.3.2"
+version = "0.3.3"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/lib.rs",
@@ -32,10 +32,10 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-path]
-version = "^0.10.3"
+version = "^0.10.4"
 
 [dependencies.gix-trace]
-version = "^0.1.6"
+version = "^0.1.7"
 
 [dependencies.shell-words]
 version = "1.0"

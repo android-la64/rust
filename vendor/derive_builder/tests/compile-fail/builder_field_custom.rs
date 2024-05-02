@@ -10,12 +10,12 @@ pub struct Lorem {
     )]
     ipsum: usize,
 
-    // `default` is incompatible with `field.type`, even without `field.build`
-    #[builder(default = "2", field(type = "usize"))]
+    // `default` is incompatible with `field.ty`, even without `field.build`
+    #[builder(default = "2", field(ty = "usize"))]
     sit: usize,
 
     // Both errors can occur on the same field
-    #[builder(default = "3", field(type = "usize", build = "self.ipsum + 42"))]
+    #[builder(default = "3", field(ty = "usize", build = "self.ipsum + 42"))]
     amet: usize,
 }
 

@@ -16,7 +16,7 @@ use rustc_parse::maybe_new_parser_from_source_str;
 use rustc_query_impl::QueryCtxt;
 use rustc_query_system::query::print_query_stack;
 use rustc_session::config::{self, Cfg, CheckCfg, ExpectedValues, Input, OutFileName};
-use rustc_session::filesearch::sysroot_candidates;
+use rustc_session::filesearch::{self, sysroot_candidates};
 use rustc_session::parse::ParseSess;
 use rustc_session::{lint, CompilerIO, EarlyDiagCtxt, Session};
 use rustc_span::source_map::FileLoader;
@@ -45,24 +45,24 @@ pub struct Compiler {
 pub(crate) fn parse_cfg(dcx: &DiagCtxt, cfgs: Vec<String>) -> Cfg {
     cfgs.into_iter()
         .map(|s| {
-            let sess = ParseSess::with_silent_emitter(Some(format!(
-                "this error occurred on the command line: `--cfg={s}`"
-            )));
+            let psess = ParseSess::with_silent_emitter(
+                vec![crate::DEFAULT_LOCALE_RESOURCE, rustc_parse::DEFAULT_LOCALE_RESOURCE],
+                format!("this error occurred on the command line: `--cfg={s}`"),
+            );
             let filename = FileName::cfg_spec_source_code(&s);
 
             macro_rules! error {
                 ($reason: expr) => {
                     #[allow(rustc::untranslatable_diagnostic)]
                     #[allow(rustc::diagnostic_outside_of_impl)]
-                    dcx.struct_fatal(format!(
+                    dcx.fatal(format!(
                         concat!("invalid `--cfg` argument: `{}` (", $reason, ")"),
                         s
-                    ))
-                    .emit();
+                    ));
                 };
             }
 
-            match maybe_new_parser_from_source_str(&sess, filename, s.to_string()) {
+            match maybe_new_parser_from_source_str(&psess, filename, s.to_string()) {
                 Ok(mut parser) => match parser.parse_meta_item() {
                     Ok(meta_item) if parser.token == token::Eof => {
                         if meta_item.path.segments.len() != 1 {
@@ -108,20 +108,20 @@ pub(crate) fn parse_check_cfg(dcx: &DiagCtxt, specs: Vec<String>) -> CheckCfg {
     let mut check_cfg = CheckCfg { exhaustive_names, exhaustive_values, ..CheckCfg::default() };
 
     for s in specs {
-        let sess = ParseSess::with_silent_emitter(Some(format!(
-            "this error occurred on the command line: `--check-cfg={s}`"
-        )));
+        let psess = ParseSess::with_silent_emitter(
+            vec![crate::DEFAULT_LOCALE_RESOURCE, rustc_parse::DEFAULT_LOCALE_RESOURCE],
+            format!("this error occurred on the command line: `--check-cfg={s}`"),
+        );
         let filename = FileName::cfg_spec_source_code(&s);
 
         macro_rules! error {
             ($reason:expr) => {
                 #[allow(rustc::untranslatable_diagnostic)]
                 #[allow(rustc::diagnostic_outside_of_impl)]
-                dcx.struct_fatal(format!(
+                dcx.fatal(format!(
                     concat!("invalid `--check-cfg` argument: `{}` (", $reason, ")"),
                     s
                 ))
-                .emit()
             };
         }
 
@@ -129,7 +129,7 @@ pub(crate) fn parse_check_cfg(dcx: &DiagCtxt, specs: Vec<String>) -> CheckCfg {
             error!("expected `cfg(name, values(\"value1\", \"value2\", ... \"valueN\"))`")
         };
 
-        let mut parser = match maybe_new_parser_from_source_str(&sess, filename, s.to_string()) {
+        let mut parser = match maybe_new_parser_from_source_str(&psess, filename, s.to_string()) {
             Ok(parser) => parser,
             Err(errs) => {
                 errs.into_iter().for_each(|err| err.cancel());
@@ -279,7 +279,7 @@ pub struct Config {
     pub lint_caps: FxHashMap<lint::LintId, lint::Level>,
 
     /// This is a callback from the driver that is called when [`ParseSess`] is created.
-    pub parse_sess_created: Option<Box<dyn FnOnce(&mut ParseSess) + Send>>,
+    pub psess_created: Option<Box<dyn FnOnce(&mut ParseSess) + Send>>,
 
     /// This is a callback to hash otherwise untracked state used by the caller, if the
     /// hash changes between runs the incremental cache will be cleared.
@@ -320,6 +320,7 @@ pub struct Config {
 
 // JUSTIFICATION: before session exists, only config
 #[allow(rustc::bad_opt_access)]
+#[allow(rustc::untranslatable_diagnostic)] // FIXME: make this translatable
 pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Send) -> R {
     trace!("run_compiler");
 
@@ -338,15 +339,52 @@ pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Se
 
             let early_dcx = EarlyDiagCtxt::new(config.opts.error_format);
 
-            let codegen_backend = if let Some(make_codegen_backend) = config.make_codegen_backend {
-                make_codegen_backend(&config.opts)
-            } else {
-                util::get_codegen_backend(
-                    &early_dcx,
-                    &config.opts.maybe_sysroot,
-                    config.opts.unstable_opts.codegen_backend.as_deref(),
-                )
+            let sysroot = filesearch::materialize_sysroot(config.opts.maybe_sysroot.clone());
+
+            let (codegen_backend, target_override) = match config.make_codegen_backend {
+                None => {
+                    // Build a target without override, so that it can override the backend if needed
+                    let target =
+                        config::build_target_config(&early_dcx, &config.opts, None, &sysroot);
+
+                    let backend = util::get_codegen_backend(
+                        &early_dcx,
+                        &sysroot,
+                        config.opts.unstable_opts.codegen_backend.as_deref(),
+                        &target,
+                    );
+
+                    // target_override is documented to be called before init(), so this is okay
+                    let target_override = backend.target_override(&config.opts);
+
+                    // Assert that we don't use target's override of the backend and
+                    // backend's override of the target at the same time
+                    if config.opts.unstable_opts.codegen_backend.is_none()
+                        && target.default_codegen_backend.is_some()
+                        && target_override.is_some()
+                    {
+                        rustc_middle::bug!(
+                            "Codegen backend requested target override even though the target requested the backend"
+                        );
+                    }
+
+                    (backend, target_override)
+                }
+                Some(make_codegen_backend) => {
+                    // N.B. `make_codegen_backend` takes precedence over `target.default_codegen_backend`,
+                    //      which is ignored in this case.
+                    let backend = make_codegen_backend(&config.opts);
+
+                    // target_override is documented to be called before init(), so this is okay
+                    let target_override = backend.target_override(&config.opts);
+
+                    (backend, target_override)
+                }
             };
+
+            // Re-build target with the (potential) override
+            let target_cfg =
+                config::build_target_config(&early_dcx, &config.opts, target_override, &sysroot);
 
             let temps_dir = config.opts.unstable_opts.temps_dir.as_deref().map(PathBuf::from);
 
@@ -366,9 +404,6 @@ pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Se
             let mut locale_resources = Vec::from(config.locale_resources);
             locale_resources.push(codegen_backend.locale_resource());
 
-            // target_override is documented to be called before init(), so this is okay
-            let target_override = codegen_backend.target_override(&config.opts);
-
             let mut sess = rustc_session::build_session(
                 early_dcx,
                 config.opts,
@@ -383,7 +418,8 @@ pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Se
                 locale_resources,
                 config.lint_caps,
                 config.file_loader,
-                target_override,
+                target_cfg,
+                sysroot,
                 util::rustc_version_str().unwrap_or("unknown"),
                 config.ice_file,
                 config.using_internal_features,
@@ -395,14 +431,14 @@ pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Se
             let cfg = parse_cfg(&sess.dcx(), config.crate_cfg);
             let mut cfg = config::build_configuration(&sess, cfg);
             util::add_configuration(&mut cfg, &mut sess, &*codegen_backend);
-            sess.parse_sess.config = cfg;
+            sess.psess.config = cfg;
 
             let mut check_cfg = parse_check_cfg(&sess.dcx(), config.crate_check_cfg);
             check_cfg.fill_well_known(&sess.target);
-            sess.parse_sess.check_config = check_cfg;
+            sess.psess.check_config = check_cfg;
 
-            if let Some(parse_sess_created) = config.parse_sess_created {
-                parse_sess_created(&mut sess.parse_sess);
+            if let Some(psess_created) = config.psess_created {
+                psess_created(&mut sess.psess);
             }
 
             if let Some(hash_untracked_state) = config.hash_untracked_state {
@@ -424,19 +460,44 @@ pub fn run_compiler<R: Send>(config: Config, f: impl FnOnce(&Compiler) -> R + Se
             let compiler =
                 Compiler { sess, codegen_backend, override_queries: config.override_queries };
 
-            rustc_span::set_source_map(compiler.sess.parse_sess.clone_source_map(), move || {
-                let r = {
-                    let _sess_abort_error = defer(|| {
-                        compiler.sess.finish_diagnostics(&config.registry);
+            rustc_span::set_source_map(compiler.sess.psess.clone_source_map(), move || {
+                // There are two paths out of `f`.
+                // - Normal exit.
+                // - Panic, e.g. triggered by `abort_if_errors`.
+                //
+                // We must run `finish_diagnostics` in both cases.
+                let res = {
+                    // If `f` panics, `finish_diagnostics` will run during
+                    // unwinding because of the `defer`.
+                    let mut guar = None;
+                    let sess_abort_guard = defer(|| {
+                        guar = compiler.sess.finish_diagnostics(&config.registry);
                     });
 
-                    f(&compiler)
+                    let res = f(&compiler);
+
+                    // If `f` doesn't panic, `finish_diagnostics` will run
+                    // normally when `sess_abort_guard` is dropped.
+                    drop(sess_abort_guard);
+
+                    // If `finish_diagnostics` emits errors (e.g. stashed
+                    // errors) we can't return an error directly, because the
+                    // return type of this function is `R`, not `Result<R, E>`.
+                    // But we need to communicate the errors' existence to the
+                    // caller, otherwise the caller might mistakenly think that
+                    // no errors occurred and return a zero exit code. So we
+                    // abort (panic) instead, similar to if `f` had panicked.
+                    if guar.is_some() {
+                        compiler.sess.dcx().abort_if_errors();
+                    }
+
+                    res
                 };
 
                 let prof = compiler.sess.prof.clone();
-
                 prof.generic_activity("drop_compiler").run(move || drop(compiler));
-                r
+
+                res
             })
         },
     )

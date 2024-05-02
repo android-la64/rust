@@ -1,6 +1,7 @@
 use super::*;
+use metadata::{AsRow, HasAttributes};
 
-pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn writer(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
     if writer.sys {
         gen_sys_handle(writer, def)
     } else {
@@ -8,11 +9,11 @@ pub fn writer(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 }
 
-pub fn gen_sys_handle(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn gen_sys_handle(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
     let ident = to_ident(def.name());
     match def.underlying_type() {
-        Type::ISize if writer.std => quote! {
-            pub type #ident = *mut ::core::ffi::c_void;
+        metadata::Type::ISize if writer.std => quote! {
+            pub type #ident = *mut core::ffi::c_void;
         },
         underlying_type => {
             let signature = writer.type_default_name(&underlying_type);
@@ -24,7 +25,7 @@ pub fn gen_sys_handle(writer: &Writer, def: TypeDef) -> TokenStream {
     }
 }
 
-pub fn gen_win_handle(writer: &Writer, def: TypeDef) -> TokenStream {
+pub fn gen_win_handle(writer: &Writer, def: metadata::TypeDef) -> TokenStream {
     let name = def.name();
     let ident = to_ident(name);
     let underlying_type = def.underlying_type();
@@ -38,7 +39,7 @@ pub fn gen_win_handle(writer: &Writer, def: TypeDef) -> TokenStream {
             }
         }
     } else {
-        let invalid = type_def_invalid_values(def);
+        let invalid = metadata::type_def_invalid_values(def);
 
         if !invalid.is_empty() {
             let invalid = invalid.iter().map(|value| {
@@ -65,27 +66,27 @@ pub fn gen_win_handle(writer: &Writer, def: TypeDef) -> TokenStream {
     let mut tokens = quote! {
         #[repr(transparent)]
         // Unfortunately, Rust requires these to be derived to allow constant patterns.
-        #[derive(::core::cmp::PartialEq, ::core::cmp::Eq)]
+        #[derive(PartialEq, Eq)]
         pub struct #ident(pub #signature);
         #check
-        impl ::core::default::Default for #ident {
+        impl Default for #ident {
             fn default() -> Self {
-                unsafe { ::core::mem::zeroed() }
+                unsafe { core::mem::zeroed() }
             }
         }
-        impl ::core::clone::Clone for #ident {
+        impl Clone for #ident {
             fn clone(&self) -> Self {
                 *self
             }
         }
-        impl ::core::marker::Copy for #ident {}
-        impl ::core::fmt::Debug for #ident {
-            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        impl Copy for #ident {}
+        impl core::fmt::Debug for #ident {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 f.debug_tuple(#name).field(&self.0).finish()
             }
         }
-        impl ::windows_core::TypeKind for #ident {
-            type TypeKind = ::windows_core::CopyType;
+        impl windows_core::TypeKind for #ident {
+            type TypeKind = windows_core::CopyType;
         }
     };
 
@@ -95,8 +96,8 @@ pub fn gen_win_handle(writer: &Writer, def: TypeDef) -> TokenStream {
         dependency.push_str(type_name.name);
 
         tokens.combine(&quote! {
-            impl ::windows_core::CanInto<#dependency> for #ident {}
-            impl ::core::convert::From<#ident> for #dependency {
+            impl windows_core::CanInto<#dependency> for #ident {}
+            impl From<#ident> for #dependency {
                 fn from(value: #ident) -> Self {
                     Self(value.0)
                 }
@@ -107,9 +108,9 @@ pub fn gen_win_handle(writer: &Writer, def: TypeDef) -> TokenStream {
     tokens
 }
 
-fn type_def_usable_for(row: TypeDef) -> Option<TypeDef> {
+fn type_def_usable_for(row: metadata::TypeDef) -> Option<metadata::TypeDef> {
     if let Some(attribute) = row.find_attribute("AlsoUsableForAttribute") {
-        if let Some((_, Value::String(name))) = attribute.args().first() {
+        if let Some((_, metadata::Value::String(name))) = attribute.args().first() {
             return row.reader().get_type_def(row.namespace(), name.as_str()).next();
         }
     }

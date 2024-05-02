@@ -1,9 +1,12 @@
 #![cfg(feature = "std")]
 
+use std::{collections::HashMap, iter::FromIterator};
+
 use tabled::settings::{
     object::{Cell, Object, Rows, Segment},
-    style::{BorderSpanCorrection, HorizontalLine},
-    Alignment, Border, Highlight, Modify, Panel, Span, Style, Width,
+    style::{BorderSpanCorrection, HorizontalLine, Style},
+    themes::Theme,
+    Alignment, Border, Highlight, Modify, Panel, Span, Width,
 };
 
 use crate::matrix::Matrix;
@@ -25,7 +28,7 @@ test_table!(
     Matrix::new(3, 3)
         .with(Panel::horizontal(0,"Linux Distributions"))
         .with(Style::psql())
-        .with(Highlight::new(Cell::new(0, 0), Border::filled('#'))),
+        .with(Highlight::border(Cell::new(0, 0), Border::filled('#'))),
     "#####                                "
     "#        Linux Distributions         "
     "#####----------+----------+----------"
@@ -40,10 +43,10 @@ test_table!(
     Matrix::new(3, 3)
         .with(Panel::horizontal(0,"Linux Distributions"))
         .with(Style::psql())
-        .with(Highlight::new(Cell::new(0, 0), Border::filled('#')))
-        .with(Highlight::new(Cell::new(0, 1), Border::filled('#')))
-        .with(Highlight::new(Cell::new(0, 2), Border::filled('#')))
-        .with(Highlight::new(Cell::new(0, 3), Border::filled('#'))),
+        .with(Highlight::border(Cell::new(0, 0), Border::filled('#')))
+        .with(Highlight::border(Cell::new(0, 1), Border::filled('#')))
+        .with(Highlight::border(Cell::new(0, 2), Border::filled('#')))
+        .with(Highlight::border(Cell::new(0, 3), Border::filled('#'))),
     "######################################"
     "#        Linux Distributions         #"
     "######################################"
@@ -141,7 +144,12 @@ test_table!(
     panel_style_change,
     Matrix::iter([(0, 1)])
         .with(Panel::horizontal(0,"Numbers"))
-        .with(Style::modern().intersection_top('─').horizontals([HorizontalLine::new(1, Style::modern().get_horizontal()).intersection(Some('┬'))]))
+        .with({
+            let mut style = Theme::from_style(Style::modern());
+            style.set_border_intersection_top('─');
+            style.set_lines_horizontal(HashMap::from_iter([(1,  HorizontalLine::inherit(Style::modern()).intersection('┬').into_inner())]));
+            style
+        })
         .with(Modify::new(Cell::new(0, 0)).with(Alignment::center())),
     "┌───────────┐"
     "│  Numbers  │"
@@ -170,8 +178,8 @@ test_table!(
 test_table!(
     panel_style_change_correct,
     Matrix::iter([(0, 1)])
-        .with(Panel::horizontal(0,"Numbers"))
-        .with(Style::modern().intersection_top('─').horizontals([HorizontalLine::new(1, Style::modern().get_horizontal()).intersection(Some('┬'))]))
+        .with(Panel::horizontal(0, "Numbers"))
+        .with(Style::modern().intersection_top('─').horizontals([(1, HorizontalLine::inherit(Style::modern()).intersection('┬'))]))
         .with(BorderSpanCorrection)
         .with(Modify::new(Cell::new(0, 0)).with(Alignment::center())),
     "┌───────────┐"
@@ -185,7 +193,9 @@ test_table!(
 
 test_table!(
     panel_in_single_column,
+    #[allow(unknown_lints)]
     #[allow(clippy::needless_borrow)]
+    #[allow(clippy::needless_borrows_for_generic_args)]
     Matrix::iter(&[(0)]).with(Panel::horizontal(0,"Numbers")).with(Style::modern()),
     "┌─────────┐"
     "│ Numbers │"
@@ -334,4 +344,28 @@ test_table!(
     "     |       Linux Distributions       |     "
     "     | 1 |   1-0    |  1-1  |   1-2    |     "
     "     | 2 |   2-0    |  2-1  |   2-2    |     "
+);
+
+test_table!(
+    panel_vertical_split,
+    Matrix::new(3, 3).with(Style::psql()).with(Panel::vertical(0, "Linux Distributions").width(1)),
+    " L | N | column 0 | column 1 | column 2 "
+    " i |   |          |          |          "
+    " n |   |          |          |          "
+    " u |   |          |          |          "
+    " x |   |          |          |          "
+    "   |   |          |          |          "
+    " D +---+----------+----------+----------"
+    " i | 0 |   0-0    |   0-1    |   0-2    "
+    " s |   |          |          |          "
+    " t |   |          |          |          "
+    " r |   |          |          |          "
+    " i | 1 |   1-0    |   1-1    |   1-2    "
+    " b |   |          |          |          "
+    " u |   |          |          |          "
+    " t |   |          |          |          "
+    " i | 2 |   2-0    |   2-1    |   2-2    "
+    " o |   |          |          |          "
+    " n |   |          |          |          "
+    " s |   |          |          |          "
 );

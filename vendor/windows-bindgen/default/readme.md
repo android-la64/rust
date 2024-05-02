@@ -4,15 +4,15 @@ like [ILSpy](https://github.com/icsharpcode/ILSpy).
 
 ## Windows.Win32.winmd
 - Source: https://www.nuget.org/packages/Microsoft.Windows.SDK.Win32Metadata/
-- Version: 55.0.45
+- Version: 58.0.18
 
 ## Windows.Wdk.winmd
 - Source: https://www.nuget.org/packages/Microsoft.Windows.WDK.Win32Metadata/
-- Version: 0.8.2
+- Version: 0.10.7
 
 ## Windows.winmd
 - Source: https://www.nuget.org/packages/Microsoft.Windows.SDK.Contracts
-- Version: 10.0.22621.755
+- Version: 10.0.22621.2428
 
 The `Windows.winmd` file was created by merging the .winmd files from the last nuget package as follows:
 

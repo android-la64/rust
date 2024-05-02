@@ -1,10 +1,13 @@
 use crate::core::registry::PackageRegistry;
 use crate::core::resolver::features::{CliFeatures, HasDevUnits};
+use crate::core::shell::Verbosity;
+use crate::core::Registry as _;
 use crate::core::{PackageId, PackageIdSpec, PackageIdSpecQuery};
 use crate::core::{Resolve, SourceId, Workspace};
 use crate::ops;
+use crate::sources::source::QueryKind;
 use crate::util::cache_lock::CacheLockMode;
-use crate::util::config::Config;
+use crate::util::context::GlobalContext;
 use crate::util::style;
 use crate::util::CargoResult;
 use anstyle::Style;
@@ -13,7 +16,7 @@ use std::collections::{BTreeMap, HashSet};
 use tracing::debug;
 
 pub struct UpdateOptions<'a> {
-    pub config: &'a Config,
+    pub gctx: &'a GlobalContext,
     pub to_update: Vec<String>,
     pub precise: Option<&'a str>,
     pub recursive: bool,
@@ -22,8 +25,7 @@ pub struct UpdateOptions<'a> {
 }
 
 pub fn generate_lockfile(ws: &Workspace<'_>) -> CargoResult<()> {
-    let mut registry = PackageRegistry::new(ws.config())?;
-    let max_rust_version = ws.rust_version();
+    let mut registry = PackageRegistry::new(ws.gctx())?;
     let mut resolve = ops::resolve_with_previous(
         &mut registry,
         ws,
@@ -33,7 +35,6 @@ pub fn generate_lockfile(ws: &Workspace<'_>) -> CargoResult<()> {
         None,
         &[],
         true,
-        max_rust_version,
     )?;
     ops::write_pkg_lockfile(ws, &mut resolve)?;
     Ok(())
@@ -51,10 +52,8 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
     // Updates often require a lot of modifications to the registry, so ensure
     // that we're synchronized against other Cargos.
     let _lock = ws
-        .config()
+        .gctx()
         .acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
-
-    let max_rust_version = ws.rust_version();
 
     let previous_resolve = match ops::load_pkg_lockfile(ws)? {
         Some(resolve) => resolve,
@@ -65,7 +64,7 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                 // Precise option specified, so calculate a previous_resolve required
                 // by precise package update later.
                 Some(_) => {
-                    let mut registry = PackageRegistry::new(opts.config)?;
+                    let mut registry = PackageRegistry::new(opts.gctx)?;
                     ops::resolve_with_previous(
                         &mut registry,
                         ws,
@@ -75,13 +74,12 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                         None,
                         &[],
                         true,
-                        max_rust_version,
                     )?
                 }
             }
         }
     };
-    let mut registry = PackageRegistry::new(opts.config)?;
+    let mut registry = PackageRegistry::new(opts.gctx)?;
     let mut to_avoid = HashSet::new();
 
     if opts.to_update.is_empty() {
@@ -154,137 +152,282 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
         Some(&to_avoid),
         &[],
         true,
-        max_rust_version,
     )?;
 
+    print_lockfile_update(opts.gctx, &previous_resolve, &resolve, &mut registry)?;
+    if opts.dry_run {
+        opts.gctx
+            .shell()
+            .warn("not updating lockfile due to dry run")?;
+    } else {
+        ops::write_pkg_lockfile(ws, &mut resolve)?;
+    }
+    Ok(())
+}
+
+fn print_lockfile_update(
+    gctx: &GlobalContext,
+    previous_resolve: &Resolve,
+    resolve: &Resolve,
+    registry: &mut PackageRegistry<'_>,
+) -> CargoResult<()> {
     // Summarize what is changing for the user.
     let print_change = |status: &str, msg: String, color: &Style| {
-        opts.config.shell().status_with_color(status, msg, color)
+        gctx.shell().status_with_color(status, msg, color)
     };
-    for (removed, added) in compare_dependency_graphs(&previous_resolve, &resolve) {
-        if removed.len() == 1 && added.len() == 1 {
-            let msg = if removed[0].source_id().is_git() {
+    let mut unchanged_behind = 0;
+    for diff in PackageDiff::diff(&previous_resolve, &resolve) {
+        fn format_latest(version: semver::Version) -> String {
+            let warn = style::WARN;
+            format!(" {warn}(latest: v{version}){warn:#}")
+        }
+        fn is_latest(candidate: &semver::Version, current: &semver::Version) -> bool {
+            current < candidate
+                // Only match pre-release if major.minor.patch are the same
+                && (candidate.pre.is_empty()
+                    || (candidate.major == current.major
+                        && candidate.minor == current.minor
+                        && candidate.patch == current.patch))
+        }
+        let possibilities = if let Some(query) = diff.alternatives_query() {
+            loop {
+                match registry.query_vec(&query, QueryKind::Exact) {
+                    std::task::Poll::Ready(res) => {
+                        break res?;
+                    }
+                    std::task::Poll::Pending => registry.block_until_ready()?,
+                }
+            }
+        } else {
+            vec![]
+        };
+
+        if let Some((removed, added)) = diff.change() {
+            let latest = if !possibilities.is_empty() {
+                possibilities
+                    .iter()
+                    .map(|s| s.as_summary())
+                    .filter(|s| is_latest(s.version(), added.version()))
+                    .map(|s| s.version().clone())
+                    .max()
+                    .map(format_latest)
+            } else {
+                None
+            }
+            .unwrap_or_default();
+
+            let msg = if removed.source_id().is_git() {
                 format!(
-                    "{} -> #{}",
-                    removed[0],
-                    &added[0].source_id().precise_git_fragment().unwrap()[..8],
+                    "{removed} -> #{}",
+                    &added.source_id().precise_git_fragment().unwrap()[..8],
                 )
             } else {
-                format!("{} -> v{}", removed[0], added[0].version())
+                format!("{removed} -> v{}{latest}", added.version())
             };
 
             // If versions differ only in build metadata, we call it an "update"
             // regardless of whether the build metadata has gone up or down.
             // This metadata is often stuff like git commit hashes, which are
             // not meaningfully ordered.
-            if removed[0].version().cmp_precedence(added[0].version()) == Ordering::Greater {
+            if removed.version().cmp_precedence(added.version()) == Ordering::Greater {
                 print_change("Downgrading", msg, &style::WARN)?;
             } else {
                 print_change("Updating", msg, &style::GOOD)?;
             }
         } else {
-            for package in removed.iter() {
-                print_change("Removing", format!("{}", package), &style::ERROR)?;
+            for package in diff.removed.iter() {
+                print_change("Removing", format!("{package}"), &style::ERROR)?;
             }
-            for package in added.iter() {
-                print_change("Adding", format!("{}", package), &style::NOTE)?;
+            for package in diff.added.iter() {
+                let latest = if !possibilities.is_empty() {
+                    possibilities
+                        .iter()
+                        .map(|s| s.as_summary())
+                        .filter(|s| is_latest(s.version(), package.version()))
+                        .map(|s| s.version().clone())
+                        .max()
+                        .map(format_latest)
+                } else {
+                    None
+                }
+                .unwrap_or_default();
+
+                print_change("Adding", format!("{package}{latest}"), &style::NOTE)?;
+            }
+        }
+        for package in &diff.unchanged {
+            let latest = if !possibilities.is_empty() {
+                possibilities
+                    .iter()
+                    .map(|s| s.as_summary())
+                    .filter(|s| is_latest(s.version(), package.version()))
+                    .map(|s| s.version().clone())
+                    .max()
+                    .map(format_latest)
+            } else {
+                None
+            };
+
+            if let Some(latest) = latest {
+                unchanged_behind += 1;
+                if gctx.shell().verbosity() == Verbosity::Verbose {
+                    gctx.shell().status_with_color(
+                        "Unchanged",
+                        format!("{package}{latest}"),
+                        &anstyle::Style::new().bold(),
+                    )?;
+                }
             }
         }
     }
-    if opts.dry_run {
-        opts.config
-            .shell()
-            .warn("not updating lockfile due to dry run")?;
+    if gctx.shell().verbosity() == Verbosity::Verbose {
+        gctx.shell().note(
+            "to see how you depend on a package, run `cargo tree --invert --package <dep>@<ver>`",
+        )?;
     } else {
-        ops::write_pkg_lockfile(ws, &mut resolve)?;
-    }
-    return Ok(());
-
-    fn fill_with_deps<'a>(
-        resolve: &'a Resolve,
-        dep: PackageId,
-        set: &mut HashSet<PackageId>,
-        visited: &mut HashSet<PackageId>,
-    ) {
-        if !visited.insert(dep) {
-            return;
-        }
-        set.insert(dep);
-        for (dep, _) in resolve.deps_not_replaced(dep) {
-            fill_with_deps(resolve, dep, set, visited);
+        if 0 < unchanged_behind {
+            gctx.shell().note(format!(
+                "pass `--verbose` to see {unchanged_behind} unchanged dependencies behind latest"
+            ))?;
         }
     }
 
-    fn compare_dependency_graphs(
-        previous_resolve: &Resolve,
-        resolve: &Resolve,
-    ) -> Vec<(Vec<PackageId>, Vec<PackageId>)> {
+    Ok(())
+}
+
+fn fill_with_deps<'a>(
+    resolve: &'a Resolve,
+    dep: PackageId,
+    set: &mut HashSet<PackageId>,
+    visited: &mut HashSet<PackageId>,
+) {
+    if !visited.insert(dep) {
+        return;
+    }
+    set.insert(dep);
+    for (dep, _) in resolve.deps_not_replaced(dep) {
+        fill_with_deps(resolve, dep, set, visited);
+    }
+}
+
+/// All resolved versions of a package name within a [`SourceId`]
+#[derive(Default, Clone, Debug)]
+pub struct PackageDiff {
+    removed: Vec<PackageId>,
+    added: Vec<PackageId>,
+    unchanged: Vec<PackageId>,
+}
+
+impl PackageDiff {
+    pub fn diff(previous_resolve: &Resolve, resolve: &Resolve) -> Vec<Self> {
         fn key(dep: PackageId) -> (&'static str, SourceId) {
             (dep.name().as_str(), dep.source_id())
         }
 
-        // Removes all package IDs in `b` from `a`. Note that this is somewhat
-        // more complicated because the equality for source IDs does not take
-        // precise versions into account (e.g., git shas), but we want to take
-        // that into account here.
-        fn vec_subtract(a: &[PackageId], b: &[PackageId]) -> Vec<PackageId> {
-            a.iter()
-                .filter(|a| {
-                    // If this package ID is not found in `b`, then it's definitely
-                    // in the subtracted set.
-                    let Ok(i) = b.binary_search(a) else {
-                        return true;
-                    };
+        fn vec_subset(a: &[PackageId], b: &[PackageId]) -> Vec<PackageId> {
+            a.iter().filter(|a| !contains_id(b, a)).cloned().collect()
+        }
 
-                    // If we've found `a` in `b`, then we iterate over all instances
-                    // (we know `b` is sorted) and see if they all have different
-                    // precise versions. If so, then `a` isn't actually in `b` so
-                    // we'll let it through.
-                    //
-                    // Note that we only check this for non-registry sources,
-                    // however, as registries contain enough version information in
-                    // the package ID to disambiguate.
-                    if a.source_id().is_registry() {
-                        return false;
-                    }
-                    b[i..]
-                        .iter()
-                        .take_while(|b| a == b)
-                        .all(|b| !a.source_id().has_same_precise_as(b.source_id()))
-                })
-                .cloned()
-                .collect()
+        fn vec_intersection(a: &[PackageId], b: &[PackageId]) -> Vec<PackageId> {
+            a.iter().filter(|a| contains_id(b, a)).cloned().collect()
+        }
+
+        // Check if a PackageId is present `b` from `a`.
+        //
+        // Note that this is somewhat more complicated because the equality for source IDs does not
+        // take precise versions into account (e.g., git shas), but we want to take that into
+        // account here.
+        fn contains_id(haystack: &[PackageId], needle: &PackageId) -> bool {
+            let Ok(i) = haystack.binary_search(needle) else {
+                return false;
+            };
+
+            // If we've found `a` in `b`, then we iterate over all instances
+            // (we know `b` is sorted) and see if they all have different
+            // precise versions. If so, then `a` isn't actually in `b` so
+            // we'll let it through.
+            //
+            // Note that we only check this for non-registry sources,
+            // however, as registries contain enough version information in
+            // the package ID to disambiguate.
+            if needle.source_id().is_registry() {
+                return true;
+            }
+            haystack[i..]
+                .iter()
+                .take_while(|b| &needle == b)
+                .any(|b| needle.source_id().has_same_precise_as(b.source_id()))
         }
 
         // Map `(package name, package source)` to `(removed versions, added versions)`.
         let mut changes = BTreeMap::new();
-        let empty = (Vec::new(), Vec::new());
+        let empty = Self::default();
         for dep in previous_resolve.iter() {
             changes
                 .entry(key(dep))
                 .or_insert_with(|| empty.clone())
-                .0
+                .removed
                 .push(dep);
         }
         for dep in resolve.iter() {
             changes
                 .entry(key(dep))
                 .or_insert_with(|| empty.clone())
-                .1
+                .added
                 .push(dep);
         }
 
         for v in changes.values_mut() {
-            let (ref mut old, ref mut new) = *v;
+            let Self {
+                removed: ref mut old,
+                added: ref mut new,
+                unchanged: ref mut other,
+            } = *v;
             old.sort();
             new.sort();
-            let removed = vec_subtract(old, new);
-            let added = vec_subtract(new, old);
+            let removed = vec_subset(old, new);
+            let added = vec_subset(new, old);
+            let unchanged = vec_intersection(new, old);
             *old = removed;
             *new = added;
+            *other = unchanged;
         }
         debug!("{:#?}", changes);
 
         changes.into_iter().map(|(_, v)| v).collect()
+    }
+
+    /// Guess if a package upgraded/downgraded
+    ///
+    /// All `PackageDiff` knows is that entries were added/removed within [`Resolve`].
+    /// A package could be added or removed because of dependencies from other packages
+    /// which makes it hard to definitively say "X was upgrade to N".
+    pub fn change(&self) -> Option<(&PackageId, &PackageId)> {
+        if self.removed.len() == 1 && self.added.len() == 1 {
+            Some((&self.removed[0], &self.added[0]))
+        } else {
+            None
+        }
+    }
+
+    /// For querying [`PackageRegistry`] for alternative versions to report to the user
+    pub fn alternatives_query(&self) -> Option<crate::core::dependency::Dependency> {
+        let package_id = [
+            self.added.iter(),
+            self.unchanged.iter(),
+            self.removed.iter(),
+        ]
+        .into_iter()
+        .flatten()
+        .next()
+        // Limit to registry as that is the only source with meaningful alternative versions
+        .filter(|s| s.source_id().is_registry())?;
+        let query = crate::core::dependency::Dependency::parse(
+            package_id.name(),
+            None,
+            package_id.source_id(),
+        )
+        .expect("already a valid dependency");
+        Some(query)
     }
 }

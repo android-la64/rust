@@ -79,7 +79,7 @@
 //!    [`unstable_cli_options!`]. Flags can take an optional value if you want.
 //! 2. Update the [`CliUnstable::add`] function to parse the flag.
 //! 3. Wherever the new functionality is implemented, call
-//!    [`Config::cli_unstable`] to get an instance of [`CliUnstable`]
+//!    [`GlobalContext::cli_unstable`] to get an instance of [`CliUnstable`]
 //!    and check if the option has been enabled on the [`CliUnstable`] instance.
 //!    Nightly gating is already handled, so no need to worry about that.
 //!    If warning when feature is used without the gate, be sure to gracefully degrade (with a
@@ -112,7 +112,7 @@
 //!    and summarize it similar to the other entries. Update the rest of the
 //!    documentation to add the new feature.
 //!
-//! [`Config::cli_unstable`]: crate::util::config::Config::cli_unstable
+//! [`GlobalContext::cli_unstable`]: crate::util::context::GlobalContext::cli_unstable
 //! [`fail_if_stable_opt`]: CliUnstable::fail_if_stable_opt
 //! [`features!`]: macro.features.html
 //! [`unstable_cli_options!`]: macro.unstable_cli_options.html
@@ -130,7 +130,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::resolver::ResolveBehavior;
 use crate::util::errors::CargoResult;
 use crate::util::indented_lines;
-use crate::Config;
+use crate::GlobalContext;
 
 pub const SEE_CHANNELS: &str =
     "See https://doc.rust-lang.org/book/appendix-07-nightly-rust.html for more information \
@@ -180,9 +180,12 @@ pub type AllowFeatures = BTreeSet<String>;
 /// [`is_stable`]: Edition::is_stable
 /// [`toml::to_real_manifest`]: crate::util::toml::to_real_manifest
 /// [`features!`]: macro.features.html
-#[derive(Clone, Copy, Debug, Hash, PartialOrd, Ord, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Default, Clone, Copy, Debug, Hash, PartialOrd, Ord, Eq, PartialEq, Serialize, Deserialize,
+)]
 pub enum Edition {
     /// The 2015 edition
+    #[default]
     Edition2015,
     /// The 2018 edition
     Edition2018,
@@ -199,6 +202,12 @@ impl Edition {
     pub const LATEST_UNSTABLE: Option<Edition> = Some(Edition::Edition2024);
     /// The latest stable edition.
     pub const LATEST_STABLE: Edition = Edition::Edition2021;
+    pub const ALL: &'static [Edition] = &[
+        Self::Edition2015,
+        Self::Edition2018,
+        Self::Edition2021,
+        Self::Edition2024,
+    ];
     /// Possible values allowed for the `--edition` CLI flag.
     ///
     /// This requires a static value due to the way clap works, otherwise I
@@ -256,9 +265,7 @@ impl Edition {
     /// Updates the given [`ProcessBuilder`] to include the appropriate flags
     /// for setting the edition.
     pub(crate) fn cmd_edition_arg(&self, cmd: &mut ProcessBuilder) {
-        if *self != Edition::Edition2015 {
-            cmd.arg(format!("--edition={}", self));
-        }
+        cmd.arg(format!("--edition={}", self));
         if !self.is_stable() {
             cmd.arg("-Z").arg("unstable-options");
         }
@@ -275,7 +282,7 @@ impl Edition {
             Edition2015 => false,
             Edition2018 => true,
             Edition2021 => true,
-            Edition2024 => false,
+            Edition2024 => true,
         }
     }
 
@@ -311,6 +318,7 @@ impl fmt::Display for Edition {
         }
     }
 }
+
 impl FromStr for Edition {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Error> {
@@ -401,12 +409,12 @@ macro_rules! features {
         impl Features {
             fn status(&mut self, feature: &str) -> Option<(&mut bool, &'static Feature)> {
                 if feature.contains("_") {
-                    return None
+                    return None;
                 }
                 let feature = feature.replace("-", "_");
                 $(
                     if feature == stringify!($feature) {
-                        return Some((&mut self.$feature, Feature::$feature()))
+                        return Some((&mut self.$feature, Feature::$feature()));
                     }
                 )*
                 None
@@ -496,6 +504,9 @@ features! {
 
     /// Allow setting trim-paths in a profile to control the sanitisation of file paths in build outputs.
     (unstable, trim_paths, "", "reference/unstable.html#profile-trim-paths-option"),
+
+    /// Allow multiple packages to participate in the same API namespace
+    (unstable, open_namespaces, "", "reference/unstable.html#open-namespaces"),
 }
 
 /// Status and metadata for a single unstable feature.
@@ -514,15 +525,15 @@ impl Features {
     /// Creates a new unstable features context.
     pub fn new(
         features: &[String],
-        config: &Config,
+        gctx: &GlobalContext,
         warnings: &mut Vec<String>,
         is_local: bool,
     ) -> CargoResult<Features> {
         let mut ret = Features::default();
-        ret.nightly_features_allowed = config.nightly_features_allowed;
+        ret.nightly_features_allowed = gctx.nightly_features_allowed;
         ret.is_local = is_local;
         for feature in features {
-            ret.add(feature, config, warnings)?;
+            ret.add(feature, gctx, warnings)?;
             ret.activated.push(feature.to_string());
         }
         Ok(ret)
@@ -531,7 +542,7 @@ impl Features {
     fn add(
         &mut self,
         feature_name: &str,
-        config: &Config,
+        gctx: &GlobalContext,
         warnings: &mut Vec<String>,
     ) -> CargoResult<()> {
         let nightly_features_allowed = self.nightly_features_allowed;
@@ -580,7 +591,7 @@ impl Features {
                 see_docs()
             ),
             Status::Unstable => {
-                if let Some(allow) = &config.cli_unstable().allow_features {
+                if let Some(allow) = &gctx.cli_unstable().allow_features {
                     if !allow.contains(feature_name) {
                         bail!(
                             "the feature `{}` is not in the list of allowed features: [{}]",
@@ -764,6 +775,7 @@ unstable_cli_options!(
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
     precise_pre_release: bool = ("Enable pre-release versions to be selected with `update --precise`"),
     profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
+    public_dependency: bool = ("Respect a dependency's `public` field in Cargo.toml to control public/private dependencies"),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
     rustdoc_map: bool = ("Allow passing external documentation mappings to rustdoc"),
     rustdoc_scrape_examples: bool = ("Allows Rustdoc to scrape code examples from reverse-dependencies"),
@@ -1140,6 +1152,7 @@ impl CliUnstable {
             "mtime-on-use" => self.mtime_on_use = parse_empty(k, v)?,
             "no-index-update" => self.no_index_update = parse_empty(k, v)?,
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
+            "public-dependency" => self.public_dependency = parse_empty(k, v)?,
             "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
             "precise-pre-release" => self.precise_pre_release = parse_empty(k, v)?,
             "trim-paths" => self.trim_paths = parse_empty(k, v)?,
@@ -1201,7 +1214,7 @@ impl CliUnstable {
     /// unstable subcommand.
     pub fn fail_if_stable_command(
         &self,
-        config: &Config,
+        gctx: &GlobalContext,
         command: &str,
         issue: u32,
         z_name: &str,
@@ -1215,7 +1228,7 @@ impl CliUnstable {
             information about the `cargo {}` command.",
             issue, command
         );
-        if config.nightly_features_allowed {
+        if gctx.nightly_features_allowed {
             bail!(
                 "the `cargo {command}` command is unstable, pass `-Z {z_name}` \
                  to enable it\n\

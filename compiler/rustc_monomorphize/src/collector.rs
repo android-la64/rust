@@ -62,7 +62,7 @@
 //! syntactic items in the source code. We find them by walking the HIR of the
 //! crate, and whenever we hit upon a public function, method, or static item,
 //! we create a mono item consisting of the items DefId and, since we only
-//! consider non-generic items, an empty type-substitution set. (In eager
+//! consider non-generic items, an empty type-parameters set. (In eager
 //! collection mode, during incremental compilation, all non-generic functions
 //! are considered as roots, as well as when the `-Clink-dead-code` option is
 //! specified. Functions marked `#[no_mangle]` and functions called by inlinable
@@ -380,8 +380,12 @@ fn collect_items_rec<'tcx>(
             // Sanity check whether this ended up being collected accidentally
             debug_assert!(should_codegen_locally(tcx, &instance));
 
-            let ty = instance.ty(tcx, ty::ParamEnv::reveal_all());
-            visit_drop_use(tcx, ty, true, starting_item.span, &mut used_items);
+            let DefKind::Static { nested, .. } = tcx.def_kind(def_id) else { bug!() };
+            // Nested statics have no type.
+            if !nested {
+                let ty = instance.ty(tcx, ty::ParamEnv::reveal_all());
+                visit_drop_use(tcx, ty, true, starting_item.span, &mut used_items);
+            }
 
             recursion_depth_reset = None;
 
@@ -446,7 +450,8 @@ fn collect_items_rec<'tcx>(
                         hir::InlineAsmOperand::In { .. }
                         | hir::InlineAsmOperand::Out { .. }
                         | hir::InlineAsmOperand::InOut { .. }
-                        | hir::InlineAsmOperand::SplitInOut { .. } => {
+                        | hir::InlineAsmOperand::SplitInOut { .. }
+                        | hir::InlineAsmOperand::Label { .. } => {
                             span_bug!(*op_sp, "invalid operand type for global_asm!")
                         }
                     }
@@ -666,7 +671,15 @@ impl<'a, 'tcx> MirUsedCollector<'a, 'tcx> {
         debug!(?def_id, ?fn_span);
 
         for arg in args {
-            if let Some(too_large_size) = self.operand_size_if_too_large(limit, &arg.node) {
+            // Moving args into functions is typically implemented with pointer
+            // passing at the llvm-ir level and not by memcpy's. So always allow
+            // moving args into functions.
+            let operand: &mir::Operand<'tcx> = &arg.node;
+            if let mir::Operand::Move(_) = operand {
+                continue;
+            }
+
+            if let Some(too_large_size) = self.operand_size_if_too_large(limit, operand) {
                 self.lint_large_assignment(limit.0, too_large_size, location, arg.span);
             };
         }
@@ -805,21 +818,27 @@ impl<'a, 'tcx> MirVisitor<'tcx> for MirUsedCollector<'a, 'tcx> {
         self.super_rvalue(rvalue, location);
     }
 
-    /// This does not walk the constant, as it has been handled entirely here and trying
-    /// to walk it would attempt to evaluate the `ty::Const` inside, which doesn't necessarily
-    /// work, as some constants cannot be represented in the type system.
+    /// This does not walk the MIR of the constant as that is not needed for codegen, all we need is
+    /// to ensure that the constant evaluates successfully and walk the result.
     #[instrument(skip(self), level = "debug")]
     fn visit_constant(&mut self, constant: &mir::ConstOperand<'tcx>, location: Location) {
         let const_ = self.monomorphize(constant.const_);
         let param_env = ty::ParamEnv::reveal_all();
-        let val = match const_.eval(self.tcx, param_env, None) {
+        // Evaluate the constant. This makes const eval failure a collection-time error (rather than
+        // a codegen-time error). rustc stops after collection if there was an error, so this
+        // ensures codegen never has to worry about failing consts.
+        // (codegen relies on this and ICEs will happen if this is violated.)
+        let val = match const_.eval(self.tcx, param_env, Some(constant.span)) {
             Ok(v) => v,
-            Err(ErrorHandled::Reported(..)) => return,
             Err(ErrorHandled::TooGeneric(..)) => span_bug!(
                 self.body.source_info(location).span,
                 "collection encountered polymorphic constant: {:?}",
                 const_
             ),
+            Err(err @ ErrorHandled::Reported(..)) => {
+                err.emit_note(self.tcx);
+                return;
+            }
         };
         collect_const_value(self.tcx, val, self.output);
         MirVisitor::visit_ty(self, const_.ty(), TyContext::Location(location));
@@ -948,18 +967,23 @@ fn visit_instance_use<'tcx>(
     if !should_codegen_locally(tcx, &instance) {
         return;
     }
-
-    // The intrinsics assert_inhabited, assert_zero_valid, and assert_mem_uninitialized_valid will
-    // be lowered in codegen to nothing or a call to panic_nounwind. So if we encounter any
-    // of those intrinsics, we need to include a mono item for panic_nounwind, else we may try to
-    // codegen a call to that function without generating code for the function itself.
     if let ty::InstanceDef::Intrinsic(def_id) = instance.def {
         let name = tcx.item_name(def_id);
         if let Some(_requirement) = ValidityRequirement::from_intrinsic(name) {
+            // The intrinsics assert_inhabited, assert_zero_valid, and assert_mem_uninitialized_valid will
+            // be lowered in codegen to nothing or a call to panic_nounwind. So if we encounter any
+            // of those intrinsics, we need to include a mono item for panic_nounwind, else we may try to
+            // codegen a call to that function without generating code for the function itself.
             let def_id = tcx.lang_items().get(LangItem::PanicNounwind).unwrap();
             let panic_instance = Instance::mono(tcx, def_id);
             if should_codegen_locally(tcx, &panic_instance) {
                 output.push(create_fn_mono_item(tcx, panic_instance, source));
+            }
+        } else if tcx.has_attr(def_id, sym::rustc_intrinsic) {
+            // Codegen the fallback body of intrinsics with fallback bodies
+            let instance = ty::Instance::new(def_id, instance.args);
+            if should_codegen_locally(tcx, &instance) {
+                output.push(create_fn_mono_item(tcx, instance, source));
             }
         }
     }
@@ -983,6 +1007,8 @@ fn visit_instance_use<'tcx>(
         | ty::InstanceDef::VTableShim(..)
         | ty::InstanceDef::ReifyShim(..)
         | ty::InstanceDef::ClosureOnceShim { .. }
+        | ty::InstanceDef::ConstructCoroutineInClosureShim { .. }
+        | ty::InstanceDef::CoroutineKindShim { .. }
         | ty::InstanceDef::Item(..)
         | ty::InstanceDef::FnPtrShim(..)
         | ty::InstanceDef::CloneShim(..)
@@ -1004,6 +1030,11 @@ fn should_codegen_locally<'tcx>(tcx: TyCtxt<'tcx>, instance: &Instance<'tcx>) ->
         return false;
     }
 
+    if tcx.intrinsic(def_id).is_some_and(|i| i.must_be_overridden) {
+        // These are implemented by backends directly and have no meaningful body.
+        return false;
+    }
+
     if def_id.is_local() {
         // Local items cannot be referred to locally without monomorphizing them locally.
         return true;
@@ -1016,7 +1047,7 @@ fn should_codegen_locally<'tcx>(tcx: TyCtxt<'tcx>, instance: &Instance<'tcx>) ->
         return false;
     }
 
-    if let DefKind::Static(_) = tcx.def_kind(def_id) {
+    if let DefKind::Static { .. } = tcx.def_kind(def_id) {
         // We cannot monomorphize statics from upstream crates.
         return false;
     }
@@ -1152,7 +1183,7 @@ fn create_fn_mono_item<'tcx>(
     let def_id = instance.def_id();
     if tcx.sess.opts.unstable_opts.profile_closures
         && def_id.is_local()
-        && tcx.is_closure_or_coroutine(def_id)
+        && tcx.is_closure_like(def_id)
     {
         crate::util::dump_closure_profile(tcx, instance);
     }
@@ -1233,7 +1264,7 @@ impl<'v> RootCollector<'_, 'v> {
                 );
                 self.output.push(dummy_spanned(MonoItem::GlobalAsm(id)));
             }
-            DefKind::Static(..) => {
+            DefKind::Static { .. } => {
                 let def_id = id.owner_id.to_def_id();
                 debug!("RootCollector: ItemKind::Static({})", self.tcx.def_path_str(def_id));
                 self.output.push(dummy_spanned(MonoItem::Static(def_id)));
@@ -1318,14 +1349,12 @@ impl<'v> RootCollector<'_, 'v> {
             main_ret_ty.no_bound_vars().unwrap(),
         );
 
-        let start_instance = Instance::resolve(
+        let start_instance = Instance::expect_resolve(
             self.tcx,
             ty::ParamEnv::reveal_all(),
             start_def_id,
             self.tcx.mk_args(&[main_ret_ty.into()]),
-        )
-        .unwrap()
-        .unwrap();
+        );
 
         self.output.push(create_fn_mono_item(self.tcx, start_instance, DUMMY_SP));
     }
@@ -1337,18 +1366,17 @@ fn create_mono_items_for_default_impls<'tcx>(
     item: hir::ItemId,
     output: &mut MonoItems<'tcx>,
 ) {
-    let polarity = tcx.impl_polarity(item.owner_id);
-    if matches!(polarity, ty::ImplPolarity::Negative) {
+    let Some(impl_) = tcx.impl_trait_header(item.owner_id) else {
+        return;
+    };
+
+    if matches!(impl_.polarity, ty::ImplPolarity::Negative) {
         return;
     }
 
     if tcx.generics_of(item.owner_id).own_requires_monomorphization() {
         return;
     }
-
-    let Some(trait_ref) = tcx.impl_trait_ref(item.owner_id) else {
-        return;
-    };
 
     // Lifetimes never affect trait selection, so we are allowed to eagerly
     // instantiate an instance of an impl method if the impl (and method,
@@ -1366,18 +1394,18 @@ fn create_mono_items_for_default_impls<'tcx>(
         }
     };
     let impl_args = GenericArgs::for_item(tcx, item.owner_id.to_def_id(), only_region_params);
-    let trait_ref = trait_ref.instantiate(tcx, impl_args);
+    let trait_ref = impl_.trait_ref.instantiate(tcx, impl_args);
 
     // Unlike 'lazy' monomorphization that begins by collecting items transitively
     // called by `main` or other global items, when eagerly monomorphizing impl
     // items, we never actually check that the predicates of this impl are satisfied
     // in a empty reveal-all param env (i.e. with no assumptions).
     //
-    // Even though this impl has no type or const substitutions, because we don't
+    // Even though this impl has no type or const generic parameters, because we don't
     // consider higher-ranked predicates such as `for<'a> &'a mut [u8]: Copy` to
     // be trivially false. We must now check that the impl has no impossible-to-satisfy
     // predicates.
-    if tcx.subst_and_check_impossible_predicates((item.owner_id.to_def_id(), impl_args)) {
+    if tcx.instantiate_and_check_impossible_predicates((item.owner_id.to_def_id(), impl_args)) {
         return;
     }
 
@@ -1394,7 +1422,7 @@ fn create_mono_items_for_default_impls<'tcx>(
         }
 
         // As mentioned above, the method is legal to eagerly instantiate if it
-        // only has lifetime substitutions. This is validated by
+        // only has lifetime generic parameters. This is validated by
         let args = trait_ref.args.extend_to(tcx, method.def_id, only_region_params);
         let instance = ty::Instance::expect_resolve(tcx, param_env, method.def_id, args);
 

@@ -9,8 +9,6 @@
     html_playground_url = "https://play.rust-lang.org/",
     test(attr(deny(warnings)))
 )]
-#![deny(rustc::untranslatable_diagnostic)]
-#![deny(rustc::diagnostic_outside_of_impl)]
 // We want to be able to build this crate with a stable compiler,
 // so no `#![feature]` attributes should be added.
 #![deny(unstable_features)]
@@ -895,7 +893,7 @@ impl<'a> Parser<'a> {
                 ParseError {
                     description: "expected format parameter to occur after `:`".to_owned(),
                     note: None,
-                    label: format!("expected `{}` to occur after `:`", alignment).to_owned(),
+                    label: format!("expected `{}` to occur after `:`", alignment),
                     span: pos.to(pos),
                     secondary_label: None,
                     suggestion: Suggestion::None,
@@ -1056,7 +1054,7 @@ fn find_width_map_from_snippet(
 fn unescape_string(string: &str) -> Option<string::String> {
     let mut buf = string::String::new();
     let mut ok = true;
-    unescape::unescape_literal(string, unescape::Mode::Str, &mut |_, unescaped_char| {
+    unescape::unescape_unicode(string, unescape::Mode::Str, &mut |_, unescaped_char| {
         match unescaped_char {
             Ok(c) => buf.push(c),
             Err(_) => ok = false,

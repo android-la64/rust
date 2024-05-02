@@ -1,8 +1,10 @@
 use cargo_test_support::basic_manifest;
 use cargo_test_support::compare::assert_ui;
-use cargo_test_support::curr_dir;
+use cargo_test_support::current_dir;
+use cargo_test_support::file;
 use cargo_test_support::git;
 use cargo_test_support::project;
+use cargo_test_support::str;
 use cargo_test_support::CargoCommand;
 
 #[cargo_test]
@@ -40,6 +42,7 @@ fn case() {
                  [package]\n\
                  name = \"my-project\"\n\
                  version = \"0.1.0\"\n\
+                 edition = \"2015\"\n\
                  \n\
                  [dependencies]\n\
                  bar = {{ git = \"{git_project1}\" }}\n\
@@ -70,8 +73,8 @@ fn case() {
         .current_dir(&in_project.root())
         .assert()
         .success()
-        .stdout_matches_path(curr_dir!().join("stdout.log"))
-        .stderr_matches_path(curr_dir!().join("stderr.log"));
+        .stdout_matches(str![""])
+        .stderr_matches(file!["stderr.term.svg"]);
 
-    assert_ui().subset_matches(curr_dir!().join("out"), &in_project.root());
+    assert_ui().subset_matches(current_dir!().join("out"), &in_project.root());
 }

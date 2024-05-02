@@ -192,6 +192,7 @@ fn substitute_macros(input: &str) -> String {
         ("[CHECKING]", "    Checking"),
         ("[COMPLETED]", "   Completed"),
         ("[CREATED]", "     Created"),
+        ("[CREATING]", "    Creating"),
         ("[CREDENTIAL]", "  Credential"),
         ("[DOWNGRADING]", " Downgrading"),
         ("[FINISHED]", "    Finished"),
@@ -207,6 +208,7 @@ fn substitute_macros(input: &str) -> String {
         ("[ADDING]", "      Adding"),
         ("[REMOVING]", "    Removing"),
         ("[REMOVED]", "     Removed"),
+        ("[UNCHANGED]", "   Unchanged"),
         ("[DOCTEST]", "   Doc-tests"),
         ("[PACKAGING]", "   Packaging"),
         ("[PACKAGED]", "    Packaged"),
@@ -593,18 +595,6 @@ fn find_json_mismatch_r<'a>(
         (&Object(ref l), &Object(ref r)) => {
             let mut expected_entries = l.iter();
             let mut actual_entries = r.iter();
-
-            // Compilers older than 1.76 do not produce $message_type.
-            // Treat it as optional for now.
-            let mut expected_entries_without_message_type;
-            let expected_entries: &mut dyn Iterator<Item = _> =
-                if l.contains_key("$message_type") && !r.contains_key("$message_type") {
-                    expected_entries_without_message_type =
-                        expected_entries.filter(|entry| entry.0 != "$message_type");
-                    &mut expected_entries_without_message_type
-                } else {
-                    &mut expected_entries
-                };
 
             loop {
                 match (expected_entries.next(), actual_entries.next()) {

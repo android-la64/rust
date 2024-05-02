@@ -1,13 +1,13 @@
 use alloc::borrow::Cow;
 use alloc::vec::Vec;
 
+use crate::endian::Endianness;
 use crate::read::{
     self, Architecture, CodeView, ComdatKind, CompressedData, CompressedFileRange, Export,
     FileFlags, Import, ObjectKind, ObjectMap, Relocation, Result, SectionFlags, SectionIndex,
     SectionKind, SegmentFlags, SubArchitecture, SymbolFlags, SymbolIndex, SymbolKind, SymbolMap,
     SymbolMapName, SymbolScope, SymbolSection,
 };
-use crate::Endianness;
 
 /// An object file.
 ///
@@ -398,12 +398,12 @@ pub trait ObjectSection<'data>: read::private::Sealed {
     }
 
     /// Returns the name of the section.
-    fn name_bytes(&self) -> Result<&[u8]>;
+    fn name_bytes(&self) -> Result<&'data [u8]>;
 
     /// Returns the name of the section.
     ///
     /// Returns an error if the name is not UTF-8.
-    fn name(&self) -> Result<&str>;
+    fn name(&self) -> Result<&'data str>;
 
     /// Returns the name of the segment for this section.
     fn segment_name_bytes(&self) -> Result<Option<&[u8]>>;
@@ -437,12 +437,12 @@ pub trait ObjectComdat<'data>: read::private::Sealed {
     fn symbol(&self) -> SymbolIndex;
 
     /// Returns the name of the COMDAT section group.
-    fn name_bytes(&self) -> Result<&[u8]>;
+    fn name_bytes(&self) -> Result<&'data [u8]>;
 
     /// Returns the name of the COMDAT section group.
     ///
     /// Returns an error if the name is not UTF-8.
-    fn name(&self) -> Result<&str>;
+    fn name(&self) -> Result<&'data str>;
 
     /// Get the sections in this section group.
     fn sections(&self) -> Self::SectionIterator;

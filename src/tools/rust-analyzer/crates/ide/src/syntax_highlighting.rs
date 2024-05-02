@@ -186,7 +186,7 @@ pub(crate) fn highlight(
     file_id: FileId,
     range_to_highlight: Option<TextRange>,
 ) -> Vec<HlRange> {
-    let _p = profile::span("highlight");
+    let _p = tracing::span!(tracing::Level::INFO, "highlight").entered();
     let sema = Semantics::new(db);
 
     // Determine the root based on the given range.
@@ -223,7 +223,7 @@ fn traverse(
     krate: hir::Crate,
     range_to_highlight: TextRange,
 ) {
-    let is_unlinked = sema.to_module_def(file_id).is_none();
+    let is_unlinked = sema.file_to_module_def(file_id).is_none();
     let mut bindings_shadow_count: FxHashMap<Name, u32> = FxHashMap::default();
 
     enum AttrOrDerive {

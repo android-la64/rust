@@ -1,9 +1,7 @@
 //! Streaming SIMD Extensions 4.1 (SSE4.1)
 
-use crate::{
-    core_arch::{simd::*, simd_llvm::*, x86::*},
-    mem::transmute,
-};
+use crate::core_arch::{simd::*, x86::*};
+use crate::intrinsics::simd::*;
 
 #[cfg(test)]
 use stdarch_test::assert_instr;
@@ -201,7 +199,7 @@ pub unsafe fn _mm_blend_ps<const IMM4: i32>(a: __m128, b: __m128) -> __m128 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_extract_ps<const IMM8: i32>(a: __m128) -> i32 {
     static_assert_uimm_bits!(IMM8, 2);
-    simd_extract::<_, f32>(a, IMM8 as u32).to_bits() as i32
+    simd_extract!(a, IMM8 as u32, f32).to_bits() as i32
 }
 
 /// Extracts an 8-bit integer from `a`, selected with `IMM8`. Returns a 32-bit
@@ -217,7 +215,7 @@ pub unsafe fn _mm_extract_ps<const IMM8: i32>(a: __m128) -> i32 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_extract_epi8<const IMM8: i32>(a: __m128i) -> i32 {
     static_assert_uimm_bits!(IMM8, 4);
-    simd_extract::<_, u8>(a.as_u8x16(), IMM8 as u32) as i32
+    simd_extract!(a.as_u8x16(), IMM8 as u32, u8) as i32
 }
 
 /// Extracts an 32-bit integer from `a` selected with `IMM8`
@@ -233,7 +231,7 @@ pub unsafe fn _mm_extract_epi8<const IMM8: i32>(a: __m128i) -> i32 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_extract_epi32<const IMM8: i32>(a: __m128i) -> i32 {
     static_assert_uimm_bits!(IMM8, 2);
-    simd_extract::<_, i32>(a.as_i32x4(), IMM8 as u32)
+    simd_extract!(a.as_i32x4(), IMM8 as u32, i32)
 }
 
 /// Select a single value in `a` to store at some position in `b`,
@@ -281,7 +279,7 @@ pub unsafe fn _mm_insert_ps<const IMM8: i32>(a: __m128, b: __m128) -> __m128 {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_insert_epi8<const IMM8: i32>(a: __m128i, i: i32) -> __m128i {
     static_assert_uimm_bits!(IMM8, 4);
-    transmute(simd_insert(a.as_i8x16(), IMM8 as u32, i as i8))
+    transmute(simd_insert!(a.as_i8x16(), IMM8 as u32, i as i8))
 }
 
 /// Returns a copy of `a` with the 32-bit integer from `i` inserted at a
@@ -295,7 +293,7 @@ pub unsafe fn _mm_insert_epi8<const IMM8: i32>(a: __m128i, i: i32) -> __m128i {
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm_insert_epi32<const IMM8: i32>(a: __m128i, i: i32) -> __m128i {
     static_assert_uimm_bits!(IMM8, 2);
-    transmute(simd_insert(a.as_i32x4(), IMM8 as u32, i))
+    transmute(simd_insert!(a.as_i32x4(), IMM8 as u32, i))
 }
 
 /// Compares packed 8-bit integers in `a` and `b` and returns packed maximum
@@ -1294,6 +1292,13 @@ mod tests {
         let r = _mm_insert_ps::<0b11_00_1100>(a, b);
         let e = _mm_setr_ps(4.0, 1.0, 0.0, 0.0);
         assert_eq_m128(r, e);
+
+        // Zeroing takes precedence over copied value
+        let a = _mm_set1_ps(1.0);
+        let b = _mm_setr_ps(1.0, 2.0, 3.0, 4.0);
+        let r = _mm_insert_ps::<0b11_00_0001>(a, b);
+        let e = _mm_setr_ps(0.0, 1.0, 1.0, 1.0);
+        assert_eq_m128(r, e);
     }
 
     #[simd_test(enable = "sse4.1")]
@@ -1682,29 +1687,57 @@ mod tests {
         assert_eq_m128(r, e);
     }
 
-    #[allow(deprecated)] // FIXME: This test uses deprecated CSR access functions
     #[simd_test(enable = "sse4.1")]
     unsafe fn test_mm_round_sd() {
         let a = _mm_setr_pd(1.5, 3.5);
         let b = _mm_setr_pd(-2.5, -4.5);
-        let old_mode = _MM_GET_ROUNDING_MODE();
-        _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO);
-        let r = _mm_round_sd::<_MM_FROUND_CUR_DIRECTION>(a, b);
-        _MM_SET_ROUNDING_MODE(old_mode);
+        let r = _mm_round_sd::<_MM_FROUND_TO_NEAREST_INT>(a, b);
+        let e = _mm_setr_pd(-2.0, 3.5);
+        assert_eq_m128d(r, e);
+
+        let a = _mm_setr_pd(1.5, 3.5);
+        let b = _mm_setr_pd(-2.5, -4.5);
+        let r = _mm_round_sd::<_MM_FROUND_TO_NEG_INF>(a, b);
+        let e = _mm_setr_pd(-3.0, 3.5);
+        assert_eq_m128d(r, e);
+
+        let a = _mm_setr_pd(1.5, 3.5);
+        let b = _mm_setr_pd(-2.5, -4.5);
+        let r = _mm_round_sd::<_MM_FROUND_TO_POS_INF>(a, b);
+        let e = _mm_setr_pd(-2.0, 3.5);
+        assert_eq_m128d(r, e);
+
+        let a = _mm_setr_pd(1.5, 3.5);
+        let b = _mm_setr_pd(-2.5, -4.5);
+        let r = _mm_round_sd::<_MM_FROUND_TO_ZERO>(a, b);
         let e = _mm_setr_pd(-2.0, 3.5);
         assert_eq_m128d(r, e);
     }
 
-    #[allow(deprecated)] // FIXME: This test uses deprecated CSR access functions
     #[simd_test(enable = "sse4.1")]
     unsafe fn test_mm_round_ss() {
         let a = _mm_setr_ps(1.5, 3.5, 7.5, 15.5);
         let b = _mm_setr_ps(-1.75, -4.5, -8.5, -16.5);
-        let old_mode = _MM_GET_ROUNDING_MODE();
-        _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
-        let r = _mm_round_ss::<_MM_FROUND_CUR_DIRECTION>(a, b);
-        _MM_SET_ROUNDING_MODE(old_mode);
+        let r = _mm_round_ss::<_MM_FROUND_TO_NEAREST_INT>(a, b);
         let e = _mm_setr_ps(-2.0, 3.5, 7.5, 15.5);
+        assert_eq_m128(r, e);
+
+        let a = _mm_setr_ps(1.5, 3.5, 7.5, 15.5);
+        let b = _mm_setr_ps(-1.75, -4.5, -8.5, -16.5);
+        let r = _mm_round_ss::<_MM_FROUND_TO_NEG_INF>(a, b);
+        let e = _mm_setr_ps(-2.0, 3.5, 7.5, 15.5);
+        assert_eq_m128(r, e);
+
+        let a = _mm_setr_ps(1.5, 3.5, 7.5, 15.5);
+        let b = _mm_setr_ps(-1.75, -4.5, -8.5, -16.5);
+        let r = _mm_round_ss::<_MM_FROUND_TO_POS_INF>(a, b);
+        let e = _mm_setr_ps(-1.0, 3.5, 7.5, 15.5);
+        assert_eq_m128(r, e);
+
+        let a = _mm_setr_ps(1.5, 3.5, 7.5, 15.5);
+        let b = _mm_setr_ps(-1.75, -4.5, -8.5, -16.5);
+        let r = _mm_round_ss::<_MM_FROUND_TO_ZERO>(a, b);
+        let e = _mm_setr_ps(-1.0, 3.5, 7.5, 15.5);
         assert_eq_m128(r, e);
     }
 
@@ -1721,6 +1754,15 @@ mod tests {
         let a = _mm_setr_epi16(0, 18, 44, 97, 50, 13, 67, 66);
         let r = _mm_minpos_epu16(a);
         let e = _mm_setr_epi16(0, 0, 0, 0, 0, 0, 0, 0);
+        assert_eq_m128i(r, e);
+    }
+
+    #[simd_test(enable = "sse4.1")]
+    unsafe fn test_mm_minpos_epu16_3() {
+        // Case where the minimum value is repeated
+        let a = _mm_setr_epi16(23, 18, 44, 97, 50, 13, 67, 13);
+        let r = _mm_minpos_epu16(a);
+        let e = _mm_setr_epi16(13, 5, 0, 0, 0, 0, 0, 0);
         assert_eq_m128i(r, e);
     }
 

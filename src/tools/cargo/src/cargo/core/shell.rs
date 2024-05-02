@@ -9,44 +9,6 @@ use crate::util::errors::CargoResult;
 use crate::util::hostname;
 use crate::util::style::*;
 
-pub enum TtyWidth {
-    NoTty,
-    Known(usize),
-    Guess(usize),
-}
-
-impl TtyWidth {
-    /// Returns the width of the terminal to use for diagnostics (which is
-    /// relayed to rustc via `--diagnostic-width`).
-    pub fn diagnostic_terminal_width(&self) -> Option<usize> {
-        // ALLOWED: For testing cargo itself only.
-        #[allow(clippy::disallowed_methods)]
-        if let Ok(width) = std::env::var("__CARGO_TEST_TTY_WIDTH_DO_NOT_USE_THIS") {
-            return Some(width.parse().unwrap());
-        }
-        match *self {
-            TtyWidth::NoTty | TtyWidth::Guess(_) => None,
-            TtyWidth::Known(width) => Some(width),
-        }
-    }
-
-    /// Returns the width used by progress bars for the tty.
-    pub fn progress_max_width(&self) -> Option<usize> {
-        match *self {
-            TtyWidth::NoTty => None,
-            TtyWidth::Known(width) | TtyWidth::Guess(width) => Some(width),
-        }
-    }
-}
-
-/// The requested verbosity of output.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Verbosity {
-    Verbose,
-    Normal,
-    Quiet,
-}
-
 /// An abstraction around console output that remembers preferences for output
 /// verbosity and color.
 pub struct Shell {
@@ -77,31 +39,6 @@ impl fmt::Debug for Shell {
     }
 }
 
-/// A `Write`able object, either with or without color support
-enum ShellOut {
-    /// A plain write object without color support
-    Write(AutoStream<Box<dyn Write>>),
-    /// Color-enabled stdio, with information on whether color should be used
-    Stream {
-        stdout: AutoStream<std::io::Stdout>,
-        stderr: AutoStream<std::io::Stderr>,
-        stderr_tty: bool,
-        color_choice: ColorChoice,
-        hyperlinks: bool,
-    },
-}
-
-/// Whether messages should use color output
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ColorChoice {
-    /// Force color output
-    Always,
-    /// Force disable color output
-    Never,
-    /// Intelligently guess whether to use color output
-    CargoAuto,
-}
-
 impl Shell {
     /// Creates a new shell (color choice and verbosity), defaulting to 'auto' color and verbose
     /// output.
@@ -116,6 +53,8 @@ impl Shell {
                 color_choice: auto_clr,
                 hyperlinks: supports_hyperlinks(),
                 stderr_tty: std::io::stderr().is_terminal(),
+                stdout_unicode: supports_unicode(&std::io::stdout()),
+                stderr_unicode: supports_unicode(&std::io::stderr()),
             },
             verbosity: Verbosity::Verbose,
             needs_clear: false,
@@ -293,24 +232,16 @@ impl Shell {
     /// Updates the color choice (always, never, or auto) from a string..
     pub fn set_color_choice(&mut self, color: Option<&str>) -> CargoResult<()> {
         if let ShellOut::Stream {
-            ref mut stdout,
-            ref mut stderr,
-            ref mut color_choice,
+            stdout,
+            stderr,
+            color_choice,
             ..
-        } = self.output
+        } = &mut self.output
         {
-            let cfg = match color {
-                Some("always") => ColorChoice::Always,
-                Some("never") => ColorChoice::Never,
-
-                Some("auto") | None => ColorChoice::CargoAuto,
-
-                Some(arg) => anyhow::bail!(
-                    "argument for --color must be auto, always, or \
-                     never, but found `{}`",
-                    arg
-                ),
-            };
+            let cfg = color
+                .map(|c| c.parse())
+                .transpose()?
+                .unwrap_or(ColorChoice::CargoAuto);
             *color_choice = cfg;
             let stdout_choice = cfg.to_anstream_color_choice();
             let stderr_choice = cfg.to_anstream_color_choice();
@@ -320,14 +251,38 @@ impl Shell {
         Ok(())
     }
 
-    pub fn set_hyperlinks(&mut self, yes: bool) -> CargoResult<()> {
+    pub fn set_unicode(&mut self, yes: bool) -> CargoResult<()> {
         if let ShellOut::Stream {
-            ref mut hyperlinks, ..
-        } = self.output
+            stdout_unicode,
+            stderr_unicode,
+            ..
+        } = &mut self.output
         {
+            *stdout_unicode = yes;
+            *stderr_unicode = yes;
+        }
+        Ok(())
+    }
+
+    pub fn set_hyperlinks(&mut self, yes: bool) -> CargoResult<()> {
+        if let ShellOut::Stream { hyperlinks, .. } = &mut self.output {
             *hyperlinks = yes;
         }
         Ok(())
+    }
+
+    pub fn out_unicode(&self) -> bool {
+        match &self.output {
+            ShellOut::Write(_) => true,
+            ShellOut::Stream { stdout_unicode, .. } => *stdout_unicode,
+        }
+    }
+
+    pub fn err_unicode(&self) -> bool {
+        match &self.output {
+            ShellOut::Write(_) => true,
+            ShellOut::Stream { stderr_unicode, .. } => *stderr_unicode,
+        }
     }
 
     /// Gets the current color choice.
@@ -444,6 +399,22 @@ impl Default for Shell {
     }
 }
 
+/// A `Write`able object, either with or without color support
+enum ShellOut {
+    /// A plain write object without color support
+    Write(AutoStream<Box<dyn Write>>),
+    /// Color-enabled stdio, with information on whether color should be used
+    Stream {
+        stdout: AutoStream<std::io::Stdout>,
+        stderr: AutoStream<std::io::Stderr>,
+        stderr_tty: bool,
+        color_choice: ColorChoice,
+        hyperlinks: bool,
+        stdout_unicode: bool,
+        stderr_unicode: bool,
+    },
+}
+
 impl ShellOut {
     /// Prints out a message with a status. The status comes first, and is bold plus the given
     /// color. The status can be justified, in which case the max width that will right align is
@@ -455,15 +426,13 @@ impl ShellOut {
         style: &Style,
         justified: bool,
     ) -> CargoResult<()> {
-        let style = style.render();
-        let bold = (anstyle::Style::new() | anstyle::Effects::BOLD).render();
-        let reset = anstyle::Reset.render();
+        let bold = anstyle::Style::new() | anstyle::Effects::BOLD;
 
         let mut buffer = Vec::new();
         if justified {
-            write!(&mut buffer, "{style}{status:>12}{reset}")?;
+            write!(&mut buffer, "{style}{status:>12}{style:#}")?;
         } else {
-            write!(&mut buffer, "{style}{status}{reset}{bold}:{reset}")?;
+            write!(&mut buffer, "{style}{status}{style:#}{bold}:{bold:#}")?;
         }
         match message {
             Some(message) => writeln!(buffer, " {message}")?,
@@ -475,19 +444,68 @@ impl ShellOut {
 
     /// Gets stdout as a `io::Write`.
     fn stdout(&mut self) -> &mut dyn Write {
-        match *self {
-            ShellOut::Stream { ref mut stdout, .. } => stdout,
-            ShellOut::Write(ref mut w) => w,
+        match self {
+            ShellOut::Stream { stdout, .. } => stdout,
+            ShellOut::Write(w) => w,
         }
     }
 
     /// Gets stderr as a `io::Write`.
     fn stderr(&mut self) -> &mut dyn Write {
-        match *self {
-            ShellOut::Stream { ref mut stderr, .. } => stderr,
-            ShellOut::Write(ref mut w) => w,
+        match self {
+            ShellOut::Stream { stderr, .. } => stderr,
+            ShellOut::Write(w) => w,
         }
     }
+}
+
+pub enum TtyWidth {
+    NoTty,
+    Known(usize),
+    Guess(usize),
+}
+
+impl TtyWidth {
+    /// Returns the width of the terminal to use for diagnostics (which is
+    /// relayed to rustc via `--diagnostic-width`).
+    pub fn diagnostic_terminal_width(&self) -> Option<usize> {
+        // ALLOWED: For testing cargo itself only.
+        #[allow(clippy::disallowed_methods)]
+        if let Ok(width) = std::env::var("__CARGO_TEST_TTY_WIDTH_DO_NOT_USE_THIS") {
+            return Some(width.parse().unwrap());
+        }
+        match *self {
+            TtyWidth::NoTty | TtyWidth::Guess(_) => None,
+            TtyWidth::Known(width) => Some(width),
+        }
+    }
+
+    /// Returns the width used by progress bars for the tty.
+    pub fn progress_max_width(&self) -> Option<usize> {
+        match *self {
+            TtyWidth::NoTty => None,
+            TtyWidth::Known(width) | TtyWidth::Guess(width) => Some(width),
+        }
+    }
+}
+
+/// The requested verbosity of output.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Verbosity {
+    Verbose,
+    Normal,
+    Quiet,
+}
+
+/// Whether messages should use color output
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ColorChoice {
+    /// Force color output
+    Always,
+    /// Force disable color output
+    Never,
+    /// Intelligently guess whether to use color output
+    CargoAuto,
 }
 
 impl ColorChoice {
@@ -501,6 +519,25 @@ impl ColorChoice {
     }
 }
 
+impl std::str::FromStr for ColorChoice {
+    type Err = anyhow::Error;
+    fn from_str(color: &str) -> Result<Self, Self::Err> {
+        let cfg = match color {
+            "always" => ColorChoice::Always,
+            "never" => ColorChoice::Never,
+
+            "auto" => ColorChoice::CargoAuto,
+
+            arg => anyhow::bail!(
+                "argument for --color must be auto, always, or \
+                     never, but found `{}`",
+                arg
+            ),
+        };
+        Ok(cfg)
+    }
+}
+
 fn supports_color(choice: anstream::ColorChoice) -> bool {
     match choice {
         anstream::ColorChoice::Always
@@ -508,6 +545,10 @@ fn supports_color(choice: anstream::ColorChoice) -> bool {
         | anstream::ColorChoice::Auto => true,
         anstream::ColorChoice::Never => false,
     }
+}
+
+fn supports_unicode(stream: &dyn IsTerminal) -> bool {
+    !stream.is_terminal() || supports_unicode::supports_unicode()
 }
 
 fn supports_hyperlinks() -> bool {
@@ -530,20 +571,15 @@ impl<D: fmt::Display> Default for Hyperlink<D> {
     }
 }
 
-impl<D: fmt::Display> Hyperlink<D> {
-    pub fn open(&self) -> impl fmt::Display {
-        if let Some(url) = self.url.as_ref() {
-            format!("\x1B]8;;{url}\x1B\\")
+impl<D: fmt::Display> fmt::Display for Hyperlink<D> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Some(url) = self.url.as_ref() else {
+            return Ok(());
+        };
+        if f.alternate() {
+            write!(f, "\x1B]8;;\x1B\\")
         } else {
-            String::new()
-        }
-    }
-
-    pub fn close(&self) -> impl fmt::Display {
-        if self.url.is_some() {
-            "\x1B]8;;\x1B\\"
-        } else {
-            ""
+            write!(f, "\x1B]8;;{url}\x1B\\")
         }
     }
 }

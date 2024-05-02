@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-utils"
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -28,3 +28,7 @@ doctest = false
 
 [dependencies.fastrand]
 version = "2.0.0"
+
+[dependencies.unicode-normalization]
+version = "0.1.19"
+default-features = false

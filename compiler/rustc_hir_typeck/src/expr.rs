@@ -24,9 +24,10 @@ use crate::{
 use rustc_ast as ast;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_data_structures::stack::ensure_sufficient_stack;
+use rustc_data_structures::unord::UnordMap;
 use rustc_errors::{
-    codes::*, pluralize, struct_span_code_err, AddToDiagnostic, Applicability, Diagnostic,
-    DiagnosticBuilder, ErrCode, ErrorGuaranteed, StashKey,
+    codes::*, pluralize, struct_span_code_err, Applicability, Diag, ErrorGuaranteed, StashKey,
+    Subdiagnostic,
 };
 use rustc_hir as hir;
 use rustc_hir::def::{CtorKind, DefKind, Res};
@@ -68,23 +69,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         expr: &'tcx hir::Expr<'tcx>,
         expected_ty: Ty<'tcx>,
-        extend_err: impl FnOnce(&mut Diagnostic),
+        extend_err: impl FnOnce(&mut Diag<'_>),
     ) -> Ty<'tcx> {
         let mut ty = self.check_expr_with_expectation(expr, ExpectHasType(expected_ty));
 
         // While we don't allow *arbitrary* coercions here, we *do* allow
         // coercions from ! to `expected`.
         if ty.is_never() {
-            if let Some(adjustments) = self.typeck_results.borrow().adjustments().get(expr.hir_id) {
+            if let Some(_) = self.typeck_results.borrow().adjustments().get(expr.hir_id) {
                 let reported = self.dcx().span_delayed_bug(
                     expr.span,
                     "expression with never type wound up being adjusted",
                 );
-                return if let [Adjustment { kind: Adjust::NeverToAny, target }] = &adjustments[..] {
-                    target.to_owned()
-                } else {
-                    Ty::new_error(self.tcx(), reported)
-                };
+                return Ty::new_error(self.tcx(), reported);
             }
 
             let adj_ty = self.next_ty_var(TypeVariableOrigin {
@@ -346,7 +343,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             }
             ExprKind::DropTemps(e) => self.check_expr_with_expectation(e, expected),
             ExprKind::Array(args) => self.check_expr_array(args, expected, expr),
-            ExprKind::ConstBlock(ref block) => self.check_expr_const_block(block, expected, expr),
+            ExprKind::ConstBlock(ref block) => self.check_expr_const_block(block, expected),
             ExprKind::Repeat(element, ref count) => {
                 self.check_expr_repeat(element, count, expected, expr)
             }
@@ -393,9 +390,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         );
                         let sp = tcx.sess.source_map().start_point(expr.span).with_parent(None);
                         if let Some(sp) =
-                            tcx.sess.parse_sess.ambiguous_block_expr_parse.borrow().get(&sp)
+                            tcx.sess.psess.ambiguous_block_expr_parse.borrow().get(&sp)
                         {
-                            err.subdiagnostic(ExprParenthesesNeeded::surrounding(*sp));
+                            err.subdiagnostic(self.dcx(), ExprParenthesesNeeded::surrounding(*sp));
                         }
                         oprnd_t = Ty::new_error(tcx, err.emit());
                     }
@@ -893,21 +890,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let encl_item_id = self.tcx.hir().get_parent_item(expr.hir_id);
 
-        if let Some(hir::Node::Item(hir::Item {
-            kind: hir::ItemKind::Fn(..),
-            span: encl_fn_span,
-            ..
-        }))
-        | Some(hir::Node::TraitItem(hir::TraitItem {
+        if let hir::Node::Item(hir::Item {
+            kind: hir::ItemKind::Fn(..), span: encl_fn_span, ..
+        })
+        | hir::Node::TraitItem(hir::TraitItem {
             kind: hir::TraitItemKind::Fn(_, hir::TraitFn::Provided(_)),
             span: encl_fn_span,
             ..
-        }))
-        | Some(hir::Node::ImplItem(hir::ImplItem {
+        })
+        | hir::Node::ImplItem(hir::ImplItem {
             kind: hir::ImplItemKind::Fn(..),
             span: encl_fn_span,
             ..
-        })) = self.tcx.opt_hir_node_by_def_id(encl_item_id.def_id)
+        }) = self.tcx.hir_node_by_def_id(encl_item_id.def_id)
         {
             // We are inside a function body, so reporting "return statement
             // outside of function body" needs an explanation.
@@ -957,7 +952,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         lhs: &'tcx hir::Expr<'tcx>,
         code: ErrCode,
         op_span: Span,
-        adjust_err: impl FnOnce(&mut Diagnostic),
+        adjust_err: impl FnOnce(&mut Diag<'_>),
     ) {
         if lhs.is_syntactic_place_expr() {
             return;
@@ -983,11 +978,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     /// Check if the expression that could not be assigned to was a typoed expression that
-    pub fn check_for_missing_semi(
-        &self,
-        expr: &'tcx hir::Expr<'tcx>,
-        err: &mut DiagnosticBuilder<'_>,
-    ) -> bool {
+    pub fn check_for_missing_semi(&self, expr: &'tcx hir::Expr<'tcx>, err: &mut Diag<'_>) -> bool {
         if let hir::ExprKind::Binary(binop, lhs, rhs) = expr.kind
             && let hir::BinOpKind::Mul = binop.node
             && self.tcx.sess.source_map().is_multiline(lhs.span.between(rhs.span))
@@ -1000,7 +991,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             err.span_suggestion_verbose(
                 lhs.span.shrink_to_hi(),
                 "you might have meant to write a semicolon here",
-                ";".to_string(),
+                ";",
                 Applicability::MachineApplicable,
             );
             return true;
@@ -1016,8 +1007,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         original_expr_id: HirId,
         then: impl FnOnce(&hir::Expr<'_>),
     ) {
-        let mut parent = self.tcx.hir().parent_id(original_expr_id);
-        while let Some(node) = self.tcx.opt_hir_node(parent) {
+        let mut parent = self.tcx.parent_hir_id(original_expr_id);
+        loop {
+            let node = self.tcx.hir_node(parent);
             match node {
                 hir::Node::Expr(hir::Expr {
                     kind:
@@ -1037,15 +1029,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                         ),
                     ..
                 }) => {
-                    // Check if our original expression is a child of the condition of a while loop
-                    let expr_is_ancestor = std::iter::successors(Some(original_expr_id), |id| {
-                        self.tcx.hir().opt_parent_id(*id)
-                    })
-                    .take_while(|id| *id != parent)
-                    .any(|id| id == expr.hir_id);
-                    // if it is, then we have a situation like `while Some(0) = value.get(0) {`,
+                    // Check if our original expression is a child of the condition of a while loop.
+                    // If it is, then we have a situation like `while Some(0) = value.get(0) {`,
                     // where `while let` was more likely intended.
-                    if expr_is_ancestor {
+                    if self.tcx.hir().parent_id_iter(original_expr_id).any(|id| id == expr.hir_id) {
                         then(expr);
                     }
                     break;
@@ -1055,7 +1042,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 | hir::Node::TraitItem(_)
                 | hir::Node::Crate(_) => break,
                 _ => {
-                    parent = self.tcx.hir().parent_id(parent);
+                    parent = self.tcx.parent_hir_id(parent);
                 }
             }
         }
@@ -1118,7 +1105,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // We won't diverge unless both branches do (or the condition does).
             self.diverges.set(cond_diverges | then_diverges & else_diverges);
         } else {
-            self.if_fallback_coercion(sp, then_expr, &mut coerce);
+            self.if_fallback_coercion(sp, cond_expr, then_expr, &mut coerce);
 
             // If the condition is false we can't diverge.
             self.diverges.set(cond_diverges);
@@ -1198,9 +1185,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 && !matches!(lhs.kind, hir::ExprKind::Lit(_))
             {
                 // Do not suggest `if let x = y` as `==` is way more likely to be the intention.
-                let hir = self.tcx.hir();
                 if let hir::Node::Expr(hir::Expr { kind: ExprKind::If { .. }, .. }) =
-                    hir.get_parent(hir.parent_id(expr.hir_id))
+                    self.tcx.parent_hir_node(expr.hir_id)
                 {
                     err.span_suggestion_verbose(
                         expr.span.shrink_to_lo(),
@@ -1227,7 +1213,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
         let lhs_ty = self.check_expr_with_needs(lhs, Needs::MutPlace);
 
-        let suggest_deref_binop = |err: &mut Diagnostic, rhs_ty: Ty<'tcx>| {
+        let suggest_deref_binop = |err: &mut Diag<'_>, rhs_ty: Ty<'tcx>| {
             if let Some(lhs_deref_ty) = self.deref_once_mutably_for_diagnostic(lhs_ty) {
                 // Can only assign if the type is sized, so if `DerefMut` yields a type that is
                 // unsized, do not suggest dereferencing it.
@@ -1326,10 +1312,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         // the LUB of the breaks (possibly ! if none); else, it
         // is nil. This makes sense because infinite loops
         // (which would have type !) are only possible iff we
-        // permit break with a value [1].
+        // permit break with a value.
         if ctxt.coerce.is_none() && !ctxt.may_break {
-            // [1]
-            self.dcx().span_delayed_bug(body.span, "no coercion, but loop may not break");
+            self.dcx().span_bug(body.span, "no coercion, but loop may not break");
         }
         ctxt.coerce.map(|c| c.complete(self)).unwrap_or_else(|| Ty::new_unit(self.tcx))
     }
@@ -1471,20 +1456,20 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         };
         if let hir::TyKind::Array(_, length) = ty.peel_refs().kind
             && let hir::ArrayLen::Body(hir::AnonConst { hir_id, .. }) = length
-            && let Some(span) = self.tcx.hir().opt_span(hir_id)
         {
-            match self.dcx().steal_diagnostic(span, StashKey::UnderscoreForArrayLengths) {
-                Some(mut err) => {
+            let span = self.tcx.hir().span(hir_id);
+            self.dcx().try_steal_modify_and_emit_err(
+                span,
+                StashKey::UnderscoreForArrayLengths,
+                |err| {
                     err.span_suggestion(
                         span,
                         "consider specifying the array length",
                         array_len,
                         Applicability::MaybeIncorrect,
                     );
-                    err.emit();
-                }
-                None => (),
-            }
+                },
+            );
         }
     }
 
@@ -1492,7 +1477,6 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         block: &'tcx hir::ConstBlock,
         expected: Expectation<'tcx>,
-        _expr: &'tcx hir::Expr<'tcx>,
     ) -> Ty<'tcx> {
         let body = self.tcx.hir().body(block.body);
 
@@ -1715,7 +1699,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             .fields
             .iter_enumerated()
             .map(|(i, field)| (field.ident(tcx).normalize_to_macros_2_0(), (i, field)))
-            .collect::<FxHashMap<_, _>>();
+            .collect::<UnordMap<_, _>>();
 
         let mut seen_fields = FxHashMap::default();
 
@@ -1726,7 +1710,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let ident = tcx.adjust_ident(field.ident, variant.def_id);
             let field_type = if let Some((i, v_field)) = remaining_fields.remove(&ident) {
                 seen_fields.insert(ident, field.span);
-                self.write_field_index(field.hir_id, i);
+                // FIXME: handle nested fields
+                self.write_field_index(field.hir_id, i, Vec::new());
 
                 // We don't look at stability attributes on
                 // struct-like enums (yet...), but it's definitely not
@@ -1764,11 +1749,10 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             let (_, diag) =
                 self.demand_coerce_diag(field.expr, ty, field_type, None, AllowTwoPhase::No);
 
-            if let Some(mut diag) = diag {
+            if let Some(diag) = diag {
                 if idx == ast_fields.len() - 1 {
                     if remaining_fields.is_empty() {
-                        self.suggest_fru_from_range(field, variant, args, &mut diag);
-                        diag.emit();
+                        self.suggest_fru_from_range_and_emit(field, variant, args, diag);
                     } else {
                         diag.stash(field.span, StashKey::MaybeFruTypo);
                     }
@@ -1806,7 +1790,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // consistency. But they should be merged as much as possible.
             let fru_tys = if self.tcx.features().type_changing_struct_update {
                 if adt.is_struct() {
-                    // Make some fresh substitutions for our ADT type.
+                    // Make some fresh generic parameters for our ADT type.
                     let fresh_args = self.fresh_args_for_item(base_expr.span, adt.did());
                     // We do subtyping on the FRU fields first, so we can
                     // learn exactly what types we expect the base expr
@@ -1959,18 +1943,15 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         &self,
         adt_ty: Ty<'tcx>,
         span: Span,
-        remaining_fields: FxHashMap<Ident, (FieldIdx, &ty::FieldDef)>,
+        remaining_fields: UnordMap<Ident, (FieldIdx, &ty::FieldDef)>,
         variant: &'tcx ty::VariantDef,
         ast_fields: &'tcx [hir::ExprField<'tcx>],
         args: GenericArgsRef<'tcx>,
     ) {
         let len = remaining_fields.len();
 
-        #[allow(rustc::potential_query_instability)]
-        let mut displayable_field_names: Vec<&str> =
-            remaining_fields.keys().map(|ident| ident.as_str()).collect();
-        // sorting &str primitives here, sort_unstable is ok
-        displayable_field_names.sort_unstable();
+        let displayable_field_names: Vec<&str> =
+            remaining_fields.items().map(|(ident, _)| ident.as_str()).into_sorted_stable_ord();
 
         let mut truncated_fields_error = String::new();
         let remaining_fields_names = match &displayable_field_names[..] {
@@ -2002,20 +1983,20 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.span_label(span, format!("missing {remaining_fields_names}{truncated_fields_error}"));
 
         if let Some(last) = ast_fields.last() {
-            self.suggest_fru_from_range(last, variant, args, &mut err);
+            self.suggest_fru_from_range_and_emit(last, variant, args, err);
+        } else {
+            err.emit();
         }
-
-        err.emit();
     }
 
     /// If the last field is a range literal, but it isn't supposed to be, then they probably
     /// meant to use functional update syntax.
-    fn suggest_fru_from_range(
+    fn suggest_fru_from_range_and_emit(
         &self,
         last_expr_field: &hir::ExprField<'tcx>,
         variant: &ty::VariantDef,
         args: GenericArgsRef<'tcx>,
-        err: &mut Diagnostic,
+        mut err: Diag<'_>,
     ) {
         // I don't use 'is_range_literal' because only double-sided, half-open ranges count.
         if let ExprKind::Struct(QPath::LangItem(LangItem::Range, ..), [range_start, range_end], _) =
@@ -2028,16 +2009,9 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 .map(|adt| adt.did())
                 != range_def_id
         {
-            // Suppress any range expr type mismatches
-            if let Some(diag) =
-                self.dcx().steal_diagnostic(last_expr_field.span, StashKey::MaybeFruTypo)
-            {
-                diag.delay_as_bug();
-            }
-
             // Use a (somewhat arbitrary) filtering heuristic to avoid printing
             // expressions that are either too long, or have control character
-            //such as newlines in them.
+            // such as newlines in them.
             let expr = self
                 .tcx
                 .sess
@@ -2055,7 +2029,19 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 .shrink_to_hi()
                 .to(range_end.span);
 
-            err.subdiagnostic(TypeMismatchFruTypo { expr_span: range_start.span, fru_span, expr });
+            err.subdiagnostic(
+                self.dcx(),
+                TypeMismatchFruTypo { expr_span: range_start.span, fru_span, expr },
+            );
+
+            // Suppress any range expr type mismatches
+            self.dcx().try_steal_replace_and_emit_err(
+                last_expr_field.span,
+                StashKey::MaybeFruTypo,
+                err,
+            );
+        } else {
+            err.emit();
         }
     }
 
@@ -2168,10 +2154,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     err.span_suggestions(
                         span.shrink_to_hi().with_hi(expr_span.hi()),
                         "you might have meant to use an associated function to build this type",
-                        items
-                            .iter()
-                            .map(|(_, name, args)| suggestion(name, *args))
-                            .collect::<Vec<String>>(),
+                        items.iter().map(|(_, name, args)| suggestion(name, *args)),
                         Applicability::MaybeIncorrect,
                     );
                 }
@@ -2372,24 +2355,39 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                     let body_hir_id = self.tcx.local_def_id_to_hir_id(self.body_id);
                     let (ident, def_scope) =
                         self.tcx.adjust_ident_and_get_scope(field, base_def.did(), body_hir_id);
-                    let fields = &base_def.non_enum_variant().fields;
-                    if let Some((index, field)) = fields
-                        .iter_enumerated()
-                        .find(|(_, f)| f.ident(self.tcx).normalize_to_macros_2_0() == ident)
-                    {
+                    let mut adt_def = *base_def;
+                    let mut last_ty = None;
+                    let mut nested_fields = Vec::new();
+                    let mut index = None;
+                    while let Some(idx) = self.tcx.find_field((adt_def.did(), ident)) {
+                        let &mut first_idx = index.get_or_insert(idx);
+                        let field = &adt_def.non_enum_variant().fields[idx];
                         let field_ty = self.field_ty(expr.span, field, args);
-                        // Save the index of all fields regardless of their visibility in case
-                        // of error recovery.
-                        self.write_field_index(expr.hir_id, index);
-                        let adjustments = self.adjust_steps(&autoderef);
-                        if field.vis.is_accessible_from(def_scope, self.tcx) {
-                            self.apply_adjustments(base, adjustments);
-                            self.register_predicates(autoderef.into_obligations());
-
-                            self.tcx.check_stability(field.did, Some(expr.hir_id), expr.span, None);
-                            return field_ty;
+                        if let Some(ty) = last_ty {
+                            nested_fields.push((ty, idx));
                         }
-                        private_candidate = Some((adjustments, base_def.did()));
+                        if field.ident(self.tcx).normalize_to_macros_2_0() == ident {
+                            // Save the index of all fields regardless of their visibility in case
+                            // of error recovery.
+                            self.write_field_index(expr.hir_id, first_idx, nested_fields);
+                            let adjustments = self.adjust_steps(&autoderef);
+                            if field.vis.is_accessible_from(def_scope, self.tcx) {
+                                self.apply_adjustments(base, adjustments);
+                                self.register_predicates(autoderef.into_obligations());
+
+                                self.tcx.check_stability(
+                                    field.did,
+                                    Some(expr.hir_id),
+                                    expr.span,
+                                    None,
+                                );
+                                return field_ty;
+                            }
+                            private_candidate = Some((adjustments, base_def.did()));
+                            break;
+                        }
+                        last_ty = Some(field_ty);
+                        adt_def = field_ty.ty_adt_def().expect("expect Adt for unnamed field");
                     }
                 }
                 ty::Tuple(tys) => {
@@ -2400,7 +2398,11 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                                 self.apply_adjustments(base, adjustments);
                                 self.register_predicates(autoderef.into_obligations());
 
-                                self.write_field_index(expr.hir_id, FieldIdx::from_usize(index));
+                                self.write_field_index(
+                                    expr.hir_id,
+                                    FieldIdx::from_usize(index),
+                                    Vec::new(),
+                                );
                                 return field_ty;
                             }
                         }
@@ -2509,7 +2511,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn suggest_await_on_field_access(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         field_ident: Ident,
         base: &'tcx hir::Expr<'tcx>,
         ty: Ty<'tcx>,
@@ -2596,7 +2598,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
             // We know by construction that `<expr>.await` is either on Rust 2015
             // or results in `ExprKind::Await`. Suggest switching the edition to 2018.
             err.note("to `.await` a `Future`, switch to Rust 2018 or later");
-            HelpUseLatestEdition::new().add_to_diagnostic(&mut err);
+            HelpUseLatestEdition::new().add_to_diag(&mut err);
         }
 
         err.emit()
@@ -2644,7 +2646,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.span_label(field.span, "method, not a field");
         let expr_is_call =
             if let hir::Node::Expr(hir::Expr { kind: ExprKind::Call(callee, _args), .. }) =
-                self.tcx.hir().get_parent(expr.hir_id)
+                self.tcx.parent_hir_node(expr.hir_id)
             {
                 expr.hir_id == callee.hir_id
             } else {
@@ -2708,7 +2710,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err.emit()
     }
 
-    fn point_at_param_definition(&self, err: &mut Diagnostic, param: ty::ParamTy) {
+    fn point_at_param_definition(&self, err: &mut Diag<'_>, param: ty::ParamTy) {
         let generics = self.tcx.generics_of(self.body_id);
         let generic_param = generics.type_param(&param, self.tcx);
         if let ty::GenericParamDefKind::Type { synthetic: true, .. } = generic_param.kind {
@@ -2727,7 +2729,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn maybe_suggest_array_indexing(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         base: &hir::Expr<'_>,
         field: Ident,
@@ -2751,7 +2753,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
 
     fn suggest_first_deref_field(
         &self,
-        err: &mut Diagnostic,
+        err: &mut Diag<'_>,
         expr: &hir::Expr<'_>,
         base: &hir::Expr<'_>,
         field: Ident,
@@ -2764,12 +2766,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         }
     }
 
-    fn no_such_field_err(
-        &self,
-        field: Ident,
-        expr_t: Ty<'tcx>,
-        id: HirId,
-    ) -> DiagnosticBuilder<'_> {
+    fn no_such_field_err(&self, field: Ident, expr_t: Ty<'tcx>, id: HirId) -> Diag<'_> {
         let span = field.span;
         debug!("no_such_field_err(span: {:?}, field: {:?}, expr_t: {:?})", span, field, expr_t);
 
@@ -2852,7 +2849,7 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
         err
     }
 
-    fn private_field_err(&self, field: Ident, base_did: DefId) -> DiagnosticBuilder<'_> {
+    fn private_field_err(&self, field: Ident, base_did: DefId) -> Diag<'_> {
         let struct_path = self.tcx().def_path_str(base_did);
         let kind_name = self.tcx().def_descr(base_did);
         struct_span_code_err!(
@@ -3233,6 +3230,8 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
     }
 
     fn check_expr_asm(&self, asm: &'tcx hir::InlineAsm<'tcx>) -> Ty<'tcx> {
+        let mut diverge = asm.options.contains(ast::InlineAsmOptions::NORETURN);
+
         for (op, _op_sp) in asm.operands {
             match op {
                 hir::InlineAsmOperand::In { expr, .. } => {
@@ -3254,13 +3253,24 @@ impl<'a, 'tcx> FnCtxt<'a, 'tcx> {
                 // be well-formed.
                 hir::InlineAsmOperand::Const { .. } | hir::InlineAsmOperand::SymFn { .. } => {}
                 hir::InlineAsmOperand::SymStatic { .. } => {}
+                hir::InlineAsmOperand::Label { block } => {
+                    let previous_diverges = self.diverges.get();
+
+                    // The label blocks should have unit return value or diverge.
+                    let ty =
+                        self.check_block_with_expected(block, ExpectHasType(self.tcx.types.unit));
+                    if !ty.is_never() {
+                        self.demand_suptype(block.span, self.tcx.types.unit, ty);
+                        diverge = false;
+                    }
+
+                    // We need this to avoid false unreachable warning when a label diverges.
+                    self.diverges.set(previous_diverges);
+                }
             }
         }
-        if asm.options.contains(ast::InlineAsmOptions::NORETURN) {
-            self.tcx.types.never
-        } else {
-            Ty::new_unit(self.tcx)
-        }
+
+        if diverge { self.tcx.types.never } else { self.tcx.types.unit }
     }
 
     fn check_offset_of(

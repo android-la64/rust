@@ -1,7 +1,7 @@
 //! This example demonstrates a [`PoolTable`] usage.
 
 use tabled::{
-    settings::{Alignment, Style},
+    settings::{style::Style, Alignment},
     tables::{PoolTable, TableValue},
 };
 

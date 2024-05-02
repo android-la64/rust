@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "ignore"
-version = "0.4.21"
+version = "0.4.22"
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A fast library for efficiently matching ignore files such as `.gitignore`

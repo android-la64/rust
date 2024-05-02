@@ -23,6 +23,7 @@ fn make_project() -> Project {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
                 authors = []
 
                 [dependencies.bar]
@@ -42,7 +43,7 @@ static SUCCESS_OUTPUT: &'static str = "\
 [DOWNLOADED] bar v0.0.1 (registry `alternative`)
 [COMPILING] bar v0.0.1 (registry `alternative`)
 [COMPILING] foo v0.0.1 ([CWD])
-[FINISHED] dev [unoptimized + debuginfo] target(s) in [..]s
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ";
 
 #[cargo_test]
@@ -452,6 +453,7 @@ fn token_not_logged() {
                 [package]
                 name = "foo"
                 version = "0.1.0"
+                edition = "2015"
 
                 [dependencies]
                 bar = "1.0"
@@ -478,7 +480,7 @@ fn token_not_logged() {
 [PACKAGED] 3 files[..]
 [UPLOADING] foo v0.1.0[..]
 [UPLOADED] foo v0.1.0 to registry `crates-io`
-note: Waiting [..]
+[NOTE] waiting [..]
 ";
     for line in lines.lines() {
         match_contains(line, &log, None).unwrap();

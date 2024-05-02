@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "basic-toml"
-version = "0.1.2"
+version = "0.1.8"
 authors = [
     "Alex Crichton <alex@alexcrichton.com>",
     "David Tolnay <dtolnay@gmail.com>",
@@ -33,24 +33,25 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/basic-toml"
 
 [package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [lib]
 doc-scrape-examples = false
 
 [dependencies.serde]
-version = "1.0.97"
+version = "1.0.194"
 
 [dev-dependencies.semver]
-version = "1.0"
+version = "1.0.17"
 features = ["serde"]
 
 [dev-dependencies.serde]
-version = "1.0"
+version = "1.0.194"
 features = ["derive"]
 
 [dev-dependencies.serde_derive]
-version = "1.0"
+version = "1.0.194"
 
 [dev-dependencies.serde_json]
-version = "1.0"
+version = "1.0.99"

@@ -7,7 +7,7 @@
 //! This module largely exists to integrate into libstd itself where winapi is
 //! not currently available.
 
-#![allow(bad_style, dead_code)]
+#![allow(bad_style, dead_code, unused)]
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "verify-winapi")] {
@@ -54,6 +54,16 @@ cfg_if::cfg_if! {
                     ContextPointers: PKNONVOLATILE_CONTEXT_POINTERS
                 ) -> PEXCEPTION_ROUTINE;
             }
+
+            // winapi doesn't have this type
+            pub type PENUMLOADED_MODULES_CALLBACKW64 = Option<
+            unsafe extern "system" fn(
+                modulename: PCWSTR,
+                modulebase: DWORD64,
+                modulesize: ULONG,
+                usercontext: PVOID,
+            ) -> BOOL,
+        >;
         }
     } else {
         pub use core::ffi::c_void;
@@ -291,6 +301,7 @@ ffi! {
     pub type PTRANSLATE_ADDRESS_ROUTINE64 = Option<
         unsafe extern "system" fn(hProcess: HANDLE, hThread: HANDLE, lpaddr: LPADDRESS64) -> DWORD64,
     >;
+    pub type PENUMLOADED_MODULES_CALLBACKW64 = Option<unsafe extern "system" fn(modulename: PCWSTR, modulebase: DWORD64, modulesize: ULONG, usercontext: PVOID) -> BOOL>;
     pub type PGET_MODULE_BASE_ROUTINE64 =
         Option<unsafe extern "system" fn(hProcess: HANDLE, Address: DWORD64) -> DWORD64>;
     pub type PFUNCTION_TABLE_ACCESS_ROUTINE64 =
@@ -403,23 +414,8 @@ ffi! {
         pub fn RtlCaptureContext(ContextRecord: PCONTEXT) -> ();
         pub fn LoadLibraryA(a: *const i8) -> HMODULE;
         pub fn GetProcAddress(h: HMODULE, name: *const i8) -> FARPROC;
-        pub fn GetModuleHandleA(name: *const i8) -> HMODULE;
-        pub fn OpenProcess(
-            dwDesiredAccess: DWORD,
-            bInheitHandle: BOOL,
-            dwProcessId: DWORD,
-        ) -> HANDLE;
         pub fn GetCurrentProcessId() -> DWORD;
         pub fn CloseHandle(h: HANDLE) -> BOOL;
-        pub fn CreateFileA(
-            lpFileName: LPCSTR,
-            dwDesiredAccess: DWORD,
-            dwShareMode: DWORD,
-            lpSecurityAttributes: LPSECURITY_ATTRIBUTES,
-            dwCreationDisposition: DWORD,
-            dwFlagsAndAttributes: DWORD,
-            hTemplateFile: HANDLE,
-        ) -> HANDLE;
         pub fn CreateMutexA(
             attrs: LPSECURITY_ATTRIBUTES,
             initial: BOOL,
@@ -459,20 +455,15 @@ ffi! {
             hSnapshot: HANDLE,
             lpme: LPMODULEENTRY32W,
         ) -> BOOL;
-    }
-
-    #[link(name = "ntdll")]
-    extern "system" {
-        pub fn RtlCaptureStackBackTrace(
-            FramesToSkip: ULONG,
-            FramesToCapture: ULONG,
-            BackTrace: *mut PVOID,
-            BackTraceHash: PULONG,
-        ) -> USHORT;
+        pub fn lstrlenW(lpstring: PCWSTR) -> i32;
     }
 }
 
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(any(
+    target_arch = "x86_64",
+    target_arch = "aarch64",
+    target_arch = "arm64ec"
+))]
 ffi! {
     #[link(name = "kernel32")]
     extern "system" {
@@ -619,7 +610,7 @@ ffi! {
     }
 }
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "arm64ec"))]
 ffi! {
     #[repr(C, align(8))]
     pub struct CONTEXT {
@@ -687,7 +678,7 @@ ffi! {
 }
 
 #[repr(C)]
-#[cfg(target_arch = "x86_64")]
+#[cfg(any(target_arch = "x86_64", target_arch = "arm64ec"))]
 #[derive(Copy, Clone)]
 pub struct FLOATING_SAVE_AREA {
     _Dummy: [u8; 512],

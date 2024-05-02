@@ -7,7 +7,6 @@
 #![feature(
     custom_inner_attributes,
     link_llvm_intrinsics,
-    platform_intrinsics,
     repr_simd,
     simd_ffi,
     proc_macro_hygiene,
@@ -16,7 +15,6 @@
     intrinsics,
     no_core,
     rustc_attrs,
-    stdsimd,
     staged_api,
     doc_cfg,
     tbm_target_feature,
@@ -36,9 +34,10 @@
     inline_const,
     generic_arg_infer
 )]
-#![cfg_attr(test, feature(test, abi_vectorcall))]
+#![cfg_attr(test, feature(test, abi_vectorcall, stdarch_internal))]
 #![deny(clippy::missing_inline_in_public_items)]
 #![allow(
+    clippy::identity_op,
     clippy::inline_always,
     clippy::too_many_arguments,
     clippy::cast_sign_loss,
@@ -46,17 +45,24 @@
     clippy::cast_possible_wrap,
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
-    clippy::shadow_reuse,
     clippy::cognitive_complexity,
+    clippy::many_single_char_names,
+    clippy::missing_safety_doc,
+    clippy::shadow_reuse,
     clippy::similar_names,
-    clippy::many_single_char_names
+    clippy::unusual_byte_groupings,
+    clippy::wrong_self_convention
 )]
 #![cfg_attr(test, allow(unused_imports))]
 #![no_std]
-#![unstable(feature = "stdsimd", issue = "27731")]
+#![stable(feature = "stdsimd", since = "1.27.0")]
 #![doc(
     test(attr(deny(warnings))),
     test(attr(allow(dead_code, deprecated, unused_variables, unused_mut)))
+)]
+#![cfg_attr(
+    test,
+    feature(stdarch_arm_feature_detection, stdarch_powerpc_feature_detection)
 )]
 
 #[cfg(test)]
@@ -68,8 +74,12 @@ extern crate std_detect;
 #[path = "mod.rs"]
 mod core_arch;
 
+#[stable(feature = "stdsimd", since = "1.27.0")]
 pub mod arch {
+    #[stable(feature = "stdsimd", since = "1.27.0")]
+    #[allow(unused_imports)]
     pub use crate::core_arch::arch::*;
+    #[stable(feature = "stdsimd", since = "1.27.0")]
     pub use core::arch::asm;
 }
 

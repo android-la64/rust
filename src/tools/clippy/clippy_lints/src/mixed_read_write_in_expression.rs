@@ -97,7 +97,7 @@ impl<'tcx> LateLintPass<'tcx> for EvalOrderDependence {
     }
     fn check_stmt(&mut self, cx: &LateContext<'tcx>, stmt: &'tcx Stmt<'_>) {
         match stmt.kind {
-            StmtKind::Local(local) => {
+            StmtKind::Let(local) => {
                 if let Local { init: Some(e), .. } = local {
                     DivergenceVisitor { cx }.visit_expr(e);
                 }
@@ -206,18 +206,14 @@ impl<'a, 'tcx> Visitor<'tcx> for DivergenceVisitor<'a, 'tcx> {
 ///
 /// When such a read is found, the lint is triggered.
 fn check_for_unsequenced_reads(vis: &mut ReadVisitor<'_, '_>) {
-    let map = &vis.cx.tcx.hir();
     let mut cur_id = vis.write_expr.hir_id;
     loop {
-        let parent_id = map.parent_id(cur_id);
+        let parent_id = vis.cx.tcx.parent_hir_id(cur_id);
         if parent_id == cur_id {
             break;
         }
-        let Some(parent_node) = vis.cx.tcx.opt_hir_node(parent_id) else {
-            break;
-        };
 
-        let stop_early = match parent_node {
+        let stop_early = match vis.cx.tcx.hir_node(parent_id) {
             Node::Expr(expr) => check_expr(vis, expr),
             Node::Stmt(stmt) => check_stmt(vis, stmt),
             Node::Item(_) => {
@@ -295,7 +291,7 @@ fn check_stmt<'tcx>(vis: &mut ReadVisitor<'_, 'tcx>, stmt: &'tcx Stmt<'_>) -> St
         StmtKind::Expr(expr) | StmtKind::Semi(expr) => check_expr(vis, expr),
         // If the declaration is of a local variable, check its initializer
         // expression if it has one. Otherwise, keep going.
-        StmtKind::Local(local) => local
+        StmtKind::Let(local) => local
             .init
             .as_ref()
             .map_or(StopEarly::KeepGoing, |expr| check_expr(vis, expr)),

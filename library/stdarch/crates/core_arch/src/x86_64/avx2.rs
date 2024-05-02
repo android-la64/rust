@@ -18,7 +18,8 @@
 //! [wiki_avx]: https://en.wikipedia.org/wiki/Advanced_Vector_Extensions
 //! [wiki_fma]: https://en.wikipedia.org/wiki/Fused_multiply-accumulate
 
-use crate::core_arch::{simd_llvm::*, x86::*};
+use crate::core_arch::x86::*;
+use crate::intrinsics::simd::*;
 
 /// Extracts a 64-bit integer from `a`, selected with `INDEX`.
 ///
@@ -30,7 +31,7 @@ use crate::core_arch::{simd_llvm::*, x86::*};
 #[stable(feature = "simd_x86", since = "1.27.0")]
 pub unsafe fn _mm256_extract_epi64<const INDEX: i32>(a: __m256i) -> i64 {
     static_assert_uimm_bits!(INDEX, 2);
-    simd_extract(a.as_i64x4(), INDEX as u32)
+    simd_extract!(a.as_i64x4(), INDEX as u32)
 }
 
 #[cfg(test)]

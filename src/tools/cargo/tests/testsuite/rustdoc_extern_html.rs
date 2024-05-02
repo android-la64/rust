@@ -76,7 +76,7 @@ fn std_docs() {
     }
     let p = basic_project();
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
             [doc.extern-map]
             std = "local"
@@ -90,7 +90,7 @@ fn std_docs() {
     assert!(myfun.contains(r#"share/doc/rust/html/core/option/enum.Option.html""#));
 
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
             [doc.extern-map]
             std = "https://example.com/rust/"
@@ -241,7 +241,7 @@ fn alt_registry() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [doc.extern-map.registries]
                 alternative = "https://example.com/{pkg_name}/{version}/"
@@ -258,13 +258,9 @@ fn alt_registry() {
         .run();
     let queen = p.read_file("target/doc/foo/fn.queen.html");
     assert!(queen.contains(r#"href="https://example.com/bar/1.0.0/bar/struct.Queen.html""#));
-    // The king example fails to link. Rustdoc seems to want the origin crate
-    // name (baz) for re-exports. There are many issues in the issue tracker
-    // for rustdoc re-exports, so I'm not sure, but I think this is maybe a
-    // rustdoc issue. Alternatively, Cargo could provide mappings for all
-    // transitive dependencies to fix this.
+
     let king = p.read_file("target/doc/foo/fn.king.html");
-    assert!(king.contains(r#"-&gt; King"#));
+    assert!(king.contains(r#"href="https://example.com/baz/1.0.0/baz/struct.King.html""#));
 
     let gold = p.read_file("target/doc/foo/fn.gold.html");
     assert!(gold.contains(r#"href="https://docs.rs/grimm/1.0.0/grimm/struct.Gold.html""#));
@@ -329,7 +325,7 @@ fn rebuilds_when_changing() {
 
     // This also tests that the map for docs.rs can be overridden.
     p.change_file(
-        ".cargo/config",
+        ".cargo/config.toml",
         r#"
             [doc.extern-map.registries]
             crates-io = "https://example.com/"
@@ -396,7 +392,7 @@ fn alt_sparse_registry() {
             "#,
         )
         .file(
-            ".cargo/config",
+            ".cargo/config.toml",
             r#"
                 [doc.extern-map.registries]
                 alternative = "https://example.com/{pkg_name}/{version}/"
@@ -413,14 +409,57 @@ fn alt_sparse_registry() {
         .run();
     let queen = p.read_file("target/doc/foo/fn.queen.html");
     assert!(queen.contains(r#"href="https://example.com/bar/1.0.0/bar/struct.Queen.html""#));
-    // The king example fails to link. Rustdoc seems to want the origin crate
-    // name (baz) for re-exports. There are many issues in the issue tracker
-    // for rustdoc re-exports, so I'm not sure, but I think this is maybe a
-    // rustdoc issue. Alternatively, Cargo could provide mappings for all
-    // transitive dependencies to fix this.
+
     let king = p.read_file("target/doc/foo/fn.king.html");
-    assert!(king.contains(r#"-&gt; King"#));
+    assert!(king.contains(r#"href="https://example.com/baz/1.0.0/baz/struct.King.html""#));
 
     let gold = p.read_file("target/doc/foo/fn.gold.html");
     assert!(gold.contains(r#"href="https://docs.rs/grimm/1.0.0/grimm/struct.Gold.html""#));
+}
+
+#[cargo_test(nightly, reason = "--extern-html-root-url is unstable")]
+fn same_deps_multi_occurrence_in_dep_tree() {
+    // rust-lang/cargo#13543
+    Package::new("baz", "1.0.0")
+        .file("src/lib.rs", "")
+        .publish();
+    Package::new("bar", "1.0.0")
+        .file("src/lib.rs", "")
+        .dep("baz", "1.0")
+        .publish();
+
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                edition = "2018"
+
+                [dependencies]
+                bar = "1.0"
+                baz = "1.0"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            ".cargo/config.toml",
+            r#"
+                [doc.extern-map.registries]
+                crates-io = "https://docs.rs/"
+            "#,
+        )
+        .build();
+    p.cargo("doc -v --no-deps -Zrustdoc-map")
+        .masquerade_as_nightly_cargo(&["rustdoc-map"])
+        .with_stderr_does_not_contain(
+            "[..]--extern-html-root-url[..]bar=https://docs.rs\
+             [..]--extern-html-root-url[..]baz=https://docs.rs\
+             [..]--extern-html-root-url[..]baz=https://docs.rs[..]",
+        )
+        .with_stderr_contains(
+            "[..]--extern-html-root-url[..]bar=https://docs.rs\
+             [..]--extern-html-root-url[..]baz=https://docs.rs[..]",
+        )
+        .run();
 }

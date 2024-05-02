@@ -1,4 +1,5 @@
 use backtrace::Frame;
+use std::ptr;
 use std::thread;
 
 fn get_actual_fn_pointer(fp: usize) -> usize {
@@ -111,16 +112,16 @@ fn smoke_test_frames() {
         backtrace::resolve_frame(frame, |sym| {
             print!("symbol  ip:{:?} address:{:?} ", frame.ip(), frame.symbol_address());
             if let Some(name) = sym.name() {
-                print!("name:{} ", name);
+                print!("name:{name} ");
             }
             if let Some(file) = sym.filename() {
                 print!("file:{} ", file.display());
             }
             if let Some(lineno) = sym.lineno() {
-                print!("lineno:{} ", lineno);
+                print!("lineno:{lineno} ");
             }
             if let Some(colno) = sym.colno() {
-                print!("colno:{} ", colno);
+                print!("colno:{colno} ");
             }
             println!();
         });
@@ -264,16 +265,16 @@ fn sp_smoke_test() {
         assert!(refs.len() < 5);
 
         let x = refs.len();
-        refs.push(&x as *const _ as usize);
+        refs.push(ptr::addr_of!(x) as usize);
 
         if refs.len() < 5 {
             recursive_stack_references(refs);
-            eprintln!("exiting: {}", x);
+            eprintln!("exiting: {x}");
             return;
         }
 
         backtrace::trace(make_trace_closure(refs));
-        eprintln!("exiting: {}", x);
+        eprintln!("exiting: {x}");
     }
 
     // NB: the following `make_*` functions are pulled out of line, rather than
@@ -295,7 +296,7 @@ fn sp_smoke_test() {
                     sym.name()
                         .and_then(|name| name.as_str())
                         .map_or(false, |name| {
-                            eprintln!("name = {}", name);
+                            eprintln!("name = {name}");
                             name.contains("recursive_stack_references")
                         })
             });

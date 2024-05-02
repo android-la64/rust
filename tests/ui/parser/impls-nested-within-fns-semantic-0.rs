@@ -1,5 +1,5 @@
 // Regression test for #121607 and for part of issue #119924.
-// check-pass
+//@ check-pass
 
 trait Trait {
     fn provided() {

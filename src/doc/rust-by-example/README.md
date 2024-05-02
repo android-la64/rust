@@ -27,7 +27,7 @@ mdbook serve
 To be able to run the examples, you must be connected to the internet; you can
 read all content offline, however!
 
-The following warnings can be ignored safely.
+**The following warnings can be ignored safely.**
 
 ```
 [WARN] (mdbook::preprocess::cmd): The command wasn't found, is the "gettext" preprocessor installed?
@@ -57,6 +57,12 @@ Please see the [CONTRIBUTING.md] file for more details.
 Please see the [TRANSLATING.md] file for more details.
 
 [TRANSLATING.md]: https://github.com/rust-lang/rust-by-example/blob/master/TRANSLATING.md
+
+### Translating guide for each languages
+
+* Japanese/日本語: [TRANSLATING_JA.md]
+
+[TRANSLATING_JA.md]: https://github.com/rust-lang/rust-by-example/blob/master/TRANSLATING_JA.md
 
 ## Translations to other languages
 

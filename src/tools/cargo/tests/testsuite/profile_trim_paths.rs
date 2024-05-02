@@ -15,6 +15,7 @@ fn gated_manifest() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 trim-paths = "macro"
@@ -71,6 +72,7 @@ fn release_profile_default_to_object() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
            "#,
         )
         .file("src/lib.rs", "")
@@ -85,7 +87,7 @@ fn release_profile_default_to_object() {
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] release [..]",
+[FINISHED] `release` profile [..]",
         )
         .run();
 }
@@ -101,6 +103,7 @@ fn one_option() {
                     [package]
                     name = "foo"
                     version = "0.0.1"
+                    edition = "2015"
 
                     [profile.dev]
                     trim-paths = "{option}"
@@ -123,7 +126,7 @@ fn one_option() {
     -Zremap-path-scope={option} \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]",
+[FINISHED] `dev` profile [..]",
             ))
             .run();
     }
@@ -143,6 +146,7 @@ fn multiple_options() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 trim-paths = ["diagnostics", "macro", "object"]
@@ -160,7 +164,7 @@ fn multiple_options() {
     -Zremap-path-scope=diagnostics,macro,object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]",
+[FINISHED] `dev` profile [..]",
         )
         .run();
 }
@@ -174,6 +178,7 @@ fn profile_merge_works() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 trim-paths = ["macro"]
@@ -195,7 +200,7 @@ fn profile_merge_works() {
     -Zremap-path-scope=diagnostics \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] custom [..]",
+[FINISHED] `custom` profile [..]",
         )
         .run();
 }
@@ -213,6 +218,7 @@ fn registry_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.0.1"
@@ -245,7 +251,7 @@ fn registry_dependency() {
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [RUNNING] `target/debug/foo[EXE]`"
         ))
         .run();
@@ -268,6 +274,7 @@ fn git_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = {{ git = "{url}" }}
@@ -299,7 +306,7 @@ fn git_dependency() {
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [RUNNING] `target/debug/foo[EXE]`"
         ))
         .run();
@@ -314,6 +321,7 @@ fn path_dependency() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "cocktail-bar" }
@@ -345,7 +353,7 @@ fn path_dependency() {
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [RUNNING] `target/debug/foo[EXE]`"
         ))
         .run();
@@ -368,6 +376,7 @@ fn path_dependency_outside_workspace() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = { path = "../bar" }
@@ -394,7 +403,7 @@ fn path_dependency_outside_workspace() {
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]
+[FINISHED] `dev` profile [..]
 [RUNNING] `target/debug/foo[EXE]`"
         ))
         .run();
@@ -413,6 +422,7 @@ fn diagnostics_works() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.0.1"
@@ -532,6 +542,7 @@ fn object_works_helper(split_debuginfo: &str, run: impl Fn(&std::path::Path) -> 
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [dependencies]
                 bar = "0.0.1"
@@ -576,7 +587,7 @@ fn object_works_helper(split_debuginfo: &str, run: impl Fn(&std::path::Path) -> 
     -Zremap-path-scope=object \
     --remap-path-prefix=[CWD]=. \
     --remap-path-prefix=[..]/lib/rustlib/src/rust=/rustc/[..]
-[FINISHED] dev [..]",
+[FINISHED] `dev` profile [..]",
         ))
         .run();
 
@@ -635,6 +646,7 @@ fn custom_build_env_var_trim_paths() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
            "#,
         )
         .file("src/lib.rs", "")
@@ -664,6 +676,7 @@ fn custom_build_env_var_trim_paths() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 trim-paths = {opts}
@@ -695,6 +708,13 @@ fn custom_build_env_var_trim_paths() {
 #[cargo_test(requires_lldb, nightly, reason = "-Zremap-path-scope is unstable")]
 fn lldb_works_after_trimmed() {
     use cargo_test_support::compare::match_contains;
+    use cargo_util::is_ci;
+
+    if !is_ci() {
+        // On macOS lldb requires elevated privileges to run developer tools.
+        // See rust-lang/cargo#13413
+        return;
+    }
 
     let run_lldb = |path| {
         std::process::Command::new("lldb")
@@ -715,6 +735,7 @@ fn lldb_works_after_trimmed() {
                 [package]
                 name = "foo"
                 version = "0.0.1"
+                edition = "2015"
 
                 [profile.dev]
                 trim-paths = "object"

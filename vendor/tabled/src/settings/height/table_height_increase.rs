@@ -1,8 +1,8 @@
 use crate::{
     grid::{
-        config::ColoredConfig,
+        config::{ColoredConfig, Entity},
         dimension::CompleteDimensionVecRecords,
-        records::{ExactRecords, PeekableRecords, Records},
+        records::{ExactRecords, IntoRecords, PeekableRecords, Records},
     },
     settings::{
         measurement::Measurement,
@@ -44,19 +44,20 @@ impl<W> TableHeightIncrease<W, PriorityNone> {
     }
 }
 
-impl<R, W, P> TableOption<R, CompleteDimensionVecRecords<'static>, ColoredConfig>
+impl<R, W, P> TableOption<R, ColoredConfig, CompleteDimensionVecRecords<'_>>
     for TableHeightIncrease<W, P>
 where
     W: Measurement<Height>,
     P: Peaker + Clone,
     R: Records + ExactRecords + PeekableRecords,
     for<'a> &'a R: Records,
+    for<'a> <<&'a R as Records>::Iter as IntoRecords>::Cell: AsRef<str>,
 {
     fn change(
         self,
         records: &mut R,
         cfg: &mut ColoredConfig,
-        dims: &mut CompleteDimensionVecRecords<'static>,
+        dims: &mut CompleteDimensionVecRecords<'_>,
     ) {
         if records.count_rows() == 0 || records.count_columns() == 0 {
             return;
@@ -70,7 +71,11 @@ where
 
         get_increase_list(&mut heights, height, total, self.priority);
 
-        let _ = dims.set_heights(heights);
+        dims.set_heights(heights);
+    }
+
+    fn hint_change(&self) -> Option<Entity> {
+        Some(Entity::Row(0))
     }
 }
 

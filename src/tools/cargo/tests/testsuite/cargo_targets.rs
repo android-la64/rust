@@ -11,6 +11,7 @@ fn warn_unmatched_target_filters() {
         [package]
         name = "foo"
         version = "0.1.0"
+        edition = "2015"
 
         [lib]
         test = false
@@ -23,8 +24,8 @@ fn warn_unmatched_target_filters() {
     p.cargo("check --tests --bins --examples --benches")
         .with_stderr(
             "\
-[WARNING] Target filters `bins`, `tests`, `examples`, `benches` specified, \
-but no targets matched. This is a no-op
+[WARNING] target filters `bins`, `tests`, `examples`, `benches` specified, \
+but no targets matched; this is a no-op
 [FINISHED][..]
 ",
         )
@@ -40,6 +41,7 @@ fn reserved_windows_target_name() {
             [package]
             name = "foo"
             version = "0.1.0"
+            edition = "2015"
 
             [[bin]]
             name = "con"

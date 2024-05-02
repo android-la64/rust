@@ -14,9 +14,10 @@ use color_eyre::eyre::{eyre, Result};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dependencies::{Build, BuildManager};
 use lazy_static::lazy_static;
-use parser::{ErrorMatch, MaybeSpanned, OptWithLine, Revisioned, Spanned};
+use parser::{ErrorMatch, ErrorMatchKind, OptWithLine, Revisioned, Spanned};
 use regex::bytes::{Captures, Regex};
-use rustc_stderr::{Level, Message, Span};
+use rustc_stderr::{Level, Message};
+use spanned::Span;
 use status_emitter::{StatusEmitter, TestStatus};
 use std::borrow::Cow;
 use std::collections::{HashSet, VecDeque};
@@ -36,6 +37,7 @@ mod error;
 pub mod github_actions;
 mod mode;
 mod parser;
+pub mod per_test_config;
 mod rustc_stderr;
 pub mod status_emitter;
 #[cfg(test)]
@@ -45,6 +47,8 @@ pub use cmd::*;
 pub use config::*;
 pub use error::*;
 pub use mode::*;
+
+pub use spanned;
 
 /// A filter's match rule.
 #[derive(Clone, Debug)]
@@ -109,9 +113,6 @@ impl From<Regex> for Match {
     }
 }
 
-/// Replacements to apply to output files.
-pub type Filter = Vec<(Match, &'static [u8])>;
-
 /// Run all tests as described in the config argument.
 /// Will additionally process command line arguments.
 pub fn run_tests(mut config: Config) -> Result<()> {
@@ -126,7 +127,7 @@ pub fn run_tests(mut config: Config) -> Result<()> {
         Format::Terse => status_emitter::Text::quiet(),
         Format::Pretty => status_emitter::Text::verbose(),
     };
-    config.with_args(&args, true);
+    config.with_args(&args);
 
     run_tests_generic(
         vec![config],
@@ -138,8 +139,10 @@ pub fn run_tests(mut config: Config) -> Result<()> {
 
 /// The filter used by `run_tests` to only run on `.rs` files that are
 /// specified by [`Config::filter_files`] and [`Config::skip_files`].
-pub fn default_file_filter(path: &Path, config: &Config) -> bool {
-    path.extension().is_some_and(|ext| ext == "rs") && default_any_file_filter(path, config)
+/// Returns `None` if there is no extension or the extension is not `.rs`.
+pub fn default_file_filter(path: &Path, config: &Config) -> Option<bool> {
+    path.extension().filter(|&ext| ext == "rs")?;
+    Some(default_any_file_filter(path, config))
 }
 
 /// Run on all files that are specified by [`Config::filter_files`] and
@@ -188,8 +191,8 @@ pub fn test_command(mut config: Config, path: &Path) -> Result<Command> {
     config.fill_host_and_target()?;
     let extra_args = config.build_dependencies()?;
 
-    let comments =
-        Comments::parse_file(path)?.map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
+    let comments = Comments::parse_file(config.comment_defaults.clone(), path)?
+        .map_err(|errors| color_eyre::eyre::eyre!("{errors:#?}"))?;
     let mut result = build_command(path, &config, "", &comments).unwrap();
     result.args(extra_args);
 
@@ -202,8 +205,6 @@ pub enum TestOk {
     Ok,
     /// The test was ignored due to a rule (`//@only-*` or `//@ignore-*`)
     Ignored,
-    /// The test was filtered with the `file_filter` argument.
-    Filtered,
 }
 
 /// The possible results a single test can have.
@@ -232,9 +233,12 @@ struct TestRun {
 /// All `configs` are being run in parallel.
 /// If multiple configs are provided, the [`Config::threads`] value of the first one is used;
 /// the thread count of all other configs is ignored.
+/// The file filter is supposed to return `None` if it was filtered because of file extensions
+/// and `Some(false)` if the file was rejected out of other reasons like the file path not matching
+/// a user defined filter.
 pub fn run_tests_generic(
     mut configs: Vec<Config>,
-    file_filter: impl Fn(&Path, &Config) -> bool + Sync,
+    file_filter: impl Fn(&Path, &Config) -> Option<bool> + Sync,
     per_file_config: impl Fn(&mut Config, &Path, &[u8]) + Sync,
     status_emitter: impl StatusEmitter + Send,
 ) -> Result<()> {
@@ -274,6 +278,7 @@ pub fn run_tests_generic(
         },
     };
 
+    let mut filtered = 0;
     run_and_collect(
         num_threads,
         |submit| {
@@ -296,10 +301,14 @@ pub fn run_tests_generic(
                     for entry in entries {
                         todo.push_back((entry, config));
                     }
-                } else if file_filter(&path, config) {
-                    let status = status_emitter.register_test(path);
-                    // Forward .rs files to the test workers.
-                    submit.send((status, config)).unwrap();
+                } else if let Some(matched) = file_filter(&path, config) {
+                    if matched {
+                        let status = status_emitter.register_test(path);
+                        // Forward .rs files to the test workers.
+                        submit.send((status, config)).unwrap();
+                    } else {
+                        filtered += 1;
+                    }
                 }
             }
         },
@@ -356,13 +365,11 @@ pub fn run_tests_generic(
     let mut failures = vec![];
     let mut succeeded = 0;
     let mut ignored = 0;
-    let mut filtered = 0;
 
     for run in results {
         match run.result {
             Ok(TestOk::Ok) => succeeded += 1,
             Ok(TestOk::Ignored) => ignored += 1,
-            Ok(TestOk::Filtered) => filtered += 1,
             Err(errored) => failures.push((run.status, errored)),
         }
     }
@@ -432,7 +439,11 @@ fn parse_and_test_file(
     mut config: Config,
     file_contents: Vec<u8>,
 ) -> Result<Vec<TestRun>, Errored> {
-    let comments = parse_comments(&file_contents)?;
+    let comments = parse_comments(
+        &file_contents,
+        config.comment_defaults.clone(),
+        status.path(),
+    )?;
     const EMPTY: &[String] = &[String::new()];
     // Run the test for all revisions
     let revisions = comments.revisions.as_deref().unwrap_or(EMPTY);
@@ -470,8 +481,12 @@ fn parse_and_test_file(
         .collect())
 }
 
-fn parse_comments(file_contents: &[u8]) -> Result<Comments, Errored> {
-    match Comments::parse(file_contents) {
+fn parse_comments(
+    file_contents: &[u8],
+    comments: Comments,
+    file: &Path,
+) -> Result<Comments, Errored> {
+    match Comments::parse(file_contents, comments, file) {
         Ok(comments) => Ok(comments),
         Err(errors) => Err(Errored {
             command: Command::new("parse comments"),
@@ -499,12 +514,15 @@ fn build_command(
     {
         cmd.arg(arg);
     }
-    let edition = comments.edition(revision, config)?;
+    let edition = comments.edition(revision)?;
 
     if let Some(edition) = edition {
         cmd.arg("--edition").arg(&*edition);
     }
 
+    // False positive in miri, our `map` uses a ref pattern to get the references to the tuple fields instead
+    // of a reference to a tuple
+    #[allow(clippy::map_identity)]
     cmd.envs(
         comments
             .for_revision(revision)
@@ -526,7 +544,7 @@ fn build_aux(
         stderr: err.to_string().into_bytes(),
         stdout: vec![],
     })?;
-    let comments = parse_comments(&file_contents)?;
+    let comments = parse_comments(&file_contents, config.comment_defaults.clone(), aux_file)?;
     assert_eq!(
         comments.revisions, None,
         "aux builds cannot specify revisions"
@@ -650,7 +668,7 @@ impl dyn TestStatus {
 
         let (cmd, status, stderr, stdout) = self.run_command(cmd)?;
 
-        let mode = config.mode.maybe_override(comments, revision)?;
+        let mode = comments.mode(revision)?;
         let cmd = check_test_result(
             cmd,
             match *mode {
@@ -760,7 +778,7 @@ fn build_aux_files(
 }
 
 fn run_test_binary(
-    mode: MaybeSpanned<Mode>,
+    mode: Spanned<Mode>,
     path: &Path,
     revision: &str,
     comments: &Comments,
@@ -826,7 +844,9 @@ fn run_rustfix(
     extra_args: Vec<OsString>,
 ) -> Result<(), Errored> {
     let no_run_rustfix =
-        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| r.no_rustfix)?;
+        comments.find_one_for_revision(revision, "`no-rustfix` annotations", |r| {
+            r.no_rustfix.clone()
+        })?;
 
     let global_rustfix = match mode {
         Mode::Pass | Mode::Run { .. } | Mode::Panic => RustfixMode::Disabled,
@@ -860,6 +880,14 @@ fn run_rustfix(
             if suggestions.is_empty() {
                 None
             } else {
+                let path_str = path.display().to_string();
+                for sugg in &suggestions {
+                    for snip in &sugg.snippets {
+                        if snip.file_name != path_str {
+                            return Some(Err(anyhow::anyhow!("cannot apply suggestions for `{}` since main file is `{path_str}`. Please use `//@no-rustfix` to disable rustfix", snip.file_name)));
+                        }
+                    }
+                }
                 Some(rustfix::apply_suggestions(
                     &std::fs::read_to_string(path).unwrap(),
                     &suggestions,
@@ -874,19 +902,13 @@ fn run_rustfix(
             stdout: stdout.into(),
         })?;
 
-    let edition = comments.edition(revision, config)?;
-    let edition = edition
-        .map(|mwl| {
-            let line = mwl.span().unwrap_or(Span::INVALID);
-            Spanned::new(mwl.into_inner(), line)
-        })
-        .into();
+    let edition = comments.edition(revision)?.into();
     let rustfix_comments = Comments {
         revisions: None,
         revisioned: std::iter::once((
             vec![],
             Revisioned {
-                span: Span::INVALID,
+                span: Span::default(),
                 ignore: vec![],
                 only: vec![],
                 stderr_per_bitwidth: false,
@@ -908,8 +930,9 @@ fn run_rustfix(
                     .flat_map(|r| r.aux_builds.iter().cloned())
                     .collect(),
                 edition,
-                mode: OptWithLine::new(Mode::Pass, Span::INVALID),
-                no_rustfix: OptWithLine::new((), Span::INVALID),
+                mode: OptWithLine::new(Mode::Pass, Span::default()),
+                no_rustfix: OptWithLine::new((), Span::default()),
+                diagnostic_code_prefix: OptWithLine::new(String::new(), Span::default()),
                 needs_asm_support: false,
             },
         ))
@@ -925,7 +948,6 @@ fn run_rustfix(
         path,
         &mut errors,
         "fixed",
-        &Filter::default(),
         config,
         &rustfix_comments,
         revision,
@@ -1007,7 +1029,6 @@ fn check_test_result(
         diagnostics.messages_from_unknown_file_or_line,
         path,
         &mut errors,
-        config,
         revision,
         comments,
     )?;
@@ -1034,26 +1055,8 @@ fn check_test_output(
 ) {
     // Check output files (if any)
     // Check output files against actual output
-    check_output(
-        stderr,
-        path,
-        errors,
-        "stderr",
-        &config.stderr_filters,
-        config,
-        comments,
-        revision,
-    );
-    check_output(
-        stdout,
-        path,
-        errors,
-        "stdout",
-        &config.stdout_filters,
-        config,
-        comments,
-        revision,
-    );
+    check_output(stderr, path, errors, "stderr", config, comments, revision);
+    check_output(stdout, path, errors, "stdout", config, comments, revision);
 }
 
 fn check_annotations(
@@ -1061,7 +1064,6 @@ fn check_annotations(
     mut messages_from_unknown_file_or_line: Vec<Message>,
     path: &Path,
     errors: &mut Errors,
-    config: &Config,
     revision: &str,
     comments: &Comments,
 ) -> Result<(), Errored> {
@@ -1087,59 +1089,95 @@ fn check_annotations(
             });
         }
     }
+    let diagnostic_code_prefix = comments
+        .find_one_for_revision(revision, "diagnostic_code_prefix", |r| {
+            r.diagnostic_code_prefix.clone()
+        })?
+        .into_inner()
+        .map(|s| s.content)
+        .unwrap_or_default();
 
     // The order on `Level` is such that `Error` is the highest level.
     // We will ensure that *all* diagnostics of level at least `lowest_annotation_level`
     // are matched.
     let mut lowest_annotation_level = Level::Error;
-    for &ErrorMatch {
-        ref pattern,
-        level,
-        line,
-    } in comments
+    'err: for &ErrorMatch { ref kind, line } in comments
         .for_revision(revision)
         .flat_map(|r| r.error_matches.iter())
     {
-        seen_error_match = Some(pattern.span());
-        // If we found a diagnostic with a level annotation, make sure that all
-        // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
-        // for this pattern.
-        if lowest_annotation_level > level {
-            lowest_annotation_level = level;
-        }
-
-        if let Some(msgs) = messages.get_mut(line.get()) {
-            let found = msgs
-                .iter()
-                .position(|msg| pattern.matches(&msg.message) && msg.level == level);
-            if let Some(found) = found {
-                msgs.remove(found);
-                continue;
+        match kind {
+            ErrorMatchKind::Code(code) => {
+                seen_error_match = Some(code.span());
+            }
+            &ErrorMatchKind::Pattern { ref pattern, level } => {
+                seen_error_match = Some(pattern.span());
+                // If we found a diagnostic with a level annotation, make sure that all
+                // diagnostics of that level have annotations, even if we don't end up finding a matching diagnostic
+                // for this pattern.
+                if lowest_annotation_level > level {
+                    lowest_annotation_level = level;
+                }
             }
         }
 
-        errors.push(Error::PatternNotFound {
-            pattern: pattern.clone(),
-            expected_line: Some(line),
+        if let Some(msgs) = messages.get_mut(line.get()) {
+            match kind {
+                &ErrorMatchKind::Pattern { ref pattern, level } => {
+                    let found = msgs
+                        .iter()
+                        .position(|msg| pattern.matches(&msg.message) && msg.level == level);
+                    if let Some(found) = found {
+                        msgs.remove(found);
+                        continue;
+                    }
+                }
+                ErrorMatchKind::Code(code) => {
+                    for (i, msg) in msgs.iter().enumerate() {
+                        if msg.level != Level::Error {
+                            continue;
+                        }
+                        let Some(msg_code) = &msg.code else { continue };
+                        let Some(msg) = msg_code.strip_prefix(&diagnostic_code_prefix) else {
+                            continue;
+                        };
+                        if msg == **code {
+                            msgs.remove(i);
+                            continue 'err;
+                        }
+                    }
+                }
+            }
+        }
+
+        errors.push(match kind {
+            ErrorMatchKind::Pattern { pattern, .. } => Error::PatternNotFound {
+                pattern: pattern.clone(),
+                expected_line: Some(line),
+            },
+            ErrorMatchKind::Code(code) => Error::CodeNotFound {
+                code: Spanned::new(format!("{}{}", diagnostic_code_prefix, **code), code.span()),
+                expected_line: Some(line),
+            },
         });
     }
 
     let required_annotation_level = comments.find_one_for_revision(
         revision,
         "`require_annotations_for_level` annotations",
-        |r| r.require_annotations_for_level,
+        |r| r.require_annotations_for_level.clone(),
     )?;
 
-    let required_annotation_level =
-        required_annotation_level.map_or(lowest_annotation_level, |l| *l);
+    let required_annotation_level = required_annotation_level
+        .into_inner()
+        .map_or(lowest_annotation_level, |l| *l);
     let filter = |mut msgs: Vec<Message>| -> Vec<_> {
         msgs.retain(|msg| msg.level >= required_annotation_level);
         msgs
     };
 
-    let mode = config.mode.maybe_override(comments, revision)?;
+    let mode = comments.mode(revision)?;
 
-    if !matches!(config.mode, Mode::Yolo { .. }) {
+    if !matches!(*mode, Mode::Yolo { .. }) {
         let messages_from_unknown_file_or_line = filter(messages_from_unknown_file_or_line);
         if !messages_from_unknown_file_or_line.is_empty() {
             errors.push(Error::ErrorsWithoutPattern {
@@ -1155,9 +1193,9 @@ fn check_annotations(
                 errors.push(Error::ErrorsWithoutPattern {
                     path: Some(Spanned::new(
                         path.to_path_buf(),
-                        Span {
+                        spanned::Span {
                             line_start: line,
-                            ..Span::INVALID
+                            ..spanned::Span::default()
                         },
                     )),
                     msgs,
@@ -1190,23 +1228,22 @@ fn check_output(
     path: &Path,
     errors: &mut Errors,
     kind: &'static str,
-    filters: &Filter,
     config: &Config,
     comments: &Comments,
     revision: &str,
 ) -> PathBuf {
     let target = config.target.as_ref().unwrap();
-    let output = normalize(path, output, filters, comments, revision, kind);
+    let output = normalize(output, comments, revision, kind);
     let path = output_path(path, comments, revised(revision, kind), target, revision);
     match &config.output_conflict_handling {
-        OutputConflictHandling::Error(bless_command) => {
+        OutputConflictHandling::Error => {
             let expected_output = std::fs::read(&path).unwrap_or_default();
             if output != expected_output {
                 errors.push(Error::OutputDiffers {
                     path: path.clone(),
                     actual: output.clone(),
                     expected: expected_output,
-                    bless_command: bless_command.clone(),
+                    bless_command: config.bless_command.clone(),
                 });
             }
         }
@@ -1286,25 +1323,8 @@ fn get_pointer_width(triple: &str) -> u8 {
     }
 }
 
-fn normalize(
-    path: &Path,
-    text: &[u8],
-    filters: &Filter,
-    comments: &Comments,
-    revision: &str,
-    kind: &'static str,
-) -> Vec<u8> {
-    // Useless paths
-    let path_filter = (Match::from(path.parent().unwrap()), b"$DIR" as &[u8]);
-    let filters = filters.iter().chain(std::iter::once(&path_filter));
+fn normalize(text: &[u8], comments: &Comments, revision: &str, kind: &'static str) -> Vec<u8> {
     let mut text = text.to_owned();
-    if let Some(lib_path) = option_env!("RUSTC_LIB_PATH") {
-        text = text.replace(lib_path, "RUSTLIB");
-    }
-
-    for (rule, replacement) in filters {
-        text = rule.replace_all(&text, replacement).into_owned();
-    }
 
     for (from, to) in comments.for_revision(revision).flat_map(|r| match kind {
         "fixed" => &[] as &[_],

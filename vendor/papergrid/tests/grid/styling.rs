@@ -5,8 +5,8 @@ use papergrid::config::{AlignmentHorizontal, Border, Borders, Entity, Indent, Si
 use crate::util::grid;
 use testing_table::test_table;
 
-#[cfg(feature = "color")]
-use ::{owo_colors::OwoColorize, papergrid::color::AnsiColor, std::convert::TryFrom};
+#[cfg(feature = "ansi")]
+use ::{owo_colors::OwoColorize, papergrid::ansi::ANSIBuf, std::convert::TryFrom};
 
 test_table!(
     grid_2x2_custom_frame_test,
@@ -277,20 +277,20 @@ test_table!(
     "1-0*1-1"
 );
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 test_table!(
     grid_2x2_ansi_border_test,
     grid(2, 2)
         .config(|cfg| {
             (0..2).for_each(|r| (0..2).for_each(|c| {
-                let top = AnsiColor::try_from(" ".green().on_red().to_string()).unwrap();
-                let bottom = AnsiColor::try_from(" ".on_green().blue().to_string()).unwrap();
-                let left = AnsiColor::try_from(" ".on_red().white().to_string()).unwrap();
-                let right = AnsiColor::try_from(" ".on_red().green().to_string()).unwrap();
-                let tl = AnsiColor::try_from(" ".magenta().to_string()).unwrap();
-                let tr = AnsiColor::try_from(" ".on_blue().to_string()).unwrap();
-                let bl = AnsiColor::try_from(" ".yellow().to_string()).unwrap();
-                let br = AnsiColor::try_from(" ".on_yellow().to_string()).unwrap();
+                let top = ANSIBuf::try_from(" ".green().on_red().to_string()).unwrap();
+                let bottom = ANSIBuf::try_from(" ".on_green().blue().to_string()).unwrap();
+                let left = ANSIBuf::try_from(" ".on_red().white().to_string()).unwrap();
+                let right = ANSIBuf::try_from(" ".on_red().green().to_string()).unwrap();
+                let tl = ANSIBuf::try_from(" ".magenta().to_string()).unwrap();
+                let tr = ANSIBuf::try_from(" ".on_blue().to_string()).unwrap();
+                let bl = ANSIBuf::try_from(" ".yellow().to_string()).unwrap();
+                let br = ANSIBuf::try_from(" ".on_yellow().to_string()).unwrap();
 
                 cfg.set_border((r, c), Border::full('*', '#', '~', '!', '@', '$', '%', '^'));
                 cfg.set_border_color((r, c), Border::full(top, bottom, left, right, tl, tr, bl, br));
@@ -304,13 +304,13 @@ test_table!(
     "\u{1b}[33m%\u{1b}[39m\u{1b}[34m\u{1b}[42m###\u{1b}[39m\u{1b}[49m\u{1b}[33m%\u{1b}[39m\u{1b}[34m\u{1b}[42m###\u{1b}[39m\u{1b}[49m\u{1b}[43m^\u{1b}[49m"
 );
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 test_table!(
     grid_2x2_ansi_global_set_test,
     grid(2, 2)
         .config(|cfg| {
             let color = " ".on_blue().red().bold().to_string();
-            cfg.set_border_color_global(AnsiColor::try_from(color).unwrap());
+            cfg.set_border_color_default(ANSIBuf::try_from(color).unwrap());
         })
         .build(),
     "\u{1b}[1m\u{1b}[31m\u{1b}[44m+---+---+\u{1b}[22m\u{1b}[39m\u{1b}[49m"
@@ -320,15 +320,15 @@ test_table!(
     "\u{1b}[1m\u{1b}[31m\u{1b}[44m+---+---+\u{1b}[22m\u{1b}[39m\u{1b}[49m"
 );
 
-#[cfg(feature = "color")]
+#[cfg(feature = "ansi")]
 #[test]
 fn grid_2x2_ansi_border_none_if_string_is_not_1_char_test() {
-    assert!(AnsiColor::try_from("12").is_ok());
-    assert!(AnsiColor::try_from("123").is_ok());
-    assert!(AnsiColor::try_from("").is_err());
+    assert!(ANSIBuf::try_from("12").is_ok());
+    assert!(ANSIBuf::try_from("123").is_ok());
+    assert!(ANSIBuf::try_from("").is_err());
 
-    assert!(AnsiColor::try_from("1").is_ok());
-    assert!(AnsiColor::try_from("1".on_red().to_string()).is_ok());
-    assert!(AnsiColor::try_from("1".on_red().blue().to_string()).is_ok());
-    assert!(AnsiColor::try_from("1".truecolor(0, 1, 3).on_truecolor(1, 2, 3).to_string()).is_ok());
+    assert!(ANSIBuf::try_from("1").is_ok());
+    assert!(ANSIBuf::try_from("1".on_red().to_string()).is_ok());
+    assert!(ANSIBuf::try_from("1".on_red().blue().to_string()).is_ok());
+    assert!(ANSIBuf::try_from("1".truecolor(0, 1, 3).on_truecolor(1, 2, 3).to_string()).is_ok());
 }

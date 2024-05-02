@@ -90,12 +90,12 @@ impl From<u32> for CustomError {
     }
 }
 
-impl<I> ParserError<I> for CustomError {
+impl<I: Stream> ParserError<I> for CustomError {
     fn from_error_kind(_: &I, _: ErrorKind) -> Self {
         CustomError
     }
 
-    fn append(self, _: &I, _: ErrorKind) -> Self {
+    fn append(self, _: &I, _: &<I as Stream>::Checkpoint, _: ErrorKind) -> Self {
         CustomError
     }
 }
@@ -186,20 +186,20 @@ fn opt_test() {
 
 #[test]
 fn peek_test() {
-    fn peek_tag(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, &[u8]> {
+    fn peek_literal(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, &[u8]> {
         peek("abcd").parse_peek(i)
     }
 
     assert_eq!(
-        peek_tag(Partial::new(&b"abcdef"[..])),
+        peek_literal(Partial::new(&b"abcdef"[..])),
         Ok((Partial::new(&b"abcdef"[..]), &b"abcd"[..]))
     );
     assert_eq!(
-        peek_tag(Partial::new(&b"ab"[..])),
+        peek_literal(Partial::new(&b"ab"[..])),
         Err(ErrMode::Incomplete(Needed::new(2)))
     );
     assert_eq!(
-        peek_tag(Partial::new(&b"xxx"[..])),
+        peek_literal(Partial::new(&b"xxx"[..])),
         Err(ErrMode::Backtrack(error_position!(
             &Partial::new(&b"xxx"[..]),
             ErrorKind::Tag
@@ -543,12 +543,12 @@ fn alt_test() {
     }
 
     #[cfg(feature = "alloc")]
-    impl<I: Debug> ParserError<I> for ErrorStr {
+    impl<I: Stream + Debug> ParserError<I> for ErrorStr {
         fn from_error_kind(input: &I, kind: ErrorKind) -> Self {
             ErrorStr(format!("custom error message: ({:?}, {:?})", input, kind))
         }
 
-        fn append(self, input: &I, kind: ErrorKind) -> Self {
+        fn append(self, input: &I, _: &<I as Stream>::Checkpoint, kind: ErrorKind) -> Self {
             ErrorStr(format!(
                 "custom error message: ({:?}, {:?}) - {:?}",
                 input, kind, self
@@ -781,7 +781,7 @@ fn separated0_empty_sep_test() {
     let i_err_pos = &i[3..];
     assert_eq!(
         empty_sep(Partial::new(i)),
-        Err(ErrMode::Backtrack(error_position!(
+        Err(ErrMode::Cut(error_position!(
             &Partial::new(i_err_pos),
             ErrorKind::Assert
         )))
@@ -922,7 +922,7 @@ fn repeat0_empty_test() {
 
     assert_eq!(
         multi_empty(Partial::new(&b"abcdef"[..])),
-        Err(ErrMode::Backtrack(error_position!(
+        Err(ErrMode::Cut(error_position!(
             &Partial::new(&b"abcdef"[..]),
             ErrorKind::Assert
         )))
@@ -966,7 +966,7 @@ fn repeat1_test() {
 fn repeat_till_test() {
     #[allow(clippy::type_complexity)]
     fn multi(i: &[u8]) -> IResult<&[u8], (Vec<&[u8]>, &[u8])> {
-        repeat_till0("abcd", "efgh").parse_peek(i)
+        repeat_till(0.., "abcd", "efgh").parse_peek(i)
     }
 
     let a = b"abcdabcdefghabcd";
@@ -983,6 +983,46 @@ fn repeat_till_test() {
             &&c[..],
             ErrorKind::Many,
             error_position!(&&c[..], ErrorKind::Tag)
+        )))
+    );
+}
+
+#[test]
+#[cfg(feature = "alloc")]
+fn repeat_till_range_test() {
+    #[allow(clippy::type_complexity)]
+    fn multi(i: &str) -> IResult<&str, (Vec<&str>, &str)> {
+        repeat_till(2..=4, "ab", "cd").parse_peek(i)
+    }
+
+    assert_eq!(
+        multi("cd"),
+        Err(ErrMode::Backtrack(error_node_position!(
+            &"cd",
+            ErrorKind::Many,
+            error_position!(&"cd", ErrorKind::Tag)
+        )))
+    );
+    assert_eq!(
+        multi("abcd"),
+        Err(ErrMode::Backtrack(error_node_position!(
+            &"cd",
+            ErrorKind::Many,
+            error_position!(&"cd", ErrorKind::Tag)
+        )))
+    );
+    assert_eq!(multi("ababcd"), Ok(("", (vec!["ab", "ab"], "cd"))));
+    assert_eq!(multi("abababcd"), Ok(("", (vec!["ab", "ab", "ab"], "cd"))));
+    assert_eq!(
+        multi("ababababcd"),
+        Ok(("", (vec!["ab", "ab", "ab", "ab"], "cd")))
+    );
+    assert_eq!(
+        multi("abababababcd"),
+        Err(ErrMode::Backtrack(error_node_position!(
+            &"cd",
+            ErrorKind::Many,
+            error_position!(&"abcd", ErrorKind::Tag)
         )))
     );
 }
@@ -1144,11 +1184,11 @@ impl<I> From<(I, ErrorKind)> for NilError {
     }
 }
 
-impl<I> ParserError<I> for NilError {
+impl<I: Stream> ParserError<I> for NilError {
     fn from_error_kind(_: &I, _: ErrorKind) -> NilError {
         NilError
     }
-    fn append(self, _: &I, _: ErrorKind) -> NilError {
+    fn append(self, _: &I, _: &<I as Stream>::Checkpoint, _: ErrorKind) -> NilError {
         NilError
     }
 }
@@ -1161,7 +1201,9 @@ fn fold_repeat0_test() {
         acc
     }
     fn multi(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, Vec<&[u8]>> {
-        fold_repeat(0.., "abcd", Vec::new, fold_into_vec).parse_peek(i)
+        repeat(0.., "abcd")
+            .fold(Vec::new, fold_into_vec)
+            .parse_peek(i)
     }
 
     assert_eq!(
@@ -1199,12 +1241,12 @@ fn fold_repeat0_empty_test() {
         acc
     }
     fn multi_empty(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, Vec<&[u8]>> {
-        fold_repeat(0.., "", Vec::new, fold_into_vec).parse_peek(i)
+        repeat(0.., "").fold(Vec::new, fold_into_vec).parse_peek(i)
     }
 
     assert_eq!(
         multi_empty(Partial::new(&b"abcdef"[..])),
-        Err(ErrMode::Backtrack(error_position!(
+        Err(ErrMode::Cut(error_position!(
             &Partial::new(&b"abcdef"[..]),
             ErrorKind::Assert
         )))
@@ -1219,7 +1261,9 @@ fn fold_repeat1_test() {
         acc
     }
     fn multi(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, Vec<&[u8]>> {
-        fold_repeat(1.., "abcd", Vec::new, fold_into_vec).parse_peek(i)
+        repeat(1.., "abcd")
+            .fold(Vec::new, fold_into_vec)
+            .parse_peek(i)
     }
 
     let a = &b"abcdef"[..];
@@ -1255,7 +1299,9 @@ fn fold_repeat_test() {
         acc
     }
     fn multi(i: Partial<&[u8]>) -> IResult<Partial<&[u8]>, Vec<&[u8]>> {
-        fold_repeat(2..=4, "Abcd", Vec::new, fold_into_vec).parse_peek(i)
+        repeat(2..=4, "Abcd")
+            .fold(Vec::new, fold_into_vec)
+            .parse_peek(i)
     }
 
     let a = &b"Abcdef"[..];

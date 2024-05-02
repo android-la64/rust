@@ -1,5 +1,7 @@
+use std::path::Path;
+
 use crate::{
-    parser::{Condition, Pattern},
+    parser::{Condition, ErrorMatchKind, Pattern},
     Error,
 };
 
@@ -14,12 +16,15 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ ERROR: encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
-    assert_eq!(revisioned.error_matches[0].pattern.line().get(), 5);
-    match &*revisioned.error_matches[0].pattern {
+    let ErrorMatchKind::Pattern { pattern, .. } = &revisioned.error_matches[0].kind else {
+        panic!("expected pattern matcher");
+    };
+    assert_eq!(pattern.line().get(), 5);
+    match &**pattern {
         Pattern::SubString(s) => {
             assert_eq!(
                 s,
@@ -31,6 +36,24 @@ fn main() {
 }
 
 #[test]
+fn parse_error_code_comment() {
+    let s = r"
+fn main() {
+    let _x: i32 = 0u32; //~ E0308
+}
+    ";
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
+    println!("parsed comments: {:#?}", comments);
+    assert_eq!(comments.revisioned.len(), 1);
+    let revisioned = &comments.revisioned[&vec![]];
+    let ErrorMatchKind::Code(code) = &revisioned.error_matches[0].kind else {
+        panic!("expected diagnostic code matcher");
+    };
+    assert_eq!(code.line().get(), 3);
+    assert_eq!(**code, "E0308");
+}
+
+#[test]
 fn parse_missing_level() {
     let s = r"
 use std::mem;
@@ -39,12 +62,12 @@ fn main() {
     let _x: &i32 = unsafe { mem::transmute(16usize) }; //~ encountered a dangling reference (address $HEX is unallocated)
 }
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Comments::default(), Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
         Error::InvalidComment { msg, span } if span.line_start.get() == 5 => {
-            assert_eq!(msg, "unknown level `encountered`")
+            assert_eq!(msg, "text found after error code `encountered`")
         }
         _ => unreachable!(),
     }
@@ -57,7 +80,7 @@ fn parse_slash_slash_at() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
@@ -73,7 +96,7 @@ fn parse_regex_error_pattern() {
 use std::mem;
 
     ";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];
@@ -89,7 +112,7 @@ fn parse_slash_slash_at_fail() {
 use std::mem;
 
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Comments::default(), Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 2);
     match &errors[0] {
@@ -113,7 +136,7 @@ fn missing_colon_fail() {
 use std::mem;
 
     ";
-    let errors = Comments::parse(s).unwrap_err();
+    let errors = Comments::parse(s, Comments::default(), Path::new("")).unwrap_err();
     println!("parsed comments: {:#?}", errors);
     assert_eq!(errors.len(), 1);
     match &errors[0] {
@@ -127,7 +150,7 @@ use std::mem;
 #[test]
 fn parse_x86_64() {
     let s = r"//@ only-target-x86_64-unknown-linux";
-    let comments = Comments::parse(s).unwrap();
+    let comments = Comments::parse(s, Comments::default(), Path::new("")).unwrap();
     println!("parsed comments: {:#?}", comments);
     assert_eq!(comments.revisioned.len(), 1);
     let revisioned = &comments.revisioned[&vec![]];

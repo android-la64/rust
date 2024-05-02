@@ -1,6 +1,6 @@
 use std::panic::Location;
 
-use eyre::WrapErr;
+use eyre::{OptionExt as _, WrapErr};
 
 struct LocationHandler {
     actual: Option<&'static str>,
@@ -46,12 +46,26 @@ fn test_wrap_err() {
         Box::new(LocationHandler::new(expected_location))
     }));
 
-    let err = std::fs::read_to_string("totally_fake_path")
+    let err = read_path("totally_fake_path")
         .wrap_err("oopsie")
         .unwrap_err();
 
     // should panic if the location isn't in our crate
     println!("{:?}", err);
+}
+
+#[cfg(not(miri))]
+fn read_path(path: &str) -> Result<String, std::io::Error> {
+    std::fs::read_to_string(path)
+}
+
+#[cfg(miri)]
+fn read_path(_path: &str) -> Result<String, std::io::Error> {
+    // Miri doesn't support reading files, so we just return an error
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "Miri doesn't support reading files",
+    ))
 }
 
 #[test]
@@ -61,9 +75,22 @@ fn test_wrap_err_with() {
         Box::new(LocationHandler::new(expected_location))
     }));
 
-    let err = std::fs::read_to_string("totally_fake_path")
+    let err = read_path("totally_fake_path")
         .wrap_err_with(|| "oopsie")
         .unwrap_err();
+
+    // should panic if the location isn't in our crate
+    println!("{:?}", err);
+}
+
+#[test]
+fn test_option_ok_or_eyre() {
+    let _ = eyre::set_hook(Box::new(|_e| {
+        let expected_location = file!();
+        Box::new(LocationHandler::new(expected_location))
+    }));
+
+    let err = None::<()>.ok_or_eyre("oopsie").unwrap_err();
 
     // should panic if the location isn't in our crate
     println!("{:?}", err);
@@ -76,7 +103,7 @@ fn test_context() {
         Box::new(LocationHandler::new(expected_location))
     }));
 
-    let err = std::fs::read_to_string("totally_fake_path")
+    let err = read_path("totally_fake_path")
         .context("oopsie")
         .unwrap_err();
 
@@ -91,7 +118,7 @@ fn test_with_context() {
         Box::new(LocationHandler::new(expected_location))
     }));
 
-    let err = std::fs::read_to_string("totally_fake_path")
+    let err = read_path("totally_fake_path")
         .with_context(|| "oopsie")
         .unwrap_err();
 

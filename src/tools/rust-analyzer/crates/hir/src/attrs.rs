@@ -30,7 +30,7 @@ macro_rules! impl_has_attrs {
         impl HasAttrs for $def {
             fn attrs(self, db: &dyn HirDatabase) -> AttrsWithOwner {
                 let def = AttrDefId::$def_id(self.into());
-                AttrsWithOwner::attrs_with_owner(db.upcast(), def)
+                AttrsWithOwner::new(db.upcast(), def)
             }
             fn attr_id(self) -> AttrDefId {
                 AttrDefId::$def_id(self.into())
@@ -124,7 +124,7 @@ fn resolve_doc_path_on_(
         AttrDefId::GenericParamId(_) => return None,
     };
 
-    let mut modpath = modpath_from_str(link)?;
+    let mut modpath = doc_modpath_from_str(link)?;
 
     let resolved = resolver.resolve_module_path_in_items(db.upcast(), &modpath);
     if resolved.is_none() {
@@ -239,10 +239,9 @@ fn resolve_impl_trait_item(
 ) -> Option<DocLinkDef> {
     let canonical = ty.canonical();
     let krate = ty.krate(db);
-    let environment = resolver.generic_def().map_or_else(
-        || crate::TraitEnvironment::empty(krate.id).into(),
-        |d| db.trait_environment(d),
-    );
+    let environment = resolver
+        .generic_def()
+        .map_or_else(|| crate::TraitEnvironment::empty(krate.id), |d| db.trait_environment(d));
     let traits_in_scope = resolver.traits_in_scope(db.upcast());
 
     let mut result = None;
@@ -297,10 +296,10 @@ fn as_module_def_if_namespace_matches(
         AssocItem::TypeAlias(it) => (ModuleDef::TypeAlias(it), Namespace::Types),
     };
 
-    (ns.unwrap_or(expected_ns) == expected_ns).then(|| DocLinkDef::ModuleDef(def))
+    (ns.unwrap_or(expected_ns) == expected_ns).then_some(DocLinkDef::ModuleDef(def))
 }
 
-fn modpath_from_str(link: &str) -> Option<ModPath> {
+fn doc_modpath_from_str(link: &str) -> Option<ModPath> {
     // FIXME: this is not how we should get a mod path here.
     let try_get_modpath = |link: &str| {
         let mut parts = link.split("::");
@@ -311,7 +310,7 @@ fn modpath_from_str(link: &str) -> Option<ModPath> {
             "self" => PathKind::Super(0),
             "super" => {
                 let mut deg = 1;
-                while let Some(segment) = parts.next() {
+                for segment in parts.by_ref() {
                     if segment == "super" {
                         deg += 1;
                     } else {
@@ -328,7 +327,9 @@ fn modpath_from_str(link: &str) -> Option<ModPath> {
         };
         let parts = first_segment.into_iter().chain(parts).map(|segment| match segment.parse() {
             Ok(idx) => Name::new_tuple_field(idx),
-            Err(_) => Name::new_text_dont_use(segment.into()),
+            Err(_) => {
+                Name::new_text_dont_use(segment.split_once('<').map_or(segment, |it| it.0).into())
+            }
         });
         Some(ModPath::from_segments(kind, parts))
     };

@@ -56,15 +56,8 @@ fn main() {
     if !cfg!(feature = "mangled-names") && cfg!(feature = "c") {
         // Don't use a C compiler for these targets:
         //
-        // * wasm - clang for wasm is somewhat hard to come by and it's
-        //   unlikely that the C is really that much better than our own Rust.
         // * nvptx - everything is bitcode, not compatible with mixed C/Rust
-        // * riscv - the rust-lang/rust distribution container doesn't have a C
-        //   compiler.
-        if !target.contains("wasm")
-            && !target.contains("nvptx")
-            && (!target.starts_with("riscv") || target.contains("xous"))
-        {
+        if !target.contains("nvptx") {
             #[cfg(feature = "c")]
             c::compile(&llvm_target, &target);
         }
@@ -295,14 +288,11 @@ mod c {
             sources.extend(&[
                 ("__divdc3", "divdc3.c"),
                 ("__divsc3", "divsc3.c"),
-                ("__divxc3", "divxc3.c"),
                 ("__extendhfsf2", "extendhfsf2.c"),
                 ("__muldc3", "muldc3.c"),
                 ("__mulsc3", "mulsc3.c"),
-                ("__mulxc3", "mulxc3.c"),
                 ("__negdf2", "negdf2.c"),
                 ("__negsf2", "negsf2.c"),
-                ("__powixf2", "powixf2.c"),
                 ("__truncdfhf2", "truncdfhf2.c"),
                 ("__truncsfhf2", "truncsfhf2.c"),
             ]);
@@ -357,29 +347,12 @@ mod c {
             ]);
         }
 
-        if target_env == "msvc" {
-            if target_arch == "x86_64" {
-                sources.extend(&[("__floatdixf", "x86_64/floatdixf.c")]);
-            }
-        } else {
-            // None of these seem to be used on x86_64 windows, and they've all
-            // got the wrong ABI anyway, so we want to avoid them.
-            if target_os != "windows" {
-                if target_arch == "x86_64" {
-                    sources.extend(&[
-                        ("__floatdixf", "x86_64/floatdixf.c"),
-                        ("__floatundixf", "x86_64/floatundixf.S"),
-                    ]);
-                }
-            }
-
+        if target_env != "msvc" {
             if target_arch == "x86" {
                 sources.extend(&[
                     ("__ashldi3", "i386/ashldi3.S"),
                     ("__ashrdi3", "i386/ashrdi3.S"),
                     ("__divdi3", "i386/divdi3.S"),
-                    ("__floatdixf", "i386/floatdixf.S"),
-                    ("__floatundixf", "i386/floatundixf.S"),
                     ("__lshrdi3", "i386/lshrdi3.S"),
                     ("__moddi3", "i386/moddi3.S"),
                     ("__muldi3", "i386/muldi3.S"),
@@ -519,7 +492,7 @@ mod c {
             }
         }
 
-        if target_arch == "mips" {
+        if target_arch == "mips" || target_arch == "riscv32" || target_arch == "riscv64" {
             sources.extend(&[("__bswapsi2", "bswapsi2.c")]);
         }
 
@@ -601,7 +574,12 @@ mod c {
             build_aarch64_out_of_line_atomics_libraries(&src_dir, cfg);
 
             // Some run-time CPU feature detection is necessary, as well.
-            sources.extend(&[("__aarch64_have_lse_atomics", "cpu_model.c")]);
+            let cpu_model_src = if src_dir.join("cpu_model.c").exists() {
+                "cpu_model.c"
+            } else {
+                "cpu_model/aarch64.c"
+            };
+            sources.extend(&[("__aarch64_have_lse_atomics", cpu_model_src)]);
         }
 
         let mut added_sources = HashSet::new();

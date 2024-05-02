@@ -1,21 +1,22 @@
 use rustc_ast::{self as ast, NodeId};
+use rustc_errors::ErrorGuaranteed;
 use rustc_hir::def::{DefKind, Namespace, NonMacroAttrKind, PartialRes, PerNS};
 use rustc_middle::bug;
 use rustc_middle::ty;
 use rustc_session::lint::builtin::PROC_MACRO_DERIVE_RESOLUTION_FALLBACK;
-use rustc_session::lint::BuiltinLintDiagnostics;
+use rustc_session::lint::BuiltinLintDiag;
+use rustc_session::parse::feature_err;
 use rustc_span::def_id::LocalDefId;
 use rustc_span::hygiene::{ExpnId, ExpnKind, LocalExpnId, MacroKind, SyntaxContext};
+use rustc_span::sym;
 use rustc_span::symbol::{kw, Ident};
 use rustc_span::Span;
 
 use crate::errors::{ParamKindInEnumDiscriminant, ParamKindInNonTrivialAnonConst};
-use crate::late::{
-    ConstantHasGenerics, HasGenericParams, NoConstantGenericsReason, PathSource, Rib, RibKind,
-};
+use crate::late::{ConstantHasGenerics, NoConstantGenericsReason, PathSource, Rib, RibKind};
 use crate::macros::{sub_namespace_match, MacroRulesScope};
-use crate::BindingKey;
 use crate::{errors, AmbiguityError, AmbiguityErrorMisc, AmbiguityKind, Determinacy, Finalize};
+use crate::{BindingKey, Used};
 use crate::{ImportKind, LexicalScopeBinding, Module, ModuleKind, ModuleOrUniformRoot};
 use crate::{NameBinding, NameBindingKind, ParentScope, PathResult, PrivacyError, Res};
 use crate::{ResolutionError, Resolver, Scope, ScopeSet, Segment, ToNameBinding, Weak};
@@ -24,6 +25,18 @@ use Determinacy::*;
 use Namespace::*;
 
 type Visibility = ty::Visibility<LocalDefId>;
+
+#[derive(Copy, Clone)]
+pub enum UsePrelude {
+    No,
+    Yes,
+}
+
+impl From<UsePrelude> for bool {
+    fn from(up: UsePrelude) -> bool {
+        matches!(up, UsePrelude::Yes)
+    }
+}
 
 impl<'a, 'tcx> Resolver<'a, 'tcx> {
     /// A generic scope visitor.
@@ -34,12 +47,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
         scope_set: ScopeSet<'a>,
         parent_scope: &ParentScope<'a>,
         ctxt: SyntaxContext,
-        mut visitor: impl FnMut(
-            &mut Self,
-            Scope<'a>,
-            /*use_prelude*/ bool,
-            SyntaxContext,
-        ) -> Option<T>,
+        mut visitor: impl FnMut(&mut Self, Scope<'a>, UsePrelude, SyntaxContext) -> Option<T>,
     ) -> Option<T> {
         // General principles:
         // 1. Not controlled (user-defined) names should have higher priority than controlled names
@@ -135,6 +143,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             };
 
             if visit {
+                let use_prelude = if use_prelude { UsePrelude::Yes } else { UsePrelude::No };
                 if let break_result @ Some(..) = visitor(self, scope, use_prelude, ctxt) {
                     return break_result;
                 }
@@ -341,7 +350,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 ident,
                 ns,
                 parent_scope,
-                finalize,
+                finalize.map(|finalize| Finalize { used: Used::Scope, ..finalize }),
                 ignore_binding,
             );
             if let Ok(binding) = item {
@@ -508,7 +517,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                             ns,
                             adjusted_parent_scope,
                             !matches!(scope_set, ScopeSet::Late(..)),
-                            finalize,
+                            finalize.map(|finalize| Finalize { used: Used::Scope, ..finalize }),
                             ignore_binding,
                         );
                         match binding {
@@ -523,7 +532,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                                             ns.descr(),
                                             ident
                                         ),
-                                        BuiltinLintDiagnostics::ProcMacroDeriveResolutionFallback(
+                                        BuiltinLintDiag::ProcMacroDeriveResolutionFallback(
                                             orig_ident.span,
                                         ),
                                     );
@@ -581,7 +590,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                                 None,
                                 ignore_binding,
                             ) {
-                                if use_prelude || this.is_builtin_macro(binding.res()) {
+                                if matches!(use_prelude, UsePrelude::Yes)
+                                    || this.is_builtin_macro(binding.res())
+                                {
                                     result = Ok((binding, Flags::MISC_FROM_PRELUDE));
                                 }
                             }
@@ -589,7 +600,37 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         result
                     }
                     Scope::BuiltinTypes => match this.builtin_types_bindings.get(&ident.name) {
-                        Some(binding) => Ok((*binding, Flags::empty())),
+                        Some(binding) => {
+                            if matches!(ident.name, sym::f16)
+                                && !this.tcx.features().f16
+                                && !ident.span.allows_unstable(sym::f16)
+                                && finalize.is_some()
+                                && innermost_result.is_none()
+                            {
+                                feature_err(
+                                    this.tcx.sess,
+                                    sym::f16,
+                                    ident.span,
+                                    "the type `f16` is unstable",
+                                )
+                                .emit();
+                            }
+                            if matches!(ident.name, sym::f128)
+                                && !this.tcx.features().f128
+                                && !ident.span.allows_unstable(sym::f128)
+                                && finalize.is_some()
+                                && innermost_result.is_none()
+                            {
+                                feature_err(
+                                    this.tcx.sess,
+                                    sym::f128,
+                                    ident.span,
+                                    "the type `f128` is unstable",
+                                )
+                                .emit();
+                            }
+                            Ok((*binding, Flags::empty()))
+                        }
                         None => Err(Determinacy::Determined),
                     },
                 };
@@ -859,7 +900,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             .into_iter()
             .find_map(|binding| if binding == ignore_binding { None } else { binding });
 
-        if let Some(Finalize { path_span, report_private, .. }) = finalize {
+        if let Some(Finalize { path_span, report_private, used, root_span, .. }) = finalize {
             let Some(binding) = binding else {
                 return Err((Determined, Weak::No));
             };
@@ -872,6 +913,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         dedup_span: path_span,
                         outermost_res: None,
                         parent_scope: *parent_scope,
+                        single_nested: path_span != root_span,
                     });
                 } else {
                     return Err((Determined, Weak::No));
@@ -903,7 +945,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                 }
             }
 
-            self.record_use(ident, binding, restricted_shadowing);
+            self.record_use(ident, binding, used);
             return Ok(binding);
         }
 
@@ -1058,7 +1100,6 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
         original_rib_ident_def: Ident,
         all_ribs: &[Rib<'a>],
     ) -> Res {
-        const CG_BUG_STR: &str = "min_const_generics resolve check didn't stop compilation";
         debug!("validate_res_from_ribs({:?})", res);
         let ribs = &all_ribs[rib_index + 1..];
 
@@ -1090,7 +1131,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         | RibKind::ForwardGenericParamBan => {
                             // Nothing to do. Continue.
                         }
-                        RibKind::Item(_) | RibKind::AssocItem => {
+                        RibKind::Item(..) | RibKind::AssocItem => {
                             // This was an attempt to access an upvar inside a
                             // named function item. This is not allowed, so we
                             // report an error.
@@ -1155,7 +1196,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             }
             Res::Def(DefKind::TyParam, _) | Res::SelfTyParam { .. } | Res::SelfTyAlias { .. } => {
                 for rib in ribs {
-                    let has_generic_params: HasGenericParams = match rib.kind {
+                    let (has_generic_params, def_kind) = match rib.kind {
                         RibKind::Normal
                         | RibKind::FnOrCoroutine
                         | RibKind::Module(..)
@@ -1201,8 +1242,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                                                 }
                                             }
                                         };
-                                        self.report_error(span, error);
-                                        self.dcx().span_delayed_bug(span, CG_BUG_STR);
+                                        let _: ErrorGuaranteed = self.report_error(span, error);
                                     }
 
                                     return Res::Err;
@@ -1213,7 +1253,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                         }
 
                         // This was an attempt to use a type parameter outside its scope.
-                        RibKind::Item(has_generic_params) => has_generic_params,
+                        RibKind::Item(has_generic_params, def_kind) => {
+                            (has_generic_params, def_kind)
+                        }
                         RibKind::ConstParamTy => {
                             if let Some(span) = finalize {
                                 self.report_error(
@@ -1231,7 +1273,11 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     if let Some(span) = finalize {
                         self.report_error(
                             span,
-                            ResolutionError::GenericParamsFromOuterItem(res, has_generic_params),
+                            ResolutionError::GenericParamsFromOuterItem(
+                                res,
+                                has_generic_params,
+                                def_kind,
+                            ),
                         );
                     }
                     return Res::Err;
@@ -1239,7 +1285,7 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
             }
             Res::Def(DefKind::ConstParam, _) => {
                 for rib in ribs {
-                    let has_generic_params = match rib.kind {
+                    let (has_generic_params, def_kind) = match rib.kind {
                         RibKind::Normal
                         | RibKind::FnOrCoroutine
                         | RibKind::Module(..)
@@ -1276,7 +1322,9 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                             continue;
                         }
 
-                        RibKind::Item(has_generic_params) => has_generic_params,
+                        RibKind::Item(has_generic_params, def_kind) => {
+                            (has_generic_params, def_kind)
+                        }
                         RibKind::ConstParamTy => {
                             if let Some(span) = finalize {
                                 self.report_error(
@@ -1295,7 +1343,11 @@ impl<'a, 'tcx> Resolver<'a, 'tcx> {
                     if let Some(span) = finalize {
                         self.report_error(
                             span,
-                            ResolutionError::GenericParamsFromOuterItem(res, has_generic_params),
+                            ResolutionError::GenericParamsFromOuterItem(
+                                res,
+                                has_generic_params,
+                                def_kind,
+                            ),
                         );
                     }
                     return Res::Err;

@@ -10,9 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.70"
 name = "ucd-parse"
-version = "0.1.10"
+version = "0.1.13"
 authors = ["Andrew Gallant <jamslam@gmail.com>"]
 description = """
 A library for parsing data files in the Unicode character database.
@@ -29,13 +30,5 @@ keywords = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/BurntSushi/ucd-generate"
 
-[dependencies.once_cell]
-version = "1"
-
-[dependencies.regex]
-version = "1"
-features = [
-    "std",
-    "unicode",
-]
-default-features = false
+[dependencies.regex-lite]
+version = "0.1.0"

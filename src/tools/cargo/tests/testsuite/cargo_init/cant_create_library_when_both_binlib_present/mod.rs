@@ -1,11 +1,12 @@
+use cargo_test_support::current_dir;
+use cargo_test_support::file;
 use cargo_test_support::prelude::*;
+use cargo_test_support::str;
 use cargo_test_support::Project;
-
-use cargo_test_support::curr_dir;
 
 #[cargo_test]
 fn case() {
-    let project = Project::from_template(curr_dir!().join("in"));
+    let project = Project::from_template(current_dir!().join("in"));
     let project_root = &project.root();
 
     snapbox::cmd::Command::cargo_ui()
@@ -13,6 +14,6 @@ fn case() {
         .current_dir(project_root)
         .assert()
         .code(101)
-        .stdout_matches_path(curr_dir!().join("stdout.log"))
-        .stderr_matches_path(curr_dir!().join("stderr.log"));
+        .stdout_matches(str![""])
+        .stderr_matches(file!["stderr.term.svg"]);
 }

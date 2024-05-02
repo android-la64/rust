@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.65"
 name = "gix-pathspec"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Sebastian Thiel <sebastian.thiel@icloud.com>"]
 include = [
     "src/**/*",
@@ -37,16 +37,16 @@ features = ["std"]
 default-features = false
 
 [dependencies.gix-attributes]
-version = "^0.21.1"
+version = "^0.22.0"
 
 [dependencies.gix-config-value]
-version = "^0.14.3"
+version = "^0.14.4"
 
 [dependencies.gix-glob]
-version = "^0.15.1"
+version = "^0.16.0"
 
 [dependencies.gix-path]
-version = "^0.10.3"
+version = "^0.10.4"
 
 [dependencies.thiserror]
 version = "1.0.26"

@@ -2,10 +2,9 @@ use std::{borrow::Cow, vec::IntoIter};
 
 use crate::BuildMethod;
 
-use darling::util::{Flag, PathList};
+use darling::util::{Flag, PathList, SpannedValue};
 use darling::{self, Error, FromMeta};
-use proc_macro2::{Span, TokenStream};
-use syn::parse::{ParseStream, Parser};
+use proc_macro2::Span;
 use syn::Meta;
 use syn::{self, spanned::Spanned, Attribute, Generics, Ident, Path};
 
@@ -62,10 +61,49 @@ fn no_visibility_conflict<T: Visibility>(v: &T) -> darling::Result<()> {
     } else if declares_public && declares_private {
         Err(
             Error::custom(r#"`public` and `private` cannot be used together"#)
-                .with_span(v.public()),
+                .with_span(&v.public().span()),
         )
     } else {
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, FromMeta)]
+struct BuildFnErrorGenerated {
+    /// Indicates whether or not the generated error should have
+    /// a validation variant that takes a `String` as its contents.
+    validation_error: SpannedValue<bool>,
+}
+
+#[derive(Debug, Clone)]
+enum BuildFnError {
+    Existing(Path),
+    Generated(BuildFnErrorGenerated),
+}
+
+impl BuildFnError {
+    fn as_existing(&self) -> Option<&Path> {
+        match self {
+            BuildFnError::Existing(p) => Some(p),
+            BuildFnError::Generated(_) => None,
+        }
+    }
+
+    fn as_generated(&self) -> Option<&BuildFnErrorGenerated> {
+        match self {
+            BuildFnError::Generated(e) => Some(e),
+            BuildFnError::Existing(_) => None,
+        }
+    }
+}
+
+impl FromMeta for BuildFnError {
+    fn from_meta(item: &Meta) -> darling::Result<Self> {
+        match item {
+            Meta::Path(_) => Err(Error::unsupported_format("word").with_span(item)),
+            Meta::List(_) => BuildFnErrorGenerated::from_meta(item).map(Self::Generated),
+            Meta::NameValue(i) => Path::from_expr(&i.value).map(Self::Existing),
+        }
     }
 }
 
@@ -73,7 +111,7 @@ fn no_visibility_conflict<T: Visibility>(v: &T) -> darling::Result<()> {
 /// There is no inheritance for these settings from struct-level to field-level,
 /// so we don't bother using `Option` for values in this struct.
 #[derive(Debug, Clone, FromMeta)]
-#[darling(default)]
+#[darling(default, and_then = Self::validation_needs_error)]
 pub struct BuildFn {
     skip: bool,
     name: Ident,
@@ -81,12 +119,21 @@ pub struct BuildFn {
     public: Flag,
     private: Flag,
     vis: Option<syn::Visibility>,
-    /// The path to an existing error type that the build method should return.
+    /// Either the path to an existing error type that the build method should return or a meta
+    /// list of options to modify the generated error.
     ///
-    /// Setting this will prevent `derive_builder` from generating an error type for the build
-    /// method.
+    /// Setting this to a path will prevent `derive_builder` from generating an error type for the
+    /// build method.
     ///
-    /// # Type Bounds
+    /// This options supports to formats: path `error = "path::to::Error"` and meta list
+    /// `error(<options>)`. Supported mata list options are the following:
+    ///
+    /// * `validation_error = bool` - Whether to generate `ValidationError(String)` as a variant
+    ///   of the build error type. Setting this to `false` will prevent `derive_builder` from
+    ///   using the `validate` function but this also means it does not generate any usage of the
+    ///  `alloc` crate (useful when disabling the `alloc` feature in `no_std`).
+    ///
+    /// # Type Bounds for Custom Error
     /// This type's bounds depend on other settings of the builder.
     ///
     /// * If uninitialized fields cause `build()` to fail, then this type
@@ -94,7 +141,27 @@ pub struct BuildFn {
     ///   when default values are provided for every field or at the struct level.
     /// * If `validate` is specified, then this type must provide a conversion from the specified
     ///   function's error type.
-    error: Option<Path>,
+    error: Option<BuildFnError>,
+}
+
+impl BuildFn {
+    fn validation_needs_error(self) -> darling::Result<Self> {
+        let mut acc = Error::accumulator();
+        if self.validate.is_some() {
+            if let Some(BuildFnError::Generated(e)) = &self.error {
+                if !*e.validation_error {
+                    acc.push(
+                        Error::custom(
+                            "Cannot set `error(validation_error = false)` when using `validate`",
+                        )
+                        .with_span(&e.validation_error.span()),
+                    )
+                }
+            }
+        }
+
+        acc.finish_with(self)
+    }
 }
 
 impl Default for BuildFn {
@@ -158,7 +225,7 @@ pub struct FieldLevelFieldMeta {
     private: Flag,
     vis: Option<syn::Visibility>,
     /// Custom builder field type
-    #[darling(rename = "type")]
+    #[darling(rename = "ty")]
     builder_type: Option<syn::Type>,
     /// Custom builder field method, for making target struct field value
     build: Option<BlockContents>,
@@ -202,14 +269,10 @@ impl StructLevelSetter {
 /// * `each(name = "...")`, which allows setting additional options on the `each` setter
 fn parse_each(meta: &Meta) -> darling::Result<Option<Each>> {
     if let Meta::NameValue(mnv) = meta {
-        if let syn::Lit::Str(v) = &mnv.lit {
-            v.parse::<Ident>()
-                .map(Each::from)
-                .map(Some)
-                .map_err(|_| darling::Error::unknown_value(&v.value()).with_span(v))
-        } else {
-            Err(darling::Error::unexpected_lit_type(&mnv.lit))
-        }
+        Ident::from_meta(meta)
+            .map(Each::from)
+            .map(Some)
+            .map_err(|e| e.with_span(&mnv.value))
     } else {
         Each::from_meta(meta).map(Some)
     }
@@ -226,7 +289,7 @@ pub struct FieldLevelSetter {
     strip_option: Option<bool>,
     skip: Option<bool>,
     custom: Option<bool>,
-    #[darling(with = "parse_each")]
+    #[darling(with = parse_each)]
     each: Option<Each>,
 }
 
@@ -303,7 +366,7 @@ pub struct Field {
     visibility: Option<syn::Visibility>,
     // See the documentation for `FieldSetterMeta` to understand how `darling`
     // is interpreting this field.
-    #[darling(default, with = "field_setter")]
+    #[darling(default, with = field_setter)]
     setter: FieldLevelSetter,
     /// The value for this field if the setter is never invoked.
     ///
@@ -357,19 +420,19 @@ impl Field {
                     darling::Error::custom(
                         r#"#[builder(default)] and #[builder(field(build="..."))] cannot be used together"#,
                     )
-                    .with_span(field_default),
+                    .with_span(&field_default.span()),
                 );
             }
 
-            // `field.type` being set means `default` will not be used, since we don't know how
+            // `field.ty` being set means `default` will not be used, since we don't know how
             // to check a custom field type for the absence of a value and therefore we'll never
             // know that we should use the `default` value.
             if self.field.builder_type.is_some() {
                 errors.push(
                     darling::Error::custom(
-                        r#"#[builder(default)] and #[builder(field(type="..."))] cannot be used together"#,
+                        r#"#[builder(default)] and #[builder(field(ty="..."))] cannot be used together"#,
                     )
-                    .with_span(field_default)
+                    .with_span(&field_default.span())
                 )
             }
         };
@@ -414,7 +477,7 @@ fn distribute_and_unnest_attrs(
     for attr in input.drain(..) {
         let destination = outputs
             .iter_mut()
-            .find(|(ptattr, _)| attr.path.is_ident(ptattr));
+            .find(|(ptattr, _)| attr.path().is_ident(ptattr));
 
         if let Some((_, destination)) = destination {
             match unnest_from_one_attribute(attr) {
@@ -441,7 +504,7 @@ fn unnest_from_one_attribute(attr: syn::Attribute) -> darling::Result<Attribute>
         syn::AttrStyle::Inner(bang) => {
             return Err(darling::Error::unsupported_format(&format!(
                 "{} must be an outer attribute",
-                attr.path
+                attr.path()
                     .get_ident()
                     .map(Ident::to_string)
                     .unwrap_or_else(|| "Attribute".to_string())
@@ -450,34 +513,19 @@ fn unnest_from_one_attribute(attr: syn::Attribute) -> darling::Result<Attribute>
         }
     };
 
-    #[derive(Debug)]
-    struct ContainedAttribute(syn::Attribute);
-    impl syn::parse::Parse for ContainedAttribute {
-        fn parse(input: ParseStream) -> syn::Result<Self> {
-            // Strip parentheses, and save the span of the parenthesis token
-            let content;
-            let paren_token = parenthesized!(content in input);
-            let wrap_span = paren_token.span;
+    let original_span = attr.span();
 
-            // Wrap up in #[ ] instead.
-            let pound = Token![#](wrap_span); // We can't write a literal # inside quote
-            let content: TokenStream = content.parse()?;
-            let content = quote_spanned!(wrap_span=> #pound [ #content ]);
+    let pound = attr.pound_token;
+    let meta = attr.meta;
 
-            let parser = syn::Attribute::parse_outer;
-            let mut attrs = parser.parse2(content)?.into_iter();
-            // TryFrom for Array not available in Rust 1.40
-            // We think this error can never actually happen, since `#[...]` ought to make just one Attribute
-            let attr = match (attrs.next(), attrs.next()) {
-                (Some(attr), None) => attr,
-                _ => return Err(input.error("expected exactly one attribute")),
-            };
-            Ok(Self(attr))
+    match meta {
+        Meta::Path(_) => Err(Error::unsupported_format("word").with_span(&meta)),
+        Meta::NameValue(_) => Err(Error::unsupported_format("name-value").with_span(&meta)),
+        Meta::List(list) => {
+            let inner = list.tokens;
+            Ok(parse_quote_spanned!(original_span=> #pound [ #inner ]))
         }
     }
-
-    let ContainedAttribute(attr) = syn::parse2(attr.tokens)?;
-    Ok(attr)
 }
 
 impl Visibility for Field {
@@ -507,7 +555,7 @@ fn default_create_empty() -> Ident {
     attributes(builder),
     forward_attrs(cfg, allow, builder_struct_attr, builder_impl_attr),
     supports(struct_named),
-    and_then = "Self::unnest_attrs"
+    and_then = Self::unnest_attrs
 )]
 pub struct Options {
     ident: Ident,
@@ -536,7 +584,7 @@ pub struct Options {
 
     /// The path to the root of the derive_builder crate used in generated
     /// code.
-    #[darling(rename = "crate", default = "default_crate_root")]
+    #[darling(rename = "crate", default = default_crate_root)]
     crate_root: Path,
 
     #[darling(default)]
@@ -553,7 +601,7 @@ pub struct Options {
 
     /// The ident of the inherent method which takes no arguments and returns
     /// an instance of the builder with all fields empty.
-    #[darling(default = "default_create_empty")]
+    #[darling(default = default_create_empty)]
     create_empty: Ident,
 
     /// Setter options applied to all field setters in the struct.
@@ -641,7 +689,7 @@ impl Options {
     }
 
     pub fn builder_error_ident(&self) -> Path {
-        if let Some(existing) = self.build_fn.error.as_ref() {
+        if let Some(BuildFnError::Existing(existing)) = self.build_fn.error.as_ref() {
             existing.clone()
         } else if let Some(ref custom) = self.name {
             format_ident!("{}Error", custom).into()
@@ -708,7 +756,20 @@ impl Options {
             fields: Vec::with_capacity(self.field_count()),
             field_initializers: Vec::with_capacity(self.field_count()),
             functions: Vec::with_capacity(self.field_count()),
-            generate_error: self.build_fn.error.is_none(),
+            generate_error: self
+                .build_fn
+                .error
+                .as_ref()
+                .and_then(BuildFnError::as_existing)
+                .is_none(),
+            generate_validation_error: self
+                .build_fn
+                .error
+                .as_ref()
+                .and_then(BuildFnError::as_generated)
+                .map(|e| *e.validation_error)
+                .unwrap_or(true),
+            no_alloc: cfg!(not(any(feature = "alloc", feature = "lib_has_std"))),
             must_derive_clone: self.requires_clone(),
             doc_comment: None,
             deprecation_notes: Default::default(),
@@ -916,12 +977,12 @@ impl<'a> FieldWithDefaults<'a> {
             default_value: self.field.default.as_ref(),
             use_default_struct: self.use_parent_default(),
             conversion: self.conversion(),
-            custom_error_type_span: self
-                .parent
-                .build_fn
-                .error
-                .as_ref()
-                .map(|err_ty| err_ty.span()),
+            custom_error_type_span: self.parent.build_fn.error.as_ref().and_then(|err_ty| {
+                match err_ty {
+                    BuildFnError::Existing(p) => Some(p.span()),
+                    _ => None,
+                }
+            }),
         }
     }
 

@@ -352,7 +352,7 @@ impl<K: Into<Key>, V: Into<Value>> FromIterator<(K, V)> for Value {
 #[cfg(feature = "display")]
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        crate::encode::Encode::encode(self, f, None, ("", ""))
+        crate::encode::encode_value(self, f, None, ("", ""))
     }
 }
 
@@ -375,4 +375,11 @@ mod tests {
         let features: Value = features.iter().cloned().collect();
         assert_eq!(features.to_string(), r#"["node", "mouth"]"#);
     }
+}
+
+#[test]
+#[cfg(feature = "parse")]
+#[cfg(feature = "display")]
+fn string_roundtrip() {
+    Value::from("hello").to_string().parse::<Value>().unwrap();
 }

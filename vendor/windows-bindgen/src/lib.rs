@@ -1,3 +1,7 @@
+/*!
+Learn more about Rust for Windows here: <https://github.com/microsoft/windows-rs>
+*/
+
 mod args;
 mod error;
 mod metadata;
@@ -18,6 +22,7 @@ enum ArgKind {
     Config,
 }
 
+/// Windows metadata compiler.
 pub fn bindgen<I, S>(args: I) -> Result<String>
 where
     I: IntoIterator<Item = S>,
@@ -104,7 +109,7 @@ where
     let output = canonicalize(output)?;
 
     let input = read_input(&input)?;
-    let reader = metadata::Reader::filter(input, &include, &exclude);
+    let reader = metadata::Reader::filter(input, &include, &exclude, &config);
 
     winmd::verify(reader)?;
 
