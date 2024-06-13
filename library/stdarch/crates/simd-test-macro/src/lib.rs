@@ -59,7 +59,7 @@ pub fn simd_test(
     {
         "i686" | "x86_64" | "i586" => "is_x86_feature_detected",
         "arm" | "armv7" => "is_arm_feature_detected",
-        "aarch64" => "is_aarch64_feature_detected",
+        "aarch64" | "arm64ec" => "is_aarch64_feature_detected",
         maybe_riscv if maybe_riscv.starts_with("riscv") => "is_riscv_feature_detected",
         "powerpc" | "powerpcle" => "is_powerpc_feature_detected",
         "powerpc64" | "powerpc64le" => "is_powerpc64_feature_detected",
@@ -78,6 +78,7 @@ pub fn simd_test(
             force_test = true;
             "is_mips64_feature_detected"
         }
+        "loongarch64" => "is_loongarch_feature_detected",
         t => panic!("unknown target: {t}"),
     };
     let macro_test = Ident::new(macro_test, Span::call_site());

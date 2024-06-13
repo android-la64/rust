@@ -889,6 +889,7 @@ fn custom_build_script_rustc_flags() {
     p.cargo("build --verbose")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] foo [..]
 [RUNNING] `rustc --crate-name build_script_build --edition=2015 foo/build.rs [..]
 [RUNNING] `[..]build-script-build`
@@ -950,6 +951,7 @@ fn custom_build_script_rustc_flags_no_space() {
     p.cargo("build --verbose")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] foo [..]
 [RUNNING] `rustc --crate-name build_script_build --edition=2015 foo/build.rs [..]
 [RUNNING] `[..]build-script-build`
@@ -991,8 +993,7 @@ fn links_no_build_cmd() {
 [ERROR] failed to parse manifest at `[..]/foo/Cargo.toml`
 
 Caused by:
-  package `foo v0.5.0 ([CWD])` specifies that it links to `a` but does \
-not have a custom build script
+  package specifies that it links to `a` but does not have a custom build script
 ",
         )
         .run();
@@ -1090,6 +1091,7 @@ fn links_duplicates_old_registry() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.0 ([..])
 [ERROR] multiple packages link to native library `a`, \
@@ -1237,6 +1239,7 @@ fn overrides_and_links() {
     p.cargo("build -v")
         .with_stderr(
             "\
+[..]
 [..]
 [..]
 [..]
@@ -1702,6 +1705,7 @@ fn build_deps_simple() {
     p.cargo("build -v")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] a v0.5.0 ([CWD]/a)
 [RUNNING] `rustc --crate-name a [..]`
 [COMPILING] foo v0.5.0 ([CWD])
@@ -1814,6 +1818,7 @@ fn build_cmd_with_a_build_cmd() {
     p.cargo("build -v")
         .with_stderr(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] b v0.5.0 ([CWD]/b)
 [RUNNING] `rustc --crate-name b [..]`
 [COMPILING] a v0.5.0 ([CWD]/a)
@@ -2989,6 +2994,7 @@ fn flags_go_into_tests() {
     p.cargo("test -v --test=foo")
         .with_stderr(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] a v0.5.0 ([..]
 [RUNNING] `rustc [..] a/build.rs [..]`
 [RUNNING] `[..]/build-script-build`
@@ -3088,6 +3094,7 @@ fn diamond_passes_args_only_once() {
     p.cargo("build -v")
         .with_stderr(
             "\
+[LOCKING] 4 packages to latest compatible versions
 [COMPILING] c v0.5.0 ([..]
 [RUNNING] `rustc [..]`
 [RUNNING] `[..]`
@@ -3967,6 +3974,7 @@ fn warnings_hidden_for_upstream() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.0 ([..])
 [COMPILING] bar v0.1.0
@@ -4028,6 +4036,7 @@ fn warnings_printed_on_vv() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.0 ([..])
 [COMPILING] bar v0.1.0
@@ -4766,6 +4775,7 @@ fn optional_build_dep_and_required_normal_dep() {
         .with_stdout("0")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.5.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -5493,6 +5503,39 @@ for more information about build script outputs.
 }
 
 #[cargo_test]
+fn test_new_syntax_with_compatible_partial_msrv() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                edition = "2015"
+                build = "build.rs"
+                rust-version = "1.77"
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "build.rs",
+            r#"
+                fn main() {
+                    println!("cargo::metadata=foo=bar");
+                }
+            "#,
+        )
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[COMPILING] foo [..]
+",
+        )
+        .run();
+}
+
+#[cargo_test]
 fn test_old_syntax_with_old_msrv() {
     let p = project()
         .file(
@@ -5526,4 +5569,61 @@ fn test_old_syntax_with_old_msrv() {
         .build();
     p.cargo("build -v").run();
     p.cargo("run -v").with_stdout("foo\n").run();
+}
+
+#[cargo_test]
+fn build_script_rerun_when_target_rustflags_change() {
+    let target = rustc_host();
+    let p = project()
+        .file(
+            "src/main.rs",
+            r#"
+            fn main() {
+                #[cfg(enable)]
+                println!("hello");
+            }
+            "#,
+        )
+        .file(
+            "build.rs",
+            r#"
+            use std::env;
+
+            fn main() {
+                if let Ok(rustflags) = env::var("CARGO_ENCODED_RUSTFLAGS") {
+                    if !rustflags.is_empty() {
+                        println!("cargo::rustc-cfg=enable")
+                    }
+                }
+            }
+            "#,
+        )
+        .build();
+
+    p.cargo("run --target")
+        .arg(&target)
+        .with_stderr(
+            "\
+[COMPILING] foo v0.0.1 ([..])
+[FINISHED] [..]
+[RUNNING] [..]
+",
+        )
+        .run();
+
+    p.cargo("run --target")
+        .arg(&target)
+        .env("RUSTFLAGS", "-C opt-level=3")
+        .with_stderr(
+            "\
+[COMPILING] foo v0.0.1 ([..])
+[FINISHED] [..]
+[RUNNING] [..]
+",
+        )
+        .with_stdout(
+            "\
+hello",
+        )
+        .run();
 }

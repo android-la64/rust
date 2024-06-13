@@ -16,7 +16,7 @@ fn do_not_fix_broken_builds() {
             r#"
                 pub fn foo() {
                     let mut x = 3;
-                    drop(x);
+                    let _ = x;
                 }
 
                 pub fn foo2() {
@@ -98,6 +98,7 @@ fn fix_path_deps() {
         .with_stdout("")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.1.0 ([..])
 [FIXED] bar/src/lib.rs (1 fix)
 [CHECKING] foo v0.1.0 ([..])
@@ -171,6 +172,7 @@ fn prepare_for_2018() {
         .build();
 
     let stderr = "\
+[MIGRATING] Cargo.toml from 2015 edition to 2018
 [CHECKING] foo v0.0.1 ([..])
 [MIGRATING] src/lib.rs from 2015 edition to 2018
 [FIXED] src/lib.rs (2 fixes)
@@ -210,6 +212,7 @@ fn local_paths() {
     p.cargo("fix --edition --allow-no-vcs")
         .with_stderr(
             "\
+[MIGRATING] Cargo.toml from 2015 edition to 2018
 [CHECKING] foo v0.0.1 ([..])
 [MIGRATING] src/lib.rs from 2015 edition to 2018
 [FIXED] src/lib.rs (1 fix)
@@ -259,6 +262,7 @@ fn upgrade_extern_crate() {
         .build();
 
     let stderr = "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.1.0 ([..])
 [CHECKING] foo v0.1.0 ([..])
 [FIXED] src/lib.rs (1 fix)
@@ -296,6 +300,7 @@ fn specify_rustflags() {
         .env("RUSTFLAGS", "-C linker=cc")
         .with_stderr(
             "\
+[MIGRATING] Cargo.toml from 2015 edition to 2018
 [CHECKING] foo v0.0.1 ([..])
 [MIGRATING] src/lib.rs from 2015 edition to 2018
 [FIXED] src/lib.rs (1 fix)
@@ -422,7 +427,7 @@ fn fix_deny_warnings() {
         .file(
             "src/lib.rs",
             "#![deny(warnings)]
-             pub fn foo() { let mut x = 3; drop(x); }
+             pub fn foo() { let mut x = 3; let _ = x; }
             ",
         )
         .build();
@@ -498,25 +503,25 @@ fn fix_two_files() {
 #[cargo_test]
 fn fixes_missing_ampersand() {
     let p = project()
-        .file("src/main.rs", "fn main() { let mut x = 3; drop(x); }")
+        .file("src/main.rs", "fn main() { let mut x = 3; let _ = x; }")
         .file(
             "src/lib.rs",
             r#"
-                pub fn foo() { let mut x = 3; drop(x); }
+                pub fn foo() { let mut x = 3; let _ = x; }
 
                 #[test]
-                pub fn foo2() { let mut x = 3; drop(x); }
+                pub fn foo2() { let mut x = 3; let _ = x; }
             "#,
         )
         .file(
             "tests/a.rs",
             r#"
                 #[test]
-                pub fn foo() { let mut x = 3; drop(x); }
+                pub fn foo() { let mut x = 3; let _ = x; }
             "#,
         )
-        .file("examples/foo.rs", "fn main() { let mut x = 3; drop(x); }")
-        .file("build.rs", "fn main() { let mut x = 3; drop(x); }")
+        .file("examples/foo.rs", "fn main() { let mut x = 3; let _ = x; }")
+        .file("build.rs", "fn main() { let mut x = 3; let _ = x; }")
         .build();
 
     p.cargo("fix --all-targets --allow-no-vcs")
@@ -696,8 +701,8 @@ fn does_not_warn_about_dirty_ignored_files() {
 #[cargo_test]
 fn fix_all_targets_by_default() {
     let p = project()
-        .file("src/lib.rs", "pub fn foo() { let mut x = 3; drop(x); }")
-        .file("tests/foo.rs", "pub fn foo() { let mut x = 3; drop(x); }")
+        .file("src/lib.rs", "pub fn foo() { let mut x = 3; let _ = x; }")
+        .file("tests/foo.rs", "pub fn foo() { let mut x = 3; let _ = x; }")
         .build();
     p.cargo("fix --allow-no-vcs")
         .env("__CARGO_FIX_YOLO", "1")
@@ -768,6 +773,7 @@ https://doc.rust-lang.org/edition-guide/editions/transitioning-an-existing-proje
         .masquerade_as_nightly_cargo(&["always_nightly"])
         .with_stderr(&format!(
             "\
+[MIGRATING] Cargo.toml from {latest_stable} edition to {next}
 [CHECKING] foo [..]
 [MIGRATING] src/lib.rs from {latest_stable} edition to {next}
 [FINISHED] [..]
@@ -802,11 +808,11 @@ fn prepare_for_latest_stable() {
     p.cargo("fix --edition --allow-no-vcs")
         .with_stderr(&format!(
             "\
+[MIGRATING] Cargo.toml from {previous} edition to {latest_stable}
 [CHECKING] foo [..]
-[MIGRATING] src/lib.rs from {} edition to {}
+[MIGRATING] src/lib.rs from {previous} edition to {latest_stable}
 [FINISHED] [..]
 ",
-            previous, latest_stable
         ))
         .run();
 }
@@ -909,6 +915,7 @@ fn fix_overlapping() {
     p.cargo("fix --allow-no-vcs --edition --lib")
         .with_stderr(
             "\
+[MIGRATING] Cargo.toml from 2015 edition to 2018
 [CHECKING] foo [..]
 [MIGRATING] src/lib.rs from 2015 edition to 2018
 [FIXED] src/lib.rs (2 fixes)
@@ -1095,6 +1102,7 @@ fn doesnt_rebuild_dependencies() {
         .with_stdout("")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.1.0 ([..])
 [CHECKING] foo v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -1199,6 +1207,8 @@ fn only_warn_for_relevant_crates() {
     p.cargo("fix --allow-no-vcs --edition")
         .with_stderr(
             "\
+[MIGRATING] Cargo.toml from 2015 edition to 2018
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] a v0.1.0 ([..])
 [CHECKING] foo v0.1.0 ([..])
 [MIGRATING] src/lib.rs from 2015 edition to 2018
@@ -1270,7 +1280,7 @@ fn fix_to_broken_code() {
             "#,
         )
         .file("bar/build.rs", "fn main() {}")
-        .file("bar/src/lib.rs", "pub fn foo() { let mut x = 3; drop(x); }")
+        .file("bar/src/lib.rs", "pub fn foo() { let mut x = 3; let _ = x; }")
         .build();
 
     // Build our rustc shim
@@ -1286,7 +1296,7 @@ fn fix_to_broken_code() {
 
     assert_eq!(
         p.read_file("bar/src/lib.rs"),
-        "pub fn foo() { let x = 3; drop(x); }"
+        "pub fn foo() { let x = 3; let _ = x; }"
     );
 }
 
@@ -1394,7 +1404,9 @@ fn edition_v2_resolver_report() {
 
     p.cargo("fix --edition --allow-no-vcs")
         .with_stderr_unordered("\
+[MIGRATING] Cargo.toml from 2018 edition to 2021
 [UPDATING] [..]
+[LOCKING] 4 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] common v1.0.0 [..]
 [DOWNLOADED] bar v1.0.0 [..]
@@ -1472,6 +1484,7 @@ fn fix_edition_2021() {
     p.cargo("fix --edition --allow-no-vcs")
         .with_stderr(
             "\
+[MIGRATING] Cargo.toml from 2018 edition to 2021
 [CHECKING] foo v0.1.0 [..]
 [MIGRATING] src/lib.rs from 2018 edition to 2021
 [FIXED] src/lib.rs (1 fix)
@@ -1515,6 +1528,7 @@ fn fix_shared_cross_workspace() {
         .env("__CARGO_FIX_YOLO", "1")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] foo v0.1.0 [..]
 [CHECKING] bar v0.1.0 [..]
 [FIXED] [..]foo/src/shared.rs (2 fixes)
@@ -1890,4 +1904,426 @@ warning: `foo` (lib) generated 1 warning (run `cargo fix --lib -p foo` to apply 
 [FINISHED] [..]
 ")
         .run();
+}
+
+// This fixes rust-lang/rust#123304.
+// If that lint stops emitting duplicate suggestions,
+// we might need to find a substitution.
+#[cargo_test]
+fn fix_only_once_for_duplicates() {
+    let p = project()
+        .file(
+            "src/lib.rs",
+            r#"
+                #![warn(unsafe_op_in_unsafe_fn)]
+
+                macro_rules! foo {
+                    ($x:ident) => {
+                        pub unsafe fn $x() {
+                            let _ = String::new().as_mut_vec();
+                        }
+                    };
+                }
+
+                foo!(a);
+                foo!(b);
+            "#,
+        )
+        .build();
+
+    p.cargo("fix --allow-no-vcs")
+        .with_stderr(
+            "\
+[CHECKING] foo v0.0.1 ([CWD])
+[FIXED] src/lib.rs (1 fix)
+[FINISHED] `dev` profile [..]
+",
+        )
+        .run();
+
+    assert_eq!(
+        p.read_file("src/lib.rs").matches("unsafe").count(),
+        4,
+        "unsafe keyword in src/lib.rs:\n\
+            2 in lint name;\n\
+            1 from original unsafe fn;\n\
+            1 from newly-applied unsafe blocks"
+    );
+}
+
+#[cargo_test]
+fn migrate_project_to_package() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+cargo-features = ["edition2024"]
+
+# Before project
+[ project ] # After project header
+# After project header line
+name = "foo"
+edition = "2021"
+# After project table
+"#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_stderr(
+            "\
+[MIGRATING] Cargo.toml from 2021 edition to 2024
+[FIXED] Cargo.toml (1 fix)
+[CHECKING] foo v0.0.0 ([CWD])
+[MIGRATING] src/lib.rs from 2021 edition to 2024
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+    assert_eq!(
+        p.read_file("Cargo.toml"),
+        r#"
+cargo-features = ["edition2024"]
+
+# Before project
+[ package ] # After project header
+# After project header line
+name = "foo"
+edition = "2021"
+# After project table
+"#
+    );
+}
+
+#[cargo_test]
+fn migrate_removes_project() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+cargo-features = ["edition2024"]
+
+# Before package
+[ package ] # After package header
+# After package header line
+name = "foo"
+edition = "2021"
+# After package table
+
+# Before project
+[ project ] # After project header
+# After project header line
+name = "foo"
+edition = "2021"
+# After project table
+"#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_stderr(
+            "\
+[MIGRATING] Cargo.toml from 2021 edition to 2024
+[FIXED] Cargo.toml (1 fix)
+[CHECKING] foo v0.0.0 ([CWD])
+[MIGRATING] src/lib.rs from 2021 edition to 2024
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+    assert_eq!(
+        p.read_file("Cargo.toml"),
+        r#"
+cargo-features = ["edition2024"]
+
+# Before package
+[ package ] # After package header
+# After package header line
+name = "foo"
+edition = "2021"
+# After project table
+"#
+    );
+}
+
+#[cargo_test]
+fn migrate_rename_underscore_fields() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+cargo-features = ["edition2024"]
+
+[workspace.dependencies]
+# Before default_features
+a = {path = "a", default_features = false}  # After default_features value
+# After default_features line
+
+[package]
+name = "foo"
+edition = "2021"
+
+[lib]
+name = "foo"
+# Before crate_type
+crate_type = ["staticlib", "dylib"]  # After crate_type value
+# After crate_type line
+
+[[example]]
+name = "ex"
+path = "examples/ex.rs"
+# Before crate_type
+crate_type = ["proc-macro"]  # After crate_type value
+# After crate_type line
+
+# Before dev_dependencies
+[ dev_dependencies ] # After dev_dependencies header
+# After dev_dependencies line
+a = {path = "a", default_features = false}
+# After dev_dependencies table
+
+# Before build_dependencies
+[ build_dependencies ] # After build_dependencies header
+# After build_dependencies line
+a = {path = "a", default_features = false}
+# After build_dependencies table
+
+# Before dev_dependencies
+[ target.'cfg(any())'.dev_dependencies ] # After dev_dependencies header
+# After dev_dependencies line
+a = {path = "a", default_features = false}
+# After dev_dependencies table
+
+# Before build_dependencies
+[ target.'cfg(any())'.build_dependencies ] # After build_dependencies header
+# After build_dependencies line
+a = {path = "a", default_features = false}
+# After build_dependencies table
+"#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "examples/ex.rs",
+            r#"
+                fn main() { println!("ex"); }
+            "#,
+        )
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+
+    p.cargo("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_stderr(
+            "\
+[MIGRATING] Cargo.toml from 2021 edition to 2024
+[FIXED] Cargo.toml (11 fixes)
+     Locking 2 packages to latest compatible versions
+    Checking a v0.0.1 ([CWD]/a)
+[CHECKING] foo v0.0.0 ([CWD])
+[MIGRATING] src/lib.rs from 2021 edition to 2024
+[MIGRATING] examples/ex.rs from 2021 edition to 2024
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+    assert_eq!(
+        p.read_file("Cargo.toml"),
+        r#"
+cargo-features = ["edition2024"]
+
+[workspace.dependencies]
+# Before default_features
+a = {path = "a", default-features = false}  # After default_features value
+# After default_features line
+
+[package]
+name = "foo"
+edition = "2021"
+
+[lib]
+name = "foo"
+# Before crate_type
+crate-type = ["staticlib", "dylib"]  # After crate_type value
+# After crate_type line
+
+[[example]]
+name = "ex"
+path = "examples/ex.rs"
+# Before crate_type
+crate-type = ["proc-macro"]  # After crate_type value
+# After crate_type line
+
+# Before dev_dependencies
+[ dev-dependencies ] # After dev_dependencies header
+# After dev_dependencies line
+a = {path = "a", default-features = false}
+# After dev_dependencies table
+
+# Before build_dependencies
+[ build-dependencies ] # After build_dependencies header
+# After build_dependencies line
+a = {path = "a", default-features = false}
+# After build_dependencies table
+
+# Before dev_dependencies
+[ target.'cfg(any())'.dev-dependencies ] # After dev_dependencies header
+# After dev_dependencies line
+a = {path = "a", default-features = false}
+# After dev_dependencies table
+
+# Before build_dependencies
+[ target.'cfg(any())'.build-dependencies ] # After build_dependencies header
+# After build_dependencies line
+a = {path = "a", default-features = false}
+# After build_dependencies table
+"#,
+    );
+}
+
+#[cargo_test]
+fn add_feature_for_unused_dep() {
+    Package::new("bar", "0.1.0").publish();
+    Package::new("baz", "0.1.0").publish();
+    Package::new("target-dep", "0.1.0").publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+[package]
+name = "foo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bar = { version = "0.1.0", optional = true }
+
+[build-dependencies]
+baz = { version = "0.1.0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+target-dep = { version = "0.1.0", optional = true }
+"#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_stderr(
+            "\
+[MIGRATING] Cargo.toml from 2021 edition to 2024
+[FIXED] Cargo.toml (3 fixes)
+[UPDATING] `dummy-registry` index
+[LOCKING] 4 packages to latest compatible versions
+[CHECKING] foo v0.1.0 ([CWD])
+[MIGRATING] src/lib.rs from 2021 edition to 2024
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+    assert_eq!(
+        p.read_file("Cargo.toml"),
+        r#"
+[package]
+name = "foo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bar = { version = "0.1.0", optional = true }
+
+[build-dependencies]
+baz = { version = "0.1.0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+target-dep = { version = "0.1.0", optional = true }
+
+[features]
+bar = ["dep:bar"]
+baz = ["dep:baz"]
+target-dep = ["dep:target-dep"]
+"#
+    );
+}
+
+#[cargo_test]
+fn add_feature_for_unused_dep_existing_table() {
+    Package::new("bar", "0.1.0").publish();
+    Package::new("baz", "0.1.0").publish();
+    Package::new("target-dep", "0.1.0").publish();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+[package]
+name = "foo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bar = { version = "0.1.0", optional = true }
+
+[build-dependencies]
+baz = { version = "0.1.0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+target-dep = { version = "0.1.0", optional = true }
+
+[features]
+target-dep = ["dep:target-dep"]
+"#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    p.cargo("fix --edition --allow-no-vcs")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_stderr(
+            "\
+[MIGRATING] Cargo.toml from 2021 edition to 2024
+[FIXED] Cargo.toml (2 fixes)
+[UPDATING] `dummy-registry` index
+[LOCKING] 4 packages to latest compatible versions
+[CHECKING] foo v0.1.0 ([CWD])
+[MIGRATING] src/lib.rs from 2021 edition to 2024
+[FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+",
+        )
+        .run();
+    assert_eq!(
+        p.read_file("Cargo.toml"),
+        r#"
+[package]
+name = "foo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bar = { version = "0.1.0", optional = true }
+
+[build-dependencies]
+baz = { version = "0.1.0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+target-dep = { version = "0.1.0", optional = true }
+
+[features]
+target-dep = ["dep:target-dep"]
+bar = ["dep:bar"]
+baz = ["dep:baz"]
+"#
+    );
 }

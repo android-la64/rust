@@ -18,6 +18,8 @@ use crate::{core_arch::simd::*, intrinsics::simd::*, mem, mem::transmute};
 #[cfg(test)]
 use stdarch_test::assert_instr;
 
+use super::macros::*;
+
 types! {
     /// PowerPC-specific 128-bit wide vector of sixteen packed `i8`
     #[unstable(feature = "stdarch_powerpc", issue = "111145")]
@@ -395,182 +397,7 @@ extern "C" {
     fn vrfin(a: vector_float) -> vector_float;
 }
 
-macro_rules! s_t_l {
-    (i32x4) => {
-        vector_signed_int
-    };
-    (i16x8) => {
-        vector_signed_short
-    };
-    (i8x16) => {
-        vector_signed_char
-    };
-
-    (u32x4) => {
-        vector_unsigned_int
-    };
-    (u16x8) => {
-        vector_unsigned_short
-    };
-    (u8x16) => {
-        vector_unsigned_char
-    };
-
-    (f32x4) => {
-        vector_float
-    };
-}
-
-macro_rules! t_t_l {
-    (i32) => {
-        vector_signed_int
-    };
-    (i16) => {
-        vector_signed_short
-    };
-    (i8) => {
-        vector_signed_char
-    };
-
-    (u32) => {
-        vector_unsigned_int
-    };
-    (u16) => {
-        vector_unsigned_short
-    };
-    (u8) => {
-        vector_unsigned_char
-    };
-
-    (f32) => {
-        vector_float
-    };
-}
-
-macro_rules! t_t_s {
-    (i32) => {
-        i32x4
-    };
-    (i16) => {
-        i16x8
-    };
-    (i8) => {
-        i8x16
-    };
-
-    (u32) => {
-        u32x4
-    };
-    (u16) => {
-        u16x8
-    };
-    (u8) => {
-        u8x16
-    };
-
-    (f32) => {
-        f32x4
-    };
-}
-
-macro_rules! t_u {
-    (vector_bool_char) => {
-        vector_unsigned_char
-    };
-    (vector_bool_short) => {
-        vector_unsigned_short
-    };
-    (vector_bool_int) => {
-        vector_unsigned_int
-    };
-    (vector_unsigned_char) => {
-        vector_unsigned_char
-    };
-    (vector_unsigned_short) => {
-        vector_unsigned_short
-    };
-    (vector_unsigned_int) => {
-        vector_unsigned_int
-    };
-    (vector_signed_char) => {
-        vector_unsigned_char
-    };
-    (vector_signed_short) => {
-        vector_unsigned_short
-    };
-    (vector_signed_int) => {
-        vector_unsigned_int
-    };
-    (vector_float) => {
-        vector_unsigned_int
-    };
-}
-
-macro_rules! t_b {
-    (vector_bool_char) => {
-        vector_bool_char
-    };
-    (vector_bool_short) => {
-        vector_bool_short
-    };
-    (vector_bool_int) => {
-        vector_bool_int
-    };
-    (vector_signed_char) => {
-        vector_bool_char
-    };
-    (vector_signed_short) => {
-        vector_bool_short
-    };
-    (vector_signed_int) => {
-        vector_bool_int
-    };
-    (vector_unsigned_char) => {
-        vector_bool_char
-    };
-    (vector_unsigned_short) => {
-        vector_bool_short
-    };
-    (vector_unsigned_int) => {
-        vector_bool_int
-    };
-    (vector_float) => {
-        vector_bool_int
-    };
-}
-
-macro_rules! impl_from {
-    ($s: ident) => {
-        #[unstable(feature = "stdarch_powerpc", issue = "111145")]
-        impl From<$s> for s_t_l!($s) {
-            fn from (v: $s) -> Self {
-                unsafe {
-                    transmute(v)
-                }
-            }
-        }
-    };
-    ($($s: ident),*) => {
-        $(
-            impl_from! { $s }
-        )*
-    };
-}
-
 impl_from! { i8x16, u8x16,  i16x8, u16x8, i32x4, u32x4, f32x4 }
-
-macro_rules! impl_neg {
-    ($s: ident : $zero: expr) => {
-        #[unstable(feature = "stdarch_powerpc", issue = "111145")]
-        impl crate::ops::Neg for s_t_l!($s) {
-            type Output = s_t_l!($s);
-            fn neg(self) -> Self::Output {
-                let zero = $s::splat($zero);
-                unsafe { transmute(simd_sub(zero, transmute(self))) }
-            }
-        }
-    };
-}
 
 impl_neg! { i8x16 : 0 }
 impl_neg! { i16x8 : 0 }
@@ -1654,16 +1481,26 @@ mod sealed {
     impl_vec_splat! { vector_bool_int, vspltw }
 
     macro_rules! splat {
-        ($name:ident, $v:ident, $r:ident [$instr:ident, $doc:literal]) => {
+        ($name:ident, $v:ident, $r:ident [$instr_altivec:ident / $instr_pwr9:ident, $doc:literal]) => {
             #[doc = $doc]
             #[inline]
             #[target_feature(enable = "altivec")]
-            #[cfg_attr(test, assert_instr($instr, IMM5 = 1))]
+            #[cfg_attr(
+                all(test, not(target_feature = "vsx")),
+                assert_instr($instr_altivec, IMM5 = 1)
+            )]
+            #[cfg_attr(
+                all(test, target_feature = "power9-vector"),
+                assert_instr($instr_pwr9, IMM5 = 1)
+            )]
             #[unstable(feature = "stdarch_powerpc", issue = "111145")]
             pub unsafe fn $name<const IMM5: i8>() -> s_t_l!($r) {
                 static_assert_simm_bits!(IMM5, 5);
                 transmute($r::splat(IMM5 as $v))
             }
+        };
+        ($name:ident, $v:ident, $r:ident [$instr:ident, $doc:literal]) => {
+            splat! { $name, $v, $r [$instr / $instr, $doc] }
         };
     }
 
@@ -1687,11 +1524,11 @@ mod sealed {
 
     test_impl! { vec_splats_u8 (v: u8) -> vector_unsigned_char [splats_u8, vspltb] }
     test_impl! { vec_splats_u16 (v: u16) -> vector_unsigned_short [splats_u16, vsplth] }
-    test_impl! { vec_splats_u32 (v: u32) -> vector_unsigned_int [splats_u32, vspltw / xxspltw] }
+    test_impl! { vec_splats_u32 (v: u32) -> vector_unsigned_int [splats_u32, vspltw / xxspltw / mtvsrws] }
     test_impl! { vec_splats_i8 (v: i8) -> vector_signed_char [splats_i8, vspltb] }
     test_impl! { vec_splats_i16 (v: i16) -> vector_signed_short [splats_i16, vsplth] }
-    test_impl! { vec_splats_i32 (v: i32) -> vector_signed_int [splats_i32, vspltw / xxspltw] }
-    test_impl! { vec_splats_f32 (v: f32) -> vector_float [splats_f32, vspltw / xxspltw] }
+    test_impl! { vec_splats_i32 (v: i32) -> vector_signed_int [splats_i32, vspltw / xxspltw / mtvsrws] }
+    test_impl! { vec_splats_f32 (v: f32) -> vector_float [splats_f32, vspltw / xxspltw / mtvsrws] }
 
     #[unstable(feature = "stdarch_powerpc", issue = "111145")]
     pub trait VectorSplats {
@@ -3996,8 +3833,8 @@ where
     a.vec_splat::<IMM>()
 }
 
-splat! { vec_splat_u8, u8, u8x16 [vspltisb, "Vector Splat to Unsigned Byte"] }
-splat! { vec_splat_s8, i8, i8x16 [vspltisb, "Vector Splat to Signed Byte"] }
+splat! { vec_splat_u8, u8, u8x16 [vspltisb / xxspltib, "Vector Splat to Unsigned Byte"] }
+splat! { vec_splat_s8, i8, i8x16 [vspltisb / xxspltib, "Vector Splat to Signed Byte"] }
 splat! { vec_splat_u16, u16, u16x8 [vspltish, "Vector Splat to Unsigned Halfword"] }
 splat! { vec_splat_s16, i16, i16x8 [vspltish, "Vector Splat to Signed Halfword"] }
 splat! { vec_splat_u32, u32, u32x4 [vspltisw, "Vector Splat to Unsigned Word"] }
@@ -4641,11 +4478,7 @@ pub use self::endian::*;
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_arch = "powerpc")]
-    use crate::core_arch::arch::powerpc::*;
-
-    #[cfg(target_arch = "powerpc64")]
-    use crate::core_arch::arch::powerpc64::*;
+    use super::*;
 
     use std::mem::transmute;
 

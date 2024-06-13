@@ -352,10 +352,11 @@ pub trait CommandExt: Sized {
     }
 
     fn arg_ignore_rust_version(self) -> Self {
-        self._arg(flag(
-            "ignore-rust-version",
-            "Ignore `rust-version` specification in packages",
-        ))
+        self.arg_ignore_rust_version_with_help("Ignore `rust-version` specification in packages")
+    }
+
+    fn arg_ignore_rust_version_with_help(self, help: &'static str) -> Self {
+        self._arg(flag("ignore-rust-version", help).help_heading(heading::MANIFEST_OPTIONS))
     }
 
     fn arg_future_incompat_report(self) -> Self {
@@ -504,6 +505,7 @@ pub trait ArgMatchesExt {
     fn workspace<'a>(&self, gctx: &'a GlobalContext) -> CargoResult<Workspace<'a>> {
         let root = self.root_manifest(gctx)?;
         let mut ws = Workspace::new(&root, gctx)?;
+        ws.set_resolve_honors_rust_version(self.honor_rust_version());
         if gctx.cli_unstable().avoid_dev_deps {
             ws.set_require_optional_deps(false);
         }
@@ -532,6 +534,10 @@ pub trait ArgMatchesExt {
 
     fn keep_going(&self) -> bool {
         self.maybe_flag("keep-going")
+    }
+
+    fn honor_rust_version(&self) -> Option<bool> {
+        self.flag("ignore-rust-version").then_some(false)
     }
 
     fn targets(&self) -> CargoResult<Vec<String>> {
@@ -763,7 +769,7 @@ Run `{cmd}` to see possible targets."
             target_rustc_args: None,
             target_rustc_crate_types: None,
             rustdoc_document_private_items: false,
-            honor_rust_version: !self.flag("ignore-rust-version"),
+            honor_rust_version: self.honor_rust_version(),
         };
 
         if let Some(ws) = workspace {

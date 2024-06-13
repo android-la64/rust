@@ -15950,7 +15950,7 @@ pub unsafe fn _mm512_setzero_pd() -> __m512d {
     mem::zeroed()
 }
 
-/// Returns vector of type `__m512d` with all elements set to zero.
+/// Returns vector of type `__m512` with all elements set to zero.
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_setzero_ps&expand=5021)
 #[inline]
@@ -15962,7 +15962,7 @@ pub unsafe fn _mm512_setzero_ps() -> __m512 {
     mem::zeroed()
 }
 
-/// Return vector of type __m512 with all elements set to zero.
+/// Return vector of type `__m512` with all elements set to zero.
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_setzero&expand=5014)
 #[inline]
@@ -15986,7 +15986,7 @@ pub unsafe fn _mm512_setzero_si512() -> __m512i {
     mem::zeroed()
 }
 
-/// Return vector of type __m512i with all elements set to zero.
+/// Return vector of type `__m512i` with all elements set to zero.
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_setzero_epi32&expand=5015)
 #[inline]
@@ -28363,8 +28363,7 @@ pub unsafe fn _mm_maskz_set1_epi64(k: __mmask8, a: i64) -> __m128i {
 #[target_feature(enable = "avx512f")]
 #[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 pub unsafe fn _mm512_set4_epi64(d: i64, c: i64, b: i64, a: i64) -> __m512i {
-    let r = i64x8::new(d, c, b, a, d, c, b, a);
-    transmute(r)
+    _mm512_set_epi64(d, c, b, a, d, c, b, a)
 }
 
 /// Set packed 64-bit integers in dst with the repeated 4 element sequence in reverse order.
@@ -28374,8 +28373,7 @@ pub unsafe fn _mm512_set4_epi64(d: i64, c: i64, b: i64, a: i64) -> __m512i {
 #[target_feature(enable = "avx512f")]
 #[unstable(feature = "stdarch_x86_avx512", issue = "111137")]
 pub unsafe fn _mm512_setr4_epi64(d: i64, c: i64, b: i64, a: i64) -> __m512i {
-    let r = i64x8::new(a, b, c, d, a, b, c, d);
-    transmute(r)
+    _mm512_set_epi64(a, b, c, d, a, b, c, d)
 }
 
 /// Compare packed single-precision (32-bit) floating-point elements in a and b for less-than, and store the results in mask vector k.
@@ -34486,7 +34484,7 @@ pub unsafe fn _mm_maskz_expandloadu_ps(k: __mmask8, mem_addr: *const f32) -> __m
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_mask_expandloadu_pd)
 #[inline]
@@ -34508,7 +34506,7 @@ pub unsafe fn _mm512_mask_expandloadu_pd(
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm512_maskz_expandloadu_pd)
 #[inline]
@@ -34526,7 +34524,7 @@ pub unsafe fn _mm512_maskz_expandloadu_pd(k: __mmask8, mem_addr: *const f64) -> 
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_mask_expandloadu_pd)
 #[inline]
@@ -34548,7 +34546,7 @@ pub unsafe fn _mm256_mask_expandloadu_pd(
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm256_maskz_expandloadu_pd)
 #[inline]
@@ -34566,7 +34564,7 @@ pub unsafe fn _mm256_maskz_expandloadu_pd(k: __mmask8, mem_addr: *const f64) -> 
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using writemask k (elements are copied from src when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_mask_expandloadu_pd)
 #[inline]
@@ -34584,7 +34582,7 @@ pub unsafe fn _mm_mask_expandloadu_pd(src: __m128d, k: __mmask8, mem_addr: *cons
     dst
 }
 
-/// Load contiguous active single-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
+/// Load contiguous active double-precision (64-bit) floating-point elements from unaligned memory at mem_addr (those with their respective bit set in mask k), and store the results in dst using zeromask k (elements are zeroed out when the corresponding mask bit is not set).
 ///
 /// [Intel's documentation](https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_mm_maskz_expandloadu_pd)
 #[inline]

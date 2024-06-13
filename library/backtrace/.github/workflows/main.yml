@@ -26,14 +26,18 @@ jobs:
             rust: stable
           - os: macos-latest
             rust: nightly
-          # Note that these are on nightly due to rust-lang/rust#63700 not being
-          # on stable yet
           - os: windows-latest
             rust: stable-x86_64-msvc
           - os: windows-latest
             rust: stable-i686-msvc
           - os: windows-latest
             rust: stable-x86_64-gnu
+          - os: windows-latest
+            rust: nightly-x86_64-msvc
+          - os: windows-latest
+            rust: nightly-i686-msvc
+          - os: windows-latest
+            rust: nightly-x86_64-gnu
     steps:
     - uses: actions/checkout@v3
       with:
@@ -49,11 +53,10 @@ jobs:
     - name: Force frame pointers
       run: echo RUSTFLAGS="-Cforce-frame-pointers $RUSTFLAGS" >> $GITHUB_ENV
       shell: bash
-      if: matrix.rust == 'stable-i686-msvc'
+      if: contains(matrix.rust, 'i686')
 
     - run: cargo build
     - run: cargo test
-    - run: cargo test --features "serialize-rustc"
     - run: cargo test --features "serialize-serde"
     - run: cargo test --features "verify-winapi"
     - run: cargo test --features "cpp_demangle"
@@ -234,7 +237,13 @@ jobs:
 
   msrv:
     name: MSRV
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-20.04
+          - os: windows-latest
     steps:
     - uses: actions/checkout@v3
       with:

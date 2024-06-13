@@ -268,6 +268,8 @@ fn outdated_lock_version_change_does_not_warn() {
     p.cargo("package --no-verify")
         .with_stderr(
             "\
+[LOCKING] 1 package to latest compatible version
+[UPDATING] foo v0.1.0 ([CWD]) -> v0.2.0
 [PACKAGING] foo v0.2.0 ([..])
 [PACKAGED] [..] files, [..] ([..] compressed)
 ",
@@ -413,6 +415,7 @@ dependencies = [
             "\
 [UPDATING] `[..]` index
 [INSTALLING] foo v0.1.0
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.1 (registry `[..]`)
 [COMPILING] bar v0.1.1

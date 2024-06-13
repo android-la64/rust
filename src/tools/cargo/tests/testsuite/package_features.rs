@@ -59,6 +59,7 @@ fn virtual_no_default_features() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 3 packages to latest compatible versions
 [CHECKING] a v0.1.0 [..]
 [CHECKING] b v0.1.0 [..]
 [FINISHED] [..]
@@ -152,6 +153,7 @@ fn virtual_features() {
     p.cargo("check --features f1")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] a [..]
 [CHECKING] b [..]
 [FINISHED] [..]
@@ -223,6 +225,7 @@ fn virtual_with_specific() {
 [CHECKING] a [..]
 [CHECKING] b [..]
 [FINISHED] [..]
+[LOCKING] 2 packages to latest compatible versions
 ",
         )
         .run();
@@ -497,6 +500,7 @@ fn non_member() {
         .with_stderr(
             "\
 [UPDATING] [..]
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] [..]
 [DOWNLOADED] [..]
 [CHECKING] dep [..]

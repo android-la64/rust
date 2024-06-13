@@ -1020,6 +1020,31 @@ impl GlobalContext {
         unstable_flags: &[String],
         cli_config: &[String],
     ) -> CargoResult<()> {
+        for warning in self
+            .unstable_flags
+            .parse(unstable_flags, self.nightly_features_allowed)?
+        {
+            self.shell().warn(warning)?;
+        }
+        if !unstable_flags.is_empty() {
+            // store a copy of the cli flags separately for `load_unstable_flags_from_config`
+            // (we might also need it again for `reload_rooted_at`)
+            self.unstable_flags_cli = Some(unstable_flags.to_vec());
+        }
+        if !cli_config.is_empty() {
+            self.cli_config = Some(cli_config.iter().map(|s| s.to_string()).collect());
+            self.merge_cli_args()?;
+        }
+        if self.unstable_flags.config_include {
+            // If the config was already loaded (like when fetching the
+            // `[alias]` table), it was loaded with includes disabled because
+            // the `unstable_flags` hadn't been set up, yet. Any values
+            // fetched before this step will not process includes, but that
+            // should be fine (`[alias]` is one of the only things loaded
+            // before configure). This can be removed when stabilized.
+            self.reload_rooted_at(self.cwd.clone())?;
+        }
+
         // Ignore errors in the configuration files. We don't want basic
         // commands like `cargo version` to error out due to config file
         // problems.
@@ -1065,31 +1090,6 @@ impl GlobalContext {
                 .unwrap_or(false);
         let cli_target_dir = target_dir.as_ref().map(|dir| Filesystem::new(dir.clone()));
         self.target_dir = cli_target_dir;
-
-        for warning in self
-            .unstable_flags
-            .parse(unstable_flags, self.nightly_features_allowed)?
-        {
-            self.shell().warn(warning)?;
-        }
-        if !unstable_flags.is_empty() {
-            // store a copy of the cli flags separately for `load_unstable_flags_from_config`
-            // (we might also need it again for `reload_rooted_at`)
-            self.unstable_flags_cli = Some(unstable_flags.to_vec());
-        }
-        if !cli_config.is_empty() {
-            self.cli_config = Some(cli_config.iter().map(|s| s.to_string()).collect());
-            self.merge_cli_args()?;
-        }
-        if self.unstable_flags.config_include {
-            // If the config was already loaded (like when fetching the
-            // `[alias]` table), it was loaded with includes disabled because
-            // the `unstable_flags` hadn't been set up, yet. Any values
-            // fetched before this step will not process includes, but that
-            // should be fine (`[alias]` is one of the only things loaded
-            // before configure). This can be removed when stabilized.
-            self.reload_rooted_at(self.cwd.clone())?;
-        }
 
         self.load_unstable_flags_from_config()?;
 
@@ -1537,36 +1537,32 @@ impl GlobalContext {
         let possible = dir.join(filename_without_extension);
         let possible_with_extension = dir.join(format!("{}.toml", filename_without_extension));
 
-        if possible.exists() {
+        if let Ok(possible_handle) = same_file::Handle::from_path(&possible) {
             if warn {
-                // We don't want to print a warning if the version
-                // without the extension is just a symlink to the version
-                // WITH an extension, which people may want to do to
-                // support multiple Cargo versions at once and not
-                // get a warning.
-                let skip_warning = if let Ok(target_path) = fs::read_link(&possible) {
-                    target_path == possible_with_extension
-                } else {
-                    false
-                };
-
-                if !skip_warning {
-                    if possible_with_extension.exists() {
+                if let Ok(possible_with_extension_handle) =
+                    same_file::Handle::from_path(&possible_with_extension)
+                {
+                    // We don't want to print a warning if the version
+                    // without the extension is just a symlink to the version
+                    // WITH an extension, which people may want to do to
+                    // support multiple Cargo versions at once and not
+                    // get a warning.
+                    if possible_handle != possible_with_extension_handle {
                         self.shell().warn(format!(
                             "both `{}` and `{}` exist. Using `{}`",
                             possible.display(),
                             possible_with_extension.display(),
                             possible.display()
                         ))?;
-                    } else {
-                        self.shell().warn(format!(
-                            "`{}` is deprecated in favor of `{filename_without_extension}.toml`",
-                            possible.display(),
-                        ))?;
-                        self.shell().note(
-                            format!("if you need to support cargo 1.38 or earlier, you can symlink `{filename_without_extension}` to `{filename_without_extension}.toml`"),
-                        )?;
                     }
+                } else {
+                    self.shell().warn(format!(
+                        "`{}` is deprecated in favor of `{filename_without_extension}.toml`",
+                        possible.display(),
+                    ))?;
+                    self.shell().note(
+                        format!("if you need to support cargo 1.38 or earlier, you can symlink `{filename_without_extension}` to `{filename_without_extension}.toml`"),
+                    )?;
                 }
             }
 
@@ -2514,6 +2510,7 @@ impl<'de> Deserialize<'de> for SslVersionConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
 pub struct SslVersionConfigRange {
     pub min: Option<String>,
     pub max: Option<String>,
@@ -2643,7 +2640,21 @@ impl BuildTargetConfig {
     }
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct CargoResolverConfig {
+    pub something_like_precedence: Option<CargoResolverPrecedence>,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CargoResolverPrecedence {
+    SomethingLikeMaximum,
+    SomethingLikeRustVersion,
+}
+
 #[derive(Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
 pub struct TermConfig {
     pub verbose: Option<bool>,
     pub quiet: Option<bool>,
@@ -2656,13 +2667,14 @@ pub struct TermConfig {
 }
 
 #[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProgressConfig {
     pub when: ProgressWhen,
     pub width: Option<usize>,
 }
 
 #[derive(Debug, Default, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum ProgressWhen {
     #[default]
     Auto,

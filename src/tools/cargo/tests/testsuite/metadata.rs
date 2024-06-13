@@ -1622,7 +1622,7 @@ fn workspace_metadata_with_dependencies_and_resolve() {
                       "kind": [
                         "lib"
                       ],
-                      "name": "non-artifact",
+                      "name": "non_artifact",
                       "src_path": "[..]/foo/non-artifact/src/lib.rs",
                       "test": true
                     }
@@ -1915,6 +1915,7 @@ fn cargo_metadata_with_invalid_artifact_deps() {
         .with_stderr(
             "\
 [WARNING] please specify `--format-version` flag explicitly to avoid compatibility problems
+[LOCKING] 2 packages to latest compatible versions
 [ERROR] dependency `artifact` in package `foo` requires a `bin:notfound` artifact to be present.",
         )
         .run();
@@ -1945,6 +1946,7 @@ fn cargo_metadata_with_invalid_duplicate_renamed_deps() {
         .with_stderr(
             "\
 [WARNING] please specify `--format-version` flag explicitly to avoid compatibility problems
+[LOCKING] 2 packages to latest compatible versions
 [ERROR] the crate `foo v0.5.0 ([..])` depends on crate `bar v0.5.0 ([..])` multiple times with different names",
         )
         .run();
@@ -3114,7 +3116,7 @@ fn filter_platform() {
           "crate_types": [
             "lib"
           ],
-          "name": "alt-dep",
+          "name": "alt_dep",
           "src_path": "[..]/alt-dep-0.0.1/src/lib.rs",
           "edition": "2015",
           "test": true,
@@ -3158,7 +3160,7 @@ fn filter_platform() {
           "crate_types": [
             "lib"
           ],
-          "name": "cfg-dep",
+          "name": "cfg_dep",
           "src_path": "[..]/cfg-dep-0.0.1/src/lib.rs",
           "edition": "2015",
           "test": true,
@@ -3202,7 +3204,7 @@ fn filter_platform() {
           "crate_types": [
             "lib"
           ],
-          "name": "host-dep",
+          "name": "host_dep",
           "src_path": "[..]/host-dep-0.0.1/src/lib.rs",
           "edition": "2015",
           "test": true,
@@ -3246,7 +3248,7 @@ fn filter_platform() {
           "crate_types": [
             "lib"
           ],
-          "name": "normal-dep",
+          "name": "normal_dep",
           "src_path": "[..]/normal-dep-0.0.1/src/lib.rs",
           "edition": "2015",
           "test": true,
@@ -3396,6 +3398,7 @@ fn filter_platform() {
             "\
 [UPDATING] [..]
 [WARNING] please specify `--format-version` flag explicitly to avoid compatibility problems
+[LOCKING] 5 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] normal-dep v0.0.1 [..]
 [DOWNLOADED] host-dep v0.0.1 [..]
@@ -4540,6 +4543,112 @@ fn versionless_packages() {
   "metadata": null
 }
 "#,
+        )
+        .run();
+}
+
+/// Record how TOML-specific types are deserialized by `toml` so we can make sure we know if these change and
+/// can have a conversation about what should be done.
+#[cargo_test]
+fn cargo_metadata_toml_types() {
+    let p = project()
+        .file("src/lib.rs", "")
+        .file(
+            "Cargo.toml",
+            "
+[package]
+name = 'foo'
+edition = '2015'
+
+[package.metadata]
+offset-datetime = 1979-05-27T07:32:00Z
+local-datetime = 1979-05-27T07:32:00
+local-date = 1979-05-27
+local-time = 1979-05-27
+",
+        )
+        .build();
+
+    p.cargo("metadata")
+        .with_json(
+            r#"
+    {
+        "packages": [
+            {
+                "authors": [],
+                "categories": [],
+                "default_run": null,
+                "name": "foo",
+                "version": "0.0.0",
+                "id": "[..]foo#0.0.0",
+                "keywords": [],
+                "source": null,
+                "dependencies": [],
+                "edition": "2015",
+                "license": null,
+                "license_file": null,
+                "links": null,
+                "description": null,
+                "readme": null,
+                "repository": null,
+                "rust_version": null,
+                "homepage": null,
+                "documentation": null,
+                "homepage": null,
+                "documentation": null,
+                "targets": [
+                    {
+                        "kind": [
+                            "lib"
+                        ],
+                        "crate_types": [
+                            "lib"
+                        ],
+                        "doc": true,
+                        "doctest": true,
+                        "test": true,
+                        "edition": "2015",
+                        "name": "foo",
+                        "src_path": "[..]/foo/src/lib.rs"
+                    }
+                ],
+                "features": {},
+                "manifest_path": "[..]Cargo.toml",
+                "metadata": {
+                  "local-date": {
+                    "$__toml_private_datetime": "1979-05-27"
+                  },
+                  "local-datetime": {
+                    "$__toml_private_datetime": "1979-05-27T07:32:00"
+                  },
+                  "local-time": {
+                    "$__toml_private_datetime": "1979-05-27"
+                  },
+                  "offset-datetime": {
+                    "$__toml_private_datetime": "1979-05-27T07:32:00Z"
+                  }
+                },
+                "publish": []
+            }
+        ],
+        "workspace_members": ["path+file:[..]foo#0.0.0"],
+        "workspace_default_members": ["path+file:[..]foo#0.0.0"],
+        "resolve": {
+            "nodes": [
+                {
+                    "dependencies": [],
+                    "deps": [],
+                    "features": [],
+                    "id": "path+file:[..]foo#0.0.0"
+                }
+            ],
+            "root": "path+file:[..]foo#0.0.0"
+        },
+        "target_directory": "[..]foo/target",
+        "version": 1,
+        "workspace_root": "[..]/foo",
+        "metadata": null
+    }"#,
         )
         .run();
 }

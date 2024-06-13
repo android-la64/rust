@@ -149,6 +149,12 @@ ABI Changes in This Version
 - Following the SystemV ABI for x86-64, ``__int128`` arguments will no longer
   be split between a register and a stack slot.
 
+- Fixed Microsoft calling convention for returning certain classes with a
+  templated constructor. If a class has a templated constructor, it should
+  be returned indirectly even if it meets all the other requirements for
+  returning a class in a register. This affects some uses of std::pair.
+  (#GH86384).
+
 AST Dumping Potentially Breaking Changes
 ----------------------------------------
 - When dumping a sugared type, Clang will no longer print the desugared type if
@@ -899,6 +905,9 @@ Bug Fixes in This Version
 - Clang now doesn't produce false-positive warning `-Wconstant-logical-operand`
   for logical operators in C23.
   Fixes (`#64356 <https://github.com/llvm/llvm-project/issues/64356>`_).
+- Clang's ``-Wshadow`` no longer warns when an init-capture is named the same as
+  a class field unless the lambda can capture this.
+  Fixes (`#71976 <https://github.com/llvm/llvm-project/issues/71976>`_)
 
 Bug Fixes to Compiler Builtins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1105,6 +1114,10 @@ Bug Fixes to C++ Support
   (`#82258 <https://github.com/llvm/llvm-project/issues/82258>`_)
 - Fix a crash when an unresolved overload set is encountered on the RHS of a ``.*`` operator.
   (`#53815 <https://github.com/llvm/llvm-project/issues/53815>`_)
+
+- Fixed a regression in CTAD that a friend declaration that befriends itself may cause
+  incorrect constraint substitution.
+  (`#86769 <https://github.com/llvm/llvm-project/issues/86769>`_)
 
 Bug Fixes to AST Handling
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1466,6 +1479,10 @@ Crash and bug fixes
 
 - Fix false positive in mutation check when using pointer to member function.
   (`#66204 <https://github.com/llvm/llvm-project/issues/66204>`_)
+
+- Fixed a crash in ``security.cert.env.InvalidPtr`` checker when accidentally
+  matched user-defined ``strerror`` and similar library functions.
+  (`#88181 <https://github.com/llvm/llvm-project/issues/88181>`_)
 
 Improvements
 ^^^^^^^^^^^^

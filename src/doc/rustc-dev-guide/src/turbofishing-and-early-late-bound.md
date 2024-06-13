@@ -91,7 +91,7 @@ fn accepts_fn_2(_: impl Fn(&'static ()) -> &'static ()) {}
 fn main() {
     let f = late::<'static>;
     
-    accepts_fn(f); //~ error: `f` doesnt implement `for<'a> Fn(&'a ()) -> &'a ()`
+    accepts_fn(f); //~ error: `f` doesn't implement `for<'a> Fn(&'a ()) -> &'a ()`
     accepts_fn_2(f) // works
     
     accepts_fn(late) // works
@@ -113,8 +113,8 @@ fn main() {
     accepts_fn(f);
 }
 ```
-Maybe we can just special case astconv for `_`/`'_` arguments for late bound parameters somehow
-and have it not mean the same thing as `_` for early bound parameters. Regardless I think we
-would need a solution that would allow writing the above code even if it was done by some new
-syntax such as havign to write `late::<k#no_argument, 'static>` (naturally `k#no_argument`
-would only make sense as an argument to late bound parameters).
+Maybe we can just special case HIR ty lowering for `_`/`'_` arguments for late bound
+parameters somehow and have it not mean the same thing as `_` for early bound parameters.
+Regardless I think we would need a solution that would allow writing the above code even
+if it was done by some new syntax such as having to write `late::<k#no_argument, 'static>`
+(naturally `k#no_argument` would only make sense as an argument to late bound parameters).

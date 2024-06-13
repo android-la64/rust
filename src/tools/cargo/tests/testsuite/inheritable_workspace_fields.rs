@@ -245,7 +245,7 @@ repository = "https://github.com/example/example"
 branch = "master"
 repository = "https://gitlab.com/rust-lang/rust"
 "#,
-                cargo::core::package::MANIFEST_PREAMBLE
+                cargo::core::manifest::MANIFEST_PREAMBLE
             ),
         )],
     );
@@ -294,6 +294,7 @@ fn inherit_own_dependencies() {
         .with_stderr_unordered(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 4 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] dep v0.1.2 ([..])
 [DOWNLOADED] dep-build v0.8.2 ([..])
@@ -405,7 +406,7 @@ version = "0.5.2"
 [build-dependencies.dep-build]
 version = "0.8"
 "#,
-                cargo::core::package::MANIFEST_PREAMBLE
+                cargo::core::manifest::MANIFEST_PREAMBLE
             ),
         )],
     );
@@ -445,6 +446,7 @@ fn inherit_own_detailed_dependencies() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] dep v0.1.2 ([..])
 [CHECKING] dep v0.1.2
@@ -530,7 +532,7 @@ authors = []
 version = "0.1.2"
 features = ["testing"]
 "#,
-                cargo::core::package::MANIFEST_PREAMBLE
+                cargo::core::manifest::MANIFEST_PREAMBLE
             ),
         )],
     );
@@ -614,6 +616,7 @@ fn inherited_dependencies_union_features() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 4 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] fancy_dep v0.2.4 ([..])
 [DOWNLOADED] dep v0.1.0 ([..])
@@ -793,7 +796,7 @@ repository = "https://github.com/example/example"
 branch = "master"
 repository = "https://gitlab.com/rust-lang/rust"
 "#,
-                cargo::core::package::MANIFEST_PREAMBLE
+                cargo::core::manifest::MANIFEST_PREAMBLE
             ),
         )],
     );
@@ -843,6 +846,7 @@ fn inherit_dependencies() {
         .with_stderr_unordered(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 4 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] dep v0.1.2 ([..])
 [DOWNLOADED] dep-build v0.8.2 ([..])
@@ -955,7 +959,7 @@ version = "0.5.2"
 [build-dependencies.dep-build]
 version = "0.8"
 "#,
-                cargo::core::package::MANIFEST_PREAMBLE
+                cargo::core::manifest::MANIFEST_PREAMBLE
             ),
         )],
     );
@@ -997,6 +1001,7 @@ fn inherit_target_dependencies() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] dep v0.1.2 ([..])
 [CHECKING] dep v0.1.2
@@ -1044,6 +1049,7 @@ fn inherit_dependency_override_optional() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.2.0 ([CWD]/bar)
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
@@ -1087,6 +1093,7 @@ fn inherit_dependency_features() {
         .with_stderr(
             "\
 [UPDATING] `[..]` index
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] fancy_dep v0.2.4 ([..])
 [DOWNLOADED] dep v0.1.0 ([..])
@@ -1159,6 +1166,7 @@ fn inherit_detailed_dependencies() {
         .with_stderr(&format!(
             "\
 [UPDATING] git repository `{}`\n\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] detailed v0.5.0 ({}?branch=branchy#[..])\n\
 [CHECKING] bar v0.2.0 ([CWD]/bar)\n\
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
@@ -1201,6 +1209,7 @@ fn inherit_path_dependencies() {
     p.cargo("check")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] dep v0.9.0 ([CWD]/dep)
 [CHECKING] bar v0.2.0 ([CWD]/bar)
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -1291,14 +1300,10 @@ fn error_workspace_dependency_looked_for_workspace_itself() {
         .with_status(101)
         .with_stderr(
             "\
-[WARNING] [CWD]/Cargo.toml: unused manifest key: workspace.dependencies.dep.workspace
-[WARNING] [CWD]/Cargo.toml: dependency (dep) specified without providing a local path, Git repository, version, \
-or workspace dependency to use. \
-This will be considered an error in future versions
-[UPDATING] `dummy-registry` index
-[ERROR] no matching package named `dep` found
-location searched: registry `crates-io`
-required by package `bar v1.2.3 ([CWD])`
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  dependency (dep) specified without providing a local path, Git repository, version, or workspace dependency to use
 ",
         )
         .run();
@@ -1473,6 +1478,7 @@ fn warn_inherit_def_feat_true_member_def_feat_false() {
 [WARNING] [CWD]/Cargo.toml: `default-features` is ignored for dep, since `default-features` was \
 true for `workspace.dependencies.dep`, this could become a hard error in the future
 [UPDATING] `dummy-registry` index
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] fancy_dep v0.2.4 ([..])
 [DOWNLOADED] dep v0.1.0 ([..])
@@ -1522,6 +1528,7 @@ fn warn_inherit_simple_member_def_feat_false() {
 [WARNING] [CWD]/Cargo.toml: `default-features` is ignored for dep, since `default-features` was \
 not specified for `workspace.dependencies.dep`, this could become a hard error in the future
 [UPDATING] `dummy-registry` index
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] fancy_dep v0.2.4 ([..])
 [DOWNLOADED] dep v0.1.0 ([..])
@@ -1569,6 +1576,7 @@ fn inherit_def_feat_false_member_def_feat_true() {
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] fancy_dep v0.2.4 ([..])
 [DOWNLOADED] dep v0.1.0 ([..])
@@ -1615,15 +1623,10 @@ fn cannot_inherit_in_patch() {
         .with_status(101)
         .with_stderr(
             "\
-[WARNING] [CWD]/Cargo.toml: unused manifest key: patch.crates-io.bar.workspace
-[WARNING] [CWD]/Cargo.toml: dependency (bar) specified without providing a local path, Git repository, version, \
-or workspace dependency to use. \
-This will be considered an error in future versions
-[UPDATING] `dummy-registry` index
-[ERROR] failed to resolve patches for `https://github.com/rust-lang/crates.io-index`
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
 
 Caused by:
-  patch for `bar` in `https://github.com/rust-lang/crates.io-index` points to the same source, but patches must point to different sources
+  dependency (bar) specified without providing a local path, Git repository, version, or workspace dependency to use
 ",
         )
         .run();
@@ -1661,6 +1664,7 @@ fn warn_inherit_unused_manifest_key_dep() {
 [WARNING] [CWD]/Cargo.toml: unused manifest key: workspace.dependencies.dep.wxz
 [WARNING] [CWD]/Cargo.toml: unused manifest key: dependencies.dep.wxz
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] dep v0.1.0 ([..])
 [CHECKING] [..]

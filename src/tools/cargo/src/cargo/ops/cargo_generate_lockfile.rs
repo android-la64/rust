@@ -10,7 +10,6 @@ use crate::util::cache_lock::CacheLockMode;
 use crate::util::context::GlobalContext;
 use crate::util::style;
 use crate::util::CargoResult;
-use anstyle::Style;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use tracing::debug;
@@ -26,17 +25,19 @@ pub struct UpdateOptions<'a> {
 
 pub fn generate_lockfile(ws: &Workspace<'_>) -> CargoResult<()> {
     let mut registry = PackageRegistry::new(ws.gctx())?;
+    let previous_resolve = None;
     let mut resolve = ops::resolve_with_previous(
         &mut registry,
         ws,
         &CliFeatures::new_all(true),
         HasDevUnits::Yes,
-        None,
+        previous_resolve,
         None,
         &[],
         true,
     )?;
     ops::write_pkg_lockfile(ws, &mut resolve)?;
+    print_lockfile_changes(ws, previous_resolve, &resolve, &mut registry)?;
     Ok(())
 }
 
@@ -143,18 +144,39 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
         registry.add_sources(sources)?;
     }
 
+    // Here we place an artificial limitation that all non-registry sources
+    // cannot be locked at more than one revision. This means that if a Git
+    // repository provides more than one package, they must all be updated in
+    // step when any of them are updated.
+    //
+    // TODO: this seems like a hokey reason to single out the registry as being
+    // different.
+    let to_avoid_sources: HashSet<_> = to_avoid
+        .iter()
+        .map(|p| p.source_id())
+        .filter(|s| !s.is_registry())
+        .collect();
+
+    let keep = |p: &PackageId| !to_avoid_sources.contains(&p.source_id()) && !to_avoid.contains(p);
+
     let mut resolve = ops::resolve_with_previous(
         &mut registry,
         ws,
         &CliFeatures::new_all(true),
         HasDevUnits::Yes,
         Some(&previous_resolve),
-        Some(&to_avoid),
+        Some(&keep),
         &[],
         true,
     )?;
 
-    print_lockfile_update(opts.gctx, &previous_resolve, &resolve, &mut registry)?;
+    print_lockfile_updates(
+        ws,
+        &previous_resolve,
+        &resolve,
+        opts.precise.is_some(),
+        &mut registry,
+    )?;
     if opts.dry_run {
         opts.gctx
             .shell()
@@ -165,29 +187,100 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
     Ok(())
 }
 
-fn print_lockfile_update(
-    gctx: &GlobalContext,
-    previous_resolve: &Resolve,
+/// Prints lockfile change statuses.
+///
+/// This would acquire the package-cache lock, as it may update the index to
+/// show users latest available versions.
+pub fn print_lockfile_changes(
+    ws: &Workspace<'_>,
+    previous_resolve: Option<&Resolve>,
     resolve: &Resolve,
     registry: &mut PackageRegistry<'_>,
 ) -> CargoResult<()> {
-    // Summarize what is changing for the user.
-    let print_change = |status: &str, msg: String, color: &Style| {
-        gctx.shell().status_with_color(status, msg, color)
-    };
-    let mut unchanged_behind = 0;
-    for diff in PackageDiff::diff(&previous_resolve, &resolve) {
+    let _lock = ws
+        .gctx()
+        .acquire_package_cache_lock(CacheLockMode::DownloadExclusive)?;
+    if let Some(previous_resolve) = previous_resolve {
+        print_lockfile_sync(ws, previous_resolve, resolve, registry)
+    } else {
+        print_lockfile_generation(ws, resolve, registry)
+    }
+}
+
+fn print_lockfile_generation(
+    ws: &Workspace<'_>,
+    resolve: &Resolve,
+    registry: &mut PackageRegistry<'_>,
+) -> CargoResult<()> {
+    let diff = PackageDiff::new(&resolve);
+    let num_pkgs: usize = diff.iter().map(|d| d.added.len()).sum();
+    if num_pkgs <= 1 {
+        // just ourself, nothing worth reporting
+        return Ok(());
+    }
+    status_locking(ws, num_pkgs)?;
+
+    for diff in diff {
         fn format_latest(version: semver::Version) -> String {
             let warn = style::WARN;
             format!(" {warn}(latest: v{version}){warn:#}")
         }
-        fn is_latest(candidate: &semver::Version, current: &semver::Version) -> bool {
-            current < candidate
-                // Only match pre-release if major.minor.patch are the same
-                && (candidate.pre.is_empty()
-                    || (candidate.major == current.major
-                        && candidate.minor == current.minor
-                        && candidate.patch == current.patch))
+        let possibilities = if let Some(query) = diff.alternatives_query() {
+            loop {
+                match registry.query_vec(&query, QueryKind::Exact) {
+                    std::task::Poll::Ready(res) => {
+                        break res?;
+                    }
+                    std::task::Poll::Pending => registry.block_until_ready()?,
+                }
+            }
+        } else {
+            vec![]
+        };
+
+        for package in diff.added.iter() {
+            let latest = if !possibilities.is_empty() {
+                possibilities
+                    .iter()
+                    .map(|s| s.as_summary())
+                    .filter(|s| is_latest(s.version(), package.version()))
+                    .map(|s| s.version().clone())
+                    .max()
+                    .map(format_latest)
+            } else {
+                None
+            };
+
+            if let Some(latest) = latest {
+                ws.gctx().shell().status_with_color(
+                    "Adding",
+                    format!("{package}{latest}"),
+                    &style::NOTE,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn print_lockfile_sync(
+    ws: &Workspace<'_>,
+    previous_resolve: &Resolve,
+    resolve: &Resolve,
+    registry: &mut PackageRegistry<'_>,
+) -> CargoResult<()> {
+    let diff = PackageDiff::diff(&previous_resolve, &resolve);
+    let num_pkgs: usize = diff.iter().map(|d| d.added.len()).sum();
+    if num_pkgs == 0 {
+        return Ok(());
+    }
+    status_locking(ws, num_pkgs)?;
+
+    for diff in diff {
+        fn format_latest(version: semver::Version) -> String {
+            let warn = style::WARN;
+            format!(" {warn}(latest: v{version}){warn:#}")
         }
         let possibilities = if let Some(query) = diff.alternatives_query() {
             loop {
@@ -230,13 +323,116 @@ fn print_lockfile_update(
             // This metadata is often stuff like git commit hashes, which are
             // not meaningfully ordered.
             if removed.version().cmp_precedence(added.version()) == Ordering::Greater {
-                print_change("Downgrading", msg, &style::WARN)?;
+                ws.gctx()
+                    .shell()
+                    .status_with_color("Downgrading", msg, &style::WARN)?;
             } else {
-                print_change("Updating", msg, &style::GOOD)?;
+                ws.gctx()
+                    .shell()
+                    .status_with_color("Updating", msg, &style::GOOD)?;
+            }
+        } else {
+            for package in diff.added.iter() {
+                let latest = if !possibilities.is_empty() {
+                    possibilities
+                        .iter()
+                        .map(|s| s.as_summary())
+                        .filter(|s| is_latest(s.version(), package.version()))
+                        .map(|s| s.version().clone())
+                        .max()
+                        .map(format_latest)
+                } else {
+                    None
+                }
+                .unwrap_or_default();
+
+                ws.gctx().shell().status_with_color(
+                    "Adding",
+                    format!("{package}{latest}"),
+                    &style::NOTE,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn print_lockfile_updates(
+    ws: &Workspace<'_>,
+    previous_resolve: &Resolve,
+    resolve: &Resolve,
+    precise: bool,
+    registry: &mut PackageRegistry<'_>,
+) -> CargoResult<()> {
+    let diff = PackageDiff::diff(&previous_resolve, &resolve);
+    let num_pkgs: usize = diff.iter().map(|d| d.added.len()).sum();
+    if !precise {
+        status_locking(ws, num_pkgs)?;
+    }
+
+    let mut unchanged_behind = 0;
+    for diff in diff {
+        fn format_latest(version: semver::Version) -> String {
+            let warn = style::WARN;
+            format!(" {warn}(latest: v{version}){warn:#}")
+        }
+        let possibilities = if let Some(query) = diff.alternatives_query() {
+            loop {
+                match registry.query_vec(&query, QueryKind::Exact) {
+                    std::task::Poll::Ready(res) => {
+                        break res?;
+                    }
+                    std::task::Poll::Pending => registry.block_until_ready()?,
+                }
+            }
+        } else {
+            vec![]
+        };
+
+        if let Some((removed, added)) = diff.change() {
+            let latest = if !possibilities.is_empty() {
+                possibilities
+                    .iter()
+                    .map(|s| s.as_summary())
+                    .filter(|s| is_latest(s.version(), added.version()))
+                    .map(|s| s.version().clone())
+                    .max()
+                    .map(format_latest)
+            } else {
+                None
+            }
+            .unwrap_or_default();
+
+            let msg = if removed.source_id().is_git() {
+                format!(
+                    "{removed} -> #{}",
+                    &added.source_id().precise_git_fragment().unwrap()[..8],
+                )
+            } else {
+                format!("{removed} -> v{}{latest}", added.version())
+            };
+
+            // If versions differ only in build metadata, we call it an "update"
+            // regardless of whether the build metadata has gone up or down.
+            // This metadata is often stuff like git commit hashes, which are
+            // not meaningfully ordered.
+            if removed.version().cmp_precedence(added.version()) == Ordering::Greater {
+                ws.gctx()
+                    .shell()
+                    .status_with_color("Downgrading", msg, &style::WARN)?;
+            } else {
+                ws.gctx()
+                    .shell()
+                    .status_with_color("Updating", msg, &style::GOOD)?;
             }
         } else {
             for package in diff.removed.iter() {
-                print_change("Removing", format!("{package}"), &style::ERROR)?;
+                ws.gctx().shell().status_with_color(
+                    "Removing",
+                    format!("{package}"),
+                    &style::ERROR,
+                )?;
             }
             for package in diff.added.iter() {
                 let latest = if !possibilities.is_empty() {
@@ -252,7 +448,11 @@ fn print_lockfile_update(
                 }
                 .unwrap_or_default();
 
-                print_change("Adding", format!("{package}{latest}"), &style::NOTE)?;
+                ws.gctx().shell().status_with_color(
+                    "Adding",
+                    format!("{package}{latest}"),
+                    &style::NOTE,
+                )?;
             }
         }
         for package in &diff.unchanged {
@@ -270,8 +470,8 @@ fn print_lockfile_update(
 
             if let Some(latest) = latest {
                 unchanged_behind += 1;
-                if gctx.shell().verbosity() == Verbosity::Verbose {
-                    gctx.shell().status_with_color(
+                if ws.gctx().shell().verbosity() == Verbosity::Verbose {
+                    ws.gctx().shell().status_with_color(
                         "Unchanged",
                         format!("{package}{latest}"),
                         &anstyle::Style::new().bold(),
@@ -280,19 +480,63 @@ fn print_lockfile_update(
             }
         }
     }
-    if gctx.shell().verbosity() == Verbosity::Verbose {
-        gctx.shell().note(
+
+    if ws.gctx().shell().verbosity() == Verbosity::Verbose {
+        ws.gctx().shell().note(
             "to see how you depend on a package, run `cargo tree --invert --package <dep>@<ver>`",
         )?;
     } else {
         if 0 < unchanged_behind {
-            gctx.shell().note(format!(
+            ws.gctx().shell().note(format!(
                 "pass `--verbose` to see {unchanged_behind} unchanged dependencies behind latest"
             ))?;
         }
     }
 
     Ok(())
+}
+
+fn status_locking(ws: &Workspace<'_>, num_pkgs: usize) -> CargoResult<()> {
+    use std::fmt::Write as _;
+
+    let plural = if num_pkgs == 1 { "" } else { "s" };
+
+    let mut cfg = String::new();
+    // Don't have a good way to describe `direct_minimal_versions` atm
+    if !ws.gctx().cli_unstable().direct_minimal_versions {
+        write!(&mut cfg, " to")?;
+        if ws.gctx().cli_unstable().minimal_versions {
+            write!(&mut cfg, " earliest")?;
+        } else {
+            write!(&mut cfg, " latest")?;
+        }
+
+        if ws.resolve_honors_rust_version() {
+            let rust_version = if let Some(ver) = ws.rust_version() {
+                ver.clone().into_partial()
+            } else {
+                let rustc = ws.gctx().load_global_rustc(Some(ws))?;
+                let rustc_version = rustc.version.clone().into();
+                rustc_version
+            };
+            write!(&mut cfg, " Rust {rust_version}")?;
+        }
+        write!(&mut cfg, " compatible version{plural}")?;
+    }
+
+    ws.gctx()
+        .shell()
+        .status("Locking", format!("{num_pkgs} package{plural}{cfg}"))?;
+    Ok(())
+}
+
+fn is_latest(candidate: &semver::Version, current: &semver::Version) -> bool {
+    current < candidate
+                // Only match pre-release if major.minor.patch are the same
+                && (candidate.pre.is_empty()
+                    || (candidate.major == current.major
+                        && candidate.minor == current.minor
+                        && candidate.patch == current.patch))
 }
 
 fn fill_with_deps<'a>(
@@ -319,11 +563,21 @@ pub struct PackageDiff {
 }
 
 impl PackageDiff {
-    pub fn diff(previous_resolve: &Resolve, resolve: &Resolve) -> Vec<Self> {
-        fn key(dep: PackageId) -> (&'static str, SourceId) {
-            (dep.name().as_str(), dep.source_id())
+    pub fn new(resolve: &Resolve) -> Vec<Self> {
+        let mut changes = BTreeMap::new();
+        let empty = Self::default();
+        for dep in resolve.iter() {
+            changes
+                .entry(Self::key(dep))
+                .or_insert_with(|| empty.clone())
+                .added
+                .push(dep);
         }
 
+        changes.into_iter().map(|(_, v)| v).collect()
+    }
+
+    pub fn diff(previous_resolve: &Resolve, resolve: &Resolve) -> Vec<Self> {
         fn vec_subset(a: &[PackageId], b: &[PackageId]) -> Vec<PackageId> {
             a.iter().filter(|a| !contains_id(b, a)).cloned().collect()
         }
@@ -364,14 +618,14 @@ impl PackageDiff {
         let empty = Self::default();
         for dep in previous_resolve.iter() {
             changes
-                .entry(key(dep))
+                .entry(Self::key(dep))
                 .or_insert_with(|| empty.clone())
                 .removed
                 .push(dep);
         }
         for dep in resolve.iter() {
             changes
-                .entry(key(dep))
+                .entry(Self::key(dep))
                 .or_insert_with(|| empty.clone())
                 .added
                 .push(dep);
@@ -395,6 +649,10 @@ impl PackageDiff {
         debug!("{:#?}", changes);
 
         changes.into_iter().map(|(_, v)| v).collect()
+    }
+
+    fn key(dep: PackageId) -> (&'static str, SourceId) {
+        (dep.name().as_str(), dep.source_id())
     }
 
     /// Guess if a package upgraded/downgraded

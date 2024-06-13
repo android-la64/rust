@@ -91,6 +91,7 @@ fn cargo_test_release() {
     p.cargo("test -v --release")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 ([CWD]/bar)
 [RUNNING] [..] -C opt-level=3 [..]
 [COMPILING] foo v0.1.0 ([CWD])
@@ -597,6 +598,7 @@ fn test_with_deep_lib_dep() {
     p.cargo("test")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 ([..])
 [COMPILING] foo v0.0.1 ([CWD])
 [FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
@@ -1328,7 +1330,7 @@ fn test_dylib() {
 
                 [lib]
                 name = "foo"
-                crate_type = ["dylib"]
+                crate-type = ["dylib"]
 
                 [dependencies.bar]
                 path = "bar"
@@ -1365,7 +1367,7 @@ fn test_dylib() {
 
                 [lib]
                 name = "bar"
-                crate_type = ["dylib"]
+                crate-type = ["dylib"]
             "#,
         )
         .file("bar/src/lib.rs", "pub fn baz() {}")
@@ -1374,6 +1376,7 @@ fn test_dylib() {
     p.cargo("test")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 ([CWD]/bar)
 [COMPILING] foo v0.0.1 ([CWD])
 [FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
@@ -1921,6 +1924,7 @@ fn selective_testing() {
     p.cargo("test -p d1")
         .with_stderr(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] d1 v0.0.1 ([CWD]/d1)
 [FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target/debug/deps/d1-[..][EXE])
@@ -2132,6 +2136,7 @@ fn selective_testing_with_docs() {
     p.cargo("test -p d1")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] d1 v0.0.1 ([CWD]/d1)
 [FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
 [RUNNING] [..] (target/debug/deps/d1[..][EXE])
@@ -2227,6 +2232,7 @@ fn example_with_dev_dep() {
     p.cargo("test -v")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [..]
 [..]
 [..]
@@ -2515,6 +2521,7 @@ fn cyclic_dev_dep_doc_test() {
     p.cargo("test")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] foo v0.0.1 ([..])
 [COMPILING] bar v0.0.1 ([..])
 [FINISHED] `test` profile [unoptimized + debuginfo] target(s) in [..]
@@ -2774,6 +2781,7 @@ fn selective_test_optional_dep() {
     p.cargo("test -v --no-run --features a -p a")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] a v0.0.1 ([..])
 [RUNNING] `rustc [..] a/src/lib.rs [..]`
 [RUNNING] `rustc [..] a/src/lib.rs [..]`
@@ -3912,6 +3920,7 @@ fn test_hint_workspace_virtual() {
     p.cargo("test")
         .with_stderr_unordered(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] c v0.1.0 [..]
 [COMPILING] a v0.1.0 [..]
 [COMPILING] b v0.1.0 [..]
@@ -4365,8 +4374,10 @@ fn test_dep_with_dev() {
     p.cargo("test -p bar")
         .with_status(101)
         .with_stderr(
-            "[ERROR] package `bar` cannot be tested because it requires dev-dependencies \
-             and is not a member of the workspace",
+            "\
+[LOCKING] 2 packages to latest compatible versions
+[ERROR] package `bar` cannot be tested because it requires dev-dependencies \
+and is not a member of the workspace",
         )
         .run();
 }
@@ -4864,9 +4875,9 @@ fn test_workspaces_cwd() {
         .build();
 
     p.cargo("test --workspace --all")
-        .with_stderr_contains("[DOCTEST] root-crate")
-        .with_stderr_contains("[DOCTEST] nested-crate")
-        .with_stderr_contains("[DOCTEST] deep-crate")
+        .with_stderr_contains("[DOCTEST] root_crate")
+        .with_stderr_contains("[DOCTEST] nested_crate")
+        .with_stderr_contains("[DOCTEST] deep_crate")
         .with_stdout_contains("test test_unit_root_cwd ... ok")
         .with_stdout_contains("test test_unit_nested_cwd ... ok")
         .with_stdout_contains("test test_unit_deep_cwd ... ok")
@@ -4876,33 +4887,33 @@ fn test_workspaces_cwd() {
         .run();
 
     p.cargo("test -p root-crate --all")
-        .with_stderr_contains("[DOCTEST] root-crate")
+        .with_stderr_contains("[DOCTEST] root_crate")
         .with_stdout_contains("test test_unit_root_cwd ... ok")
         .with_stdout_contains("test test_integration_root_cwd ... ok")
         .run();
 
     p.cargo("test -p nested-crate --all")
-        .with_stderr_contains("[DOCTEST] nested-crate")
+        .with_stderr_contains("[DOCTEST] nested_crate")
         .with_stdout_contains("test test_unit_nested_cwd ... ok")
         .with_stdout_contains("test test_integration_nested_cwd ... ok")
         .run();
 
     p.cargo("test -p deep-crate --all")
-        .with_stderr_contains("[DOCTEST] deep-crate")
+        .with_stderr_contains("[DOCTEST] deep_crate")
         .with_stdout_contains("test test_unit_deep_cwd ... ok")
         .with_stdout_contains("test test_integration_deep_cwd ... ok")
         .run();
 
     p.cargo("test --all")
         .cwd("nested-crate")
-        .with_stderr_contains("[DOCTEST] nested-crate")
+        .with_stderr_contains("[DOCTEST] nested_crate")
         .with_stdout_contains("test test_unit_nested_cwd ... ok")
         .with_stdout_contains("test test_integration_nested_cwd ... ok")
         .run();
 
     p.cargo("test --all")
         .cwd("very/deeply/nested/deep-crate")
-        .with_stderr_contains("[DOCTEST] deep-crate")
+        .with_stderr_contains("[DOCTEST] deep_crate")
         .with_stdout_contains("test test_unit_deep_cwd ... ok")
         .with_stdout_contains("test test_integration_deep_cwd ... ok")
         .run();
