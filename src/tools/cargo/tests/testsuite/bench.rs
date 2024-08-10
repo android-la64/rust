@@ -267,9 +267,9 @@ fn many_similar_names() {
         .build();
 
     p.cargo("bench")
-        .with_stdout_contains("test bin_bench ... bench:           0 ns/iter (+/- 0)")
-        .with_stdout_contains("test lib_bench ... bench:           0 ns/iter (+/- 0)")
-        .with_stdout_contains("test bench_bench ... bench:           0 ns/iter (+/- 0)")
+        .with_stdout_contains("test bin_bench ... bench:[..]")
+        .with_stdout_contains("test lib_bench ... bench:[..]")
+        .with_stdout_contains("test bench_bench ... bench:[..]")
         .run();
 }
 
@@ -438,6 +438,7 @@ fn bench_with_deep_lib_dep() {
     p.cargo("bench")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] foo v0.0.1 ([..])
 [COMPILING] bar v0.0.1 ([CWD])
 [FINISHED] `bench` profile [optimized] target(s) in [..]
@@ -852,7 +853,7 @@ fn bench_dylib() {
 
                 [lib]
                 name = "foo"
-                crate_type = ["dylib"]
+                crate-type = ["dylib"]
 
                 [dependencies.bar]
                 path = "bar"
@@ -894,7 +895,7 @@ fn bench_dylib() {
 
                 [lib]
                 name = "bar"
-                crate_type = ["dylib"]
+                crate-type = ["dylib"]
             "#,
         )
         .file("bar/src/lib.rs", "pub fn baz() {}")
@@ -903,6 +904,7 @@ fn bench_dylib() {
     p.cargo("bench -v")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 ([CWD]/bar)
 [RUNNING] [..] -C opt-level=3 [..]
 [COMPILING] foo v0.0.1 ([CWD])

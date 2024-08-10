@@ -2,6 +2,7 @@
 
 use super::auxvec;
 use crate::detect::{bit, cache, Feature};
+use core::arch::asm;
 
 /// Try to read the features from the auxiliary vector.
 pub(crate) fn detect_features() -> cache::Initializer {
@@ -12,22 +13,42 @@ pub(crate) fn detect_features() -> cache::Initializer {
         }
     };
 
+    // The values are part of the platform-specific [cpucfg]
+    //
+    // [cpucfg]: LoongArch Reference Manual Volume 1: Basic Architecture v1.1
+    let cpucfg2: usize;
+    unsafe {
+        asm!(
+            "cpucfg {}, {}",
+            out(reg) cpucfg2, in(reg) 2,
+            options(pure, nomem, preserves_flags, nostack)
+        );
+    }
+    enable_feature(&mut value, Feature::frecipe, bit::test(cpucfg2, 25));
+
     // The values are part of the platform-specific [asm/hwcap.h][hwcap]
     //
     // [hwcap]: https://github.com/torvalds/linux/blob/master/arch/loongarch/include/uapi/asm/hwcap.h
     if let Ok(auxv) = auxvec::auxv() {
-        enable_feature(&mut value, Feature::lam, bit::test(auxv.hwcap, 1));
-        enable_feature(&mut value, Feature::ual, bit::test(auxv.hwcap, 2));
-        enable_feature(&mut value, Feature::fpu, bit::test(auxv.hwcap, 3));
+        enable_feature(
+            &mut value,
+            Feature::f,
+            bit::test(cpucfg2, 1) && bit::test(auxv.hwcap, 3),
+        );
+        enable_feature(
+            &mut value,
+            Feature::d,
+            bit::test(cpucfg2, 2) && bit::test(auxv.hwcap, 3),
+        );
         enable_feature(&mut value, Feature::lsx, bit::test(auxv.hwcap, 4));
         enable_feature(&mut value, Feature::lasx, bit::test(auxv.hwcap, 5));
-        enable_feature(&mut value, Feature::crc32, bit::test(auxv.hwcap, 6));
-        enable_feature(&mut value, Feature::complex, bit::test(auxv.hwcap, 7));
-        enable_feature(&mut value, Feature::crypto, bit::test(auxv.hwcap, 8));
+        enable_feature(
+            &mut value,
+            Feature::lbt,
+            bit::test(auxv.hwcap, 10) && bit::test(auxv.hwcap, 11) && bit::test(auxv.hwcap, 12),
+        );
         enable_feature(&mut value, Feature::lvz, bit::test(auxv.hwcap, 9));
-        enable_feature(&mut value, Feature::lbtx86, bit::test(auxv.hwcap, 10));
-        enable_feature(&mut value, Feature::lbtarm, bit::test(auxv.hwcap, 11));
-        enable_feature(&mut value, Feature::lbtmips, bit::test(auxv.hwcap, 12));
+        enable_feature(&mut value, Feature::ual, bit::test(auxv.hwcap, 2));
         return value;
     }
     value

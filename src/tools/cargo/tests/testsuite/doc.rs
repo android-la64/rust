@@ -111,6 +111,7 @@ fn doc_deps() {
     p.cargo("doc")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [..] bar v0.0.1 ([CWD]/bar)
 [..] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -167,6 +168,7 @@ fn doc_no_deps() {
     p.cargo("doc --no-deps")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.0.1 ([CWD]/bar)
 [DOCUMENTING] foo v0.0.1 ([CWD])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -248,6 +250,7 @@ fn doc_multiple_targets_same_name_lib() {
         .with_status(101)
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 error: document output filename collision
 The lib `foo_lib` in package `foo v0.1.0 ([ROOT]/foo/foo)` has the same name as \
 the lib `foo_lib` in package `bar v0.1.0 ([ROOT]/foo/bar)`.
@@ -298,6 +301,7 @@ fn doc_multiple_targets_same_name() {
     p.cargo("doc --workspace")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 warning: output filename collision.
 The bin target `foo_lib` in package `foo v0.1.0 ([ROOT]/foo/foo)` \
 has the same output filename as the lib target `foo_lib` in package \
@@ -351,6 +355,7 @@ fn doc_multiple_targets_same_name_bin() {
         .with_status(101)
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 error: document output filename collision
 The bin `foo-cli` in package `foo v0.1.0 ([ROOT]/foo/foo)` has the same name as \
 the bin `foo-cli` in package `bar v0.1.0 ([ROOT]/foo/bar)`.
@@ -471,6 +476,28 @@ fn doc_lib_bin_same_name_documents_lib_when_requested() {
     let doc_html = p.read_file("target/doc/foo/index.html");
     assert!(doc_html.contains("Library"));
     assert!(!doc_html.contains("Binary"));
+}
+
+#[cargo_test]
+fn doc_lib_bin_same_name_with_dash() {
+    // Checks `doc` behavior when there is a dash in the package name, and
+    // there is a lib and bin, and the lib name is inferred.
+    let p = project()
+        .file("Cargo.toml", &basic_manifest("foo-bar", "1.0.0"))
+        .file("src/lib.rs", "")
+        .file("src/main.rs", "fn main() {}")
+        .build();
+    p.cargo("doc")
+        .with_stderr(
+            "\
+[DOCUMENTING] foo-bar v1.0.0 ([ROOT]/foo)
+[FINISHED] [..]
+[GENERATED] [ROOT]/foo/target/doc/foo_bar/index.html
+",
+        )
+        .run();
+    assert!(p.build_dir().join("doc/foo_bar/index.html").exists());
+    assert!(!p.build_dir().join("doc/foo_bar/fn.main.html").exists());
 }
 
 #[cargo_test]
@@ -713,6 +740,7 @@ fn doc_dash_p() {
     p.cargo("doc -p a")
         .with_stderr(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [..] b v0.0.1 ([CWD]/b)
 [..] b v0.0.1 ([CWD]/b)
 [DOCUMENTING] a v0.0.1 ([CWD]/a)
@@ -743,6 +771,7 @@ fn doc_all_exclude() {
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [DOCUMENTING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
@@ -771,6 +800,7 @@ fn doc_all_exclude_glob() {
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [DOCUMENTING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
@@ -1053,6 +1083,7 @@ fn features() {
     p.cargo("doc --features foo")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 [..]
 [DOCUMENTING] bar v0.0.1 [..]
 [DOCUMENTING] foo v0.0.1 [..]
@@ -1289,6 +1320,7 @@ fn doc_virtual_manifest_one_project() {
         .with_stderr_does_not_contain("[DOCUMENTING] baz v0.1.0 [..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [DOCUMENTING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/bar/index.html
@@ -1317,6 +1349,7 @@ fn doc_virtual_manifest_glob() {
         .with_stderr_does_not_contain("[DOCUMENTING] bar v0.1.0 [..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [DOCUMENTING] baz v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 [GENERATED] [CWD]/target/doc/baz/index.html
@@ -1356,6 +1389,7 @@ fn doc_all_member_dependency_same_name() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v0.1.0 (registry `dummy-registry`)
 warning: output filename collision.
@@ -1735,6 +1769,7 @@ fn doc_cap_lints() {
     p.cargo("doc")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [UPDATING] git repository `[..]`
 [DOCUMENTING] a v0.5.0 ([..])
 [CHECKING] a v0.5.0 ([..])
@@ -2067,6 +2102,7 @@ fn bin_private_items_deps() {
     p.cargo("doc")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [DOCUMENTING] bar v0.0.1 ([..])
 [CHECKING] bar v0.0.1 ([..])
 [DOCUMENTING] foo v0.0.1 ([CWD])
@@ -2203,7 +2239,7 @@ fn doc_test_in_workspace() {
         )
         .build();
     p.cargo("test --doc -vv")
-        .with_stderr_contains("[DOCTEST] crate-a")
+        .with_stderr_contains("[DOCTEST] crate_a")
         .with_stdout_contains(
             "
 running 1 test
@@ -2212,7 +2248,7 @@ test crate-a/src/lib.rs - (line 1) ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out[..]
 ",
         )
-        .with_stderr_contains("[DOCTEST] crate-b")
+        .with_stderr_contains("[DOCTEST] crate_b")
         .with_stdout_contains(
             "
 running 1 test
@@ -2637,6 +2673,7 @@ fn doc_lib_false() {
     p.cargo("doc")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.1.0 [..]
 [CHECKING] foo v0.1.0 [..]
 [DOCUMENTING] foo v0.1.0 [..]
@@ -2687,6 +2724,7 @@ fn doc_lib_false_dep() {
     p.cargo("doc")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [CHECKING] bar v0.1.0 [..]
 [DOCUMENTING] foo v0.1.0 [..]
 [FINISHED] [..]

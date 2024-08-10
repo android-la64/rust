@@ -326,11 +326,38 @@ Documentation updates:
 
 ## msrv-policy
 - [#9930](https://github.com/rust-lang/cargo/issues/9930) (MSRV-aware resolver)
-- [#10653](https://github.com/rust-lang/cargo/issues/10653) (MSRV-aware cargo-add)
-- [#10903](https://github.com/rust-lang/cargo/issues/10903) (MSRV-aware cargo-install)
 
-The `msrv-policy` feature enables experiments in MSRV-aware policy for cargo in
-preparation for an upcoming RFC.
+Catch-all unstable feature for MSRV-aware cargo features under
+[RFC 2495](https://github.com/rust-lang/rfcs/pull/2495).
+
+### MSRV-aware cargo add
+
+This was stabilized in 1.79 in [#13608](https://github.com/rust-lang/cargo/pull/13608).
+
+### MSRV-aware resolver
+
+`-Zmsrv-policy` allows access to an MSRV-aware resolver which can be enabled with:
+- `resolver.something-like-precedence` config field
+- `workspace.resolver = "3"` / `package.resolver = "3"`
+- `package.edition = "2024"` (only in workspace root)
+
+The resolver will prefer dependencies with a `package.rust-version` that is the same or older than your project's MSRV.
+Your project's MSRV is determined by taking the lowest `package.rust-version` set among your workspace members.
+If there is none set, your toolchain version will be used with the intent to pick up the version from rustup's `rust-toolchain.toml`, if present.
+
+#### `resolver.something-like-precedence`
+* Type: string
+* Default: "something-like-maximum"
+* Environment: `CARGO_RESOLVER_SOMETHING_LIKE_PRECEDENCE`
+
+Select which policy should be used when resolving dependencies.  Values include
+- `something-like-maximum`: prefer highest compatible versions of a package
+- `something-like-rust-version`: prefer versions of packages compatible with your project's Rust version
+
+Can be overridden with
+- `--ignore-rust-version` CLI option
+- Setting the dependency's version requirement too high
+- Specifying the version to `cargo update` with `--precise`
 
 ## precise-pre-release
 
@@ -347,7 +374,7 @@ Take for example this `Cargo.toml`.
 my-dependency = "0.1.1"
 ```
 
-It's possible to update `my-dependancy` to a pre-release with `update -Zprecise-pre-release -p my-dependency --precise 0.1.2-pre.0`.
+It's possible to update `my-dependency` to a pre-release with `update -Zunstable-options my-dependency --precise 0.1.2-pre.0`.
 This is because `0.1.2-pre.0` is considered compatible with `0.1.1`.
 It would not be possible to upgrade to `0.2.0-pre.0` from `0.1.1` in the same way.
 

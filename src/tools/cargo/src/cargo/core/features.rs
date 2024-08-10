@@ -151,7 +151,7 @@ pub type AllowFeatures = BTreeSet<String>;
 /// - Update [`CLI_VALUES`] to include the new edition.
 /// - Set [`LATEST_UNSTABLE`] to Some with the new edition.
 /// - Add an unstable feature to the [`features!`] macro invocation below for the new edition.
-/// - Gate on that new feature in [`toml::to_real_manifest`].
+/// - Gate on that new feature in [`toml`].
 /// - Update the shell completion files.
 /// - Update any failing tests (hopefully there are very few).
 /// - Update unstable.md to add a new section for this new edition (see [this example]).
@@ -178,7 +178,7 @@ pub type AllowFeatures = BTreeSet<String>;
 /// [`LATEST_STABLE`]: Edition::LATEST_STABLE
 /// [this example]: https://github.com/rust-lang/cargo/blob/3ebb5f15a940810f250b68821149387af583a79e/src/doc/src/reference/unstable.md?plain=1#L1238-L1264
 /// [`is_stable`]: Edition::is_stable
-/// [`toml::to_real_manifest`]: crate::util::toml::to_real_manifest
+/// [`toml`]: crate::util::toml
 /// [`features!`]: macro.features.html
 #[derive(
     Default, Clone, Copy, Debug, Hash, PartialOrd, Ord, Eq, PartialEq, Serialize, Deserialize,
@@ -300,7 +300,9 @@ impl Edition {
     }
 
     pub(crate) fn default_resolve_behavior(&self) -> ResolveBehavior {
-        if *self >= Edition::Edition2021 {
+        if *self >= Edition::Edition2024 {
+            ResolveBehavior::V3
+        } else if *self >= Edition::Edition2021 {
             ResolveBehavior::V2
         } else {
             ResolveBehavior::V1
@@ -377,7 +379,7 @@ macro_rules! features {
             activated: Vec<String>,
             /// Whether is allowed to use any unstable features.
             nightly_features_allowed: bool,
-            /// Whether the source mainfest is from a local package.
+            /// Whether the source manifest is from a local package.
             is_local: bool,
         }
 
@@ -546,7 +548,6 @@ impl Features {
         warnings: &mut Vec<String>,
     ) -> CargoResult<()> {
         let nightly_features_allowed = self.nightly_features_allowed;
-        let is_local = self.is_local;
         let Some((slot, feature)) = self.status(feature_name) else {
             bail!("unknown cargo feature `{}`", feature_name)
         };
@@ -567,19 +568,15 @@ impl Features {
 
         match feature.stability {
             Status::Stable => {
-                // The user can't do anything about non-local packages.
-                // Warnings are usually suppressed, but just being cautious here.
-                if is_local {
-                    let warning = format!(
-                        "the cargo feature `{}` has been stabilized in the {} \
+                let warning = format!(
+                    "the cargo feature `{}` has been stabilized in the {} \
                          release and is no longer necessary to be listed in the \
                          manifest\n  {}",
-                        feature_name,
-                        feature.version,
-                        see_docs()
-                    );
-                    warnings.push(warning);
-                }
+                    feature_name,
+                    feature.version,
+                    see_docs()
+                );
+                warnings.push(warning);
             }
             Status::Unstable if !nightly_features_allowed => bail!(
                 "the cargo feature `{}` requires a nightly version of \
@@ -755,6 +752,7 @@ unstable_cli_options!(
     #[serde(deserialize_with = "deserialize_build_std")]
     build_std: Option<Vec<String>>  = ("Enable Cargo to compile the standard library itself as part of a crate graph compilation"),
     build_std_features: Option<Vec<String>>  = ("Configure features enabled for the standard library itself when building the standard library"),
+    cargo_lints: bool = ("Enable the `[lints.cargo]` table"),
     check_cfg: bool = ("Enable compile-time checking of `cfg` names/values/features"),
     codegen_backend: bool = ("Enable the `codegen-backend` option in profiles in .cargo/config.toml file"),
     config_include: bool = ("Enable the `include` key in config files"),
@@ -766,14 +764,12 @@ unstable_cli_options!(
     git: Option<GitFeatures> = ("Enable support for shallow git fetch operations"),
     gitoxide: Option<GitoxideFeatures> = ("Use gitoxide for the given git interactions, or all of them if no argument is given"),
     host_config: bool = ("Enable the `[host]` section in the .cargo/config.toml file"),
-    lints: bool = ("Pass `[lints]` to the linting tools"),
     minimal_versions: bool = ("Resolve minimal dependency versions instead of maximum"),
     msrv_policy: bool = ("Enable rust-version aware policy within cargo"),
     mtime_on_use: bool = ("Configure Cargo to update the mtime of used files"),
     next_lockfile_bump: bool,
     no_index_update: bool = ("Do not update the registry index even if the cache is outdated"),
     panic_abort_tests: bool = ("Enable support to run tests with -Cpanic=abort"),
-    precise_pre_release: bool = ("Enable pre-release versions to be selected with `update --precise`"),
     profile_rustflags: bool = ("Enable the `rustflags` option in profiles in .cargo/config.toml file"),
     public_dependency: bool = ("Respect a dependency's `public` field in Cargo.toml to control public/private dependencies"),
     publish_timeout: bool = ("Enable the `publish.timeout` key in .cargo/config.toml file"),
@@ -856,6 +852,8 @@ const STABILIZED_CREDENTIAL_PROCESS: &str =
 
 const STABILIZED_REGISTRY_AUTH: &str =
     "Authenticated registries are available if a credential provider is configured.";
+
+const STABILIZED_LINTS: &str = "The `[lints]` table is now always available.";
 
 fn deserialize_build_std<'de, D>(deserializer: D) -> Result<Option<Vec<String>>, D::Error>
 where
@@ -1109,6 +1107,7 @@ impl CliUnstable {
             "terminal-width" => stabilized_warn(k, "1.68", STABILIZED_TERMINAL_WIDTH),
             "doctest-in-workspace" => stabilized_warn(k, "1.72", STABILIZED_DOCTEST_IN_WORKSPACE),
             "credential-process" => stabilized_warn(k, "1.74", STABILIZED_CREDENTIAL_PROCESS),
+            "lints" => stabilized_warn(k, "1.74", STABILIZED_LINTS),
             "registry-auth" => stabilized_warn(k, "1.74", STABILIZED_REGISTRY_AUTH),
 
             // Unstable features
@@ -1122,6 +1121,7 @@ impl CliUnstable {
                 self.build_std = Some(crate::core::compiler::standard_lib::parse_unstable_flag(v))
             }
             "build-std-features" => self.build_std_features = Some(parse_features(v)),
+            "cargo-lints" => self.cargo_lints = parse_empty(k, v)?,
             "check-cfg" => {
                 self.check_cfg = parse_empty(k, v)?;
             }
@@ -1144,7 +1144,6 @@ impl CliUnstable {
                 )?
             }
             "host-config" => self.host_config = parse_empty(k, v)?,
-            "lints" => self.lints = parse_empty(k, v)?,
             "next-lockfile-bump" => self.next_lockfile_bump = parse_empty(k, v)?,
             "minimal-versions" => self.minimal_versions = parse_empty(k, v)?,
             "msrv-policy" => self.msrv_policy = parse_empty(k, v)?,
@@ -1154,7 +1153,6 @@ impl CliUnstable {
             "panic-abort-tests" => self.panic_abort_tests = parse_empty(k, v)?,
             "public-dependency" => self.public_dependency = parse_empty(k, v)?,
             "profile-rustflags" => self.profile_rustflags = parse_empty(k, v)?,
-            "precise-pre-release" => self.precise_pre_release = parse_empty(k, v)?,
             "trim-paths" => self.trim_paths = parse_empty(k, v)?,
             "publish-timeout" => self.publish_timeout = parse_empty(k, v)?,
             "rustdoc-map" => self.rustdoc_map = parse_empty(k, v)?,

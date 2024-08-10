@@ -792,10 +792,1148 @@ fn empty_dependencies() {
     Package::new("bar", "0.0.1").publish();
 
     p.cargo("check")
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  dependency (bar) specified without providing a local path, Git repository, version, or workspace dependency to use
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn dev_dependencies2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [dev_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
         .with_stderr_contains(
             "\
-warning: dependency (bar) specified without providing a local path, Git repository, version, \
-or workspace dependency to use. This will be considered an error in future versions
+[WARNING] `dev_dependencies` is deprecated in favor of `dev-dependencies` and will not work in the 2024 edition
+(in the `foo` package)
+"
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn dev_dependencies2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2024"
+
+                [dev_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `dev_dependencies` is unsupported as of the 2024 edition; instead use `dev-dependencies`
+  (in the `foo` package)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn dev_dependencies2_conflict() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [dev-dependencies]
+                a = {path = "a"}
+                [dev_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `dev_dependencies` is redundant with `dev-dependencies`, preferring `dev-dependencies` in the `foo` package
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn build_dependencies2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [build_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `build_dependencies` is deprecated in favor of `build-dependencies` and will not work in the 2024 edition
+(in the `foo` package)
+"
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn build_dependencies2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2024"
+
+                [build_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `build_dependencies` is unsupported as of the 2024 edition; instead use `build-dependencies`
+  (in the `foo` package)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn build_dependencies2_conflict() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2018"
+
+                [build-dependencies]
+                a = {path = "a"}
+                [build_dependencies]
+                a = {path = "a"}
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.0.1"
+                edition = "2015"
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `build_dependencies` is redundant with `build-dependencies`, preferring `build-dependencies` in the `foo` package
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn lib_crate_type2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2015"
+                authors = ["wycats@example.com"]
+
+                [lib]
+                name = "foo"
+                crate_type = ["staticlib", "dylib"]
+            "#,
+        )
+        .file("src/lib.rs", "pub fn foo() {}")
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `crate_type` is deprecated in favor of `crate-type` and will not work in the 2024 edition
+(in the `foo` library target)
+",
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn lib_crate_type2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2024"
+                authors = ["wycats@example.com"]
+
+                [lib]
+                name = "foo"
+                crate_type = ["staticlib", "dylib"]
+            "#,
+        )
+        .file("src/lib.rs", "pub fn foo() {}")
+        .build();
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `crate_type` is unsupported as of the 2024 edition; instead use `crate-type`
+  (in the `foo` library target)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn lib_crate_type2_conflict() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2015"
+                authors = ["wycats@example.com"]
+
+                [lib]
+                name = "foo"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["staticlib", "dylib"]
+            "#,
+        )
+        .file("src/lib.rs", "pub fn foo() {}")
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `crate_type` is redundant with `crate-type`, preferring `crate-type` in the `foo` library target
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn examples_crate_type2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2015"
+                authors = ["wycats@example.com"]
+
+                [[example]]
+                name = "ex"
+                path = "examples/ex.rs"
+                crate_type = ["proc_macro"]
+                [[example]]
+                name = "goodbye"
+                path = "examples/ex-goodbye.rs"
+                crate_type = ["rlib", "staticlib"]
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "examples/ex.rs",
+            r#"
+                fn main() { println!("ex"); }
+            "#,
+        )
+        .file(
+            "examples/ex-goodbye.rs",
+            r#"
+                fn main() { println!("goodbye"); }
+            "#,
+        )
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `crate_type` is deprecated in favor of `crate-type` and will not work in the 2024 edition
+(in the `ex` example target)
+[WARNING] `crate_type` is deprecated in favor of `crate-type` and will not work in the 2024 edition
+(in the `goodbye` example target)
+",
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn examples_crate_type2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2024"
+                authors = ["wycats@example.com"]
+
+                [[example]]
+                name = "ex"
+                path = "examples/ex.rs"
+                crate_type = ["proc_macro"]
+                [[example]]
+                name = "goodbye"
+                path = "examples/ex-goodbye.rs"
+                crate_type = ["rlib", "staticlib"]
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "examples/ex.rs",
+            r#"
+                fn main() { println!("ex"); }
+            "#,
+        )
+        .file(
+            "examples/ex-goodbye.rs",
+            r#"
+                fn main() { println!("goodbye"); }
+            "#,
+        )
+        .build();
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `crate_type` is unsupported as of the 2024 edition; instead use `crate-type`
+  (in the `ex` example target)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn examples_crate_type2_conflict() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.5.0"
+                edition = "2015"
+                authors = ["wycats@example.com"]
+
+                [[example]]
+                name = "ex"
+                path = "examples/ex.rs"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["proc_macro"]
+                [[example]]
+                name = "goodbye"
+                path = "examples/ex-goodbye.rs"
+                crate-type = ["rlib", "dylib"]
+                crate_type = ["rlib", "staticlib"]
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "examples/ex.rs",
+            r#"
+                fn main() { println!("ex"); }
+            "#,
+        )
+        .file(
+            "examples/ex-goodbye.rs",
+            r#"
+                fn main() { println!("goodbye"); }
+            "#,
+        )
+        .build();
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `crate_type` is redundant with `crate-type`, preferring `crate-type` in the `ex` example target
+[WARNING] `crate_type` is redundant with `crate-type`, preferring `crate-type` in the `goodbye` example target
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn cargo_platform_build_dependencies2() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2015"
+                    authors = ["wycats@example.com"]
+                    build = "build.rs"
+
+                    [target.{host}.build_dependencies]
+                    build = {{ path = "build" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "build.rs",
+            "extern crate build; fn main() { build::build(); }",
+        )
+        .file("build/Cargo.toml", &basic_manifest("build", "0.5.0"))
+        .file("build/src/lib.rs", "pub fn build() {}")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(
+            format!("\
+[WARNING] `build_dependencies` is deprecated in favor of `build-dependencies` and will not work in the 2024 edition
+(in the `{host}` platform target)
+")
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn cargo_platform_build_dependencies2_2024() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    cargo-features = ["edition2024"]
+
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2024"
+                    authors = ["wycats@example.com"]
+                    build = "build.rs"
+
+                    [target.{host}.build_dependencies]
+                    build = {{ path = "build" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "build.rs",
+            "extern crate build; fn main() { build::build(); }",
+        )
+        .file("build/Cargo.toml", &basic_manifest("build", "0.5.0"))
+        .file("build/src/lib.rs", "pub fn build() {}")
+        .build();
+
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(format!(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `build_dependencies` is unsupported as of the 2024 edition; instead use `build-dependencies`
+  (in the `{host}` platform target)
+"
+        ))
+        .run();
+}
+
+#[cargo_test]
+fn cargo_platform_build_dependencies2_conflict() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2015"
+                    authors = ["wycats@example.com"]
+                    build = "build.rs"
+
+                    [target.{host}.build-dependencies]
+                    build = {{ path = "build" }}
+                    [target.{host}.build_dependencies]
+                    build = {{ path = "build" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "build.rs",
+            "extern crate build; fn main() { build::build(); }",
+        )
+        .file("build/Cargo.toml", &basic_manifest("build", "0.5.0"))
+        .file("build/src/lib.rs", "pub fn build() {}")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(format!(
+            "\
+[WARNING] `build_dependencies` is redundant with `build-dependencies`, preferring `build-dependencies` in the `{host}` platform target
+"
+        ))
+        .run();
+}
+
+#[cargo_test]
+fn cargo_platform_dev_dependencies2() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2015"
+                    authors = ["wycats@example.com"]
+
+                    [target.{host}.dev_dependencies]
+                    dev = {{ path = "dev" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "tests/foo.rs",
+            "extern crate dev; #[test] fn foo() { dev::dev() }",
+        )
+        .file("dev/Cargo.toml", &basic_manifest("dev", "0.5.0"))
+        .file("dev/src/lib.rs", "pub fn dev() {}")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(
+            format!("\
+[WARNING] `dev_dependencies` is deprecated in favor of `dev-dependencies` and will not work in the 2024 edition
+(in the `{host}` platform target)
+")
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn cargo_platform_dev_dependencies2_2024() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    cargo-features = ["edition2024"]
+
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2024"
+                    authors = ["wycats@example.com"]
+
+                    [target.{host}.dev_dependencies]
+                    dev = {{ path = "dev" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "tests/foo.rs",
+            "extern crate dev; #[test] fn foo() { dev::dev() }",
+        )
+        .file("dev/Cargo.toml", &basic_manifest("dev", "0.5.0"))
+        .file("dev/src/lib.rs", "pub fn dev() {}")
+        .build();
+
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(format!(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `dev_dependencies` is unsupported as of the 2024 edition; instead use `dev-dependencies`
+  (in the `{host}` platform target)
+"
+        ))
+        .run();
+}
+
+#[cargo_test]
+fn cargo_platform_dev_dependencies2_conflict() {
+    let host = rustc_host();
+    let p = project()
+        .file(
+            "Cargo.toml",
+            &format!(
+                r#"
+                    [package]
+                    name = "foo"
+                    version = "0.5.0"
+                    edition = "2015"
+                    authors = ["wycats@example.com"]
+
+                    [target.{host}.dev-dependencies]
+                    dev = {{ path = "dev" }}
+                    [target.{host}.dev_dependencies]
+                    dev = {{ path = "dev" }}
+                "#,
+                host = host
+            ),
+        )
+        .file("src/main.rs", "fn main() { }")
+        .file(
+            "tests/foo.rs",
+            "extern crate dev; #[test] fn foo() { dev::dev() }",
+        )
+        .file("dev/Cargo.toml", &basic_manifest("dev", "0.5.0"))
+        .file("dev/src/lib.rs", "pub fn dev() {}")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(format!(
+            "\
+[WARNING] `dev_dependencies` is redundant with `dev-dependencies`, preferring `dev-dependencies` in the `{host}` platform target
+"
+        ))
+        .run();
+}
+
+#[cargo_test]
+fn default_features2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [dependencies]
+                a = { path = "a", features = ["f1"], default_features = false }
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [features]
+                default = ["f1"]
+                f1 = []
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `default_features` is deprecated in favor of `default-features` and will not work in the 2024 edition
+(in the `a` dependency)
+"
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn default_features2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2024"
+                authors = []
+
+                [dependencies]
+                a = { path = "a", features = ["f1"], default_features = false }
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [features]
+                default = ["f1"]
+                f1 = []
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `default_features` is unsupported as of the 2024 edition; instead use `default-features`
+  (in the `a` dependency)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn default_features2_conflict() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [dependencies]
+                a = { path = "a", features = ["f1"], default-features = false, default_features = false }
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .file(
+            "a/Cargo.toml",
+            r#"
+                [package]
+                name = "a"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [features]
+                default = ["f1"]
+                f1 = []
+            "#,
+        )
+        .file("a/src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `default_features` is redundant with `default-features`, preferring `default-features` in the `a` dependency
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn workspace_default_features2() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [workspace]
+                members = ["workspace_only", "dep_workspace_only", "package_only", "dep_package_only"]
+
+                [workspace.dependencies]
+                dep_workspace_only = { path = "dep_workspace_only", default_features = true }
+                dep_package_only = { path = "dep_package_only" }
+            "#,
+        )
+        .file(
+            "workspace_only/Cargo.toml",
+            r#"
+                [package]
+                name = "workspace_only"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [dependencies]
+                dep_workspace_only.workspace = true
+            "#,
+        )
+        .file("workspace_only/src/lib.rs", "")
+        .file(
+            "dep_workspace_only/Cargo.toml",
+            r#"
+                [package]
+                name = "dep_workspace_only"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+            "#,
+        )
+        .file("dep_workspace_only/src/lib.rs", "")
+        .file(
+            "package_only/Cargo.toml",
+            r#"
+                [package]
+                name = "package_only"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+
+                [dependencies]
+                dep_package_only = { workspace = true, default_features = true }
+            "#,
+        )
+        .file("package_only/src/lib.rs", "")
+        .file(
+            "dep_package_only/Cargo.toml",
+            r#"
+                [package]
+                name = "dep_package_only"
+                version = "0.1.0"
+                edition = "2015"
+                authors = []
+            "#,
+        )
+        .file("dep_package_only/src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .with_stderr_unordered(
+            "\
+warning: [CWD]/workspace_only/Cargo.toml: `default_features` is deprecated in favor of `default-features` and will not work in the 2024 edition
+(in the `dep_workspace_only` dependency)
+     Locking 4 packages to latest compatible versions
+    Checking dep_package_only v0.1.0 ([CWD]/dep_package_only)
+    Checking dep_workspace_only v0.1.0 ([CWD]/dep_workspace_only)
+    Checking package_only v0.1.0 ([CWD]/package_only)
+    Checking workspace_only v0.1.0 ([CWD]/workspace_only)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]s
+"
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn workspace_default_features2_2024() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [workspace]
+                members = ["workspace_only", "dep_workspace_only", "package_only", "dep_package_only"]
+
+                [workspace.dependencies]
+                dep_workspace_only = { path = "dep_workspace_only", default_features = true }
+                dep_package_only = { path = "dep_package_only" }
+            "#,
+        )
+        .file(
+            "workspace_only/Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "workspace_only"
+                version = "0.1.0"
+                edition = "2024"
+                authors = []
+
+                [dependencies]
+                dep_workspace_only.workspace = true
+            "#,
+        )
+        .file("workspace_only/src/lib.rs", "")
+        .file(
+            "dep_workspace_only/Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "dep_workspace_only"
+                version = "0.1.0"
+                edition = "2024"
+                authors = []
+            "#,
+        )
+        .file("dep_workspace_only/src/lib.rs", "")
+        .file(
+            "package_only/Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "package_only"
+                version = "0.1.0"
+                edition = "2024"
+                authors = []
+
+                [dependencies]
+                dep_package_only = { workspace = true, default_features = true }
+            "#,
+        )
+        .file("package_only/src/lib.rs", "")
+        .file(
+            "dep_package_only/Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "dep_package_only"
+                version = "0.1.0"
+                edition = "2024"
+                authors = []
+            "#,
+        )
+        .file("dep_package_only/src/lib.rs", "")
+        .build();
+
+    p.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to load manifest for workspace member `[CWD]/workspace_only`
+referenced by workspace at `[CWD]/Cargo.toml`
+
+Caused by:
+  failed to parse manifest at `[CWD]/workspace_only/Cargo.toml`
+
+Caused by:
+  `default_features` is unsupported as of the 2024 edition; instead use `default-features`
+  (in the `dep_workspace_only` dependency)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn proc_macro2() {
+    let foo = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+                [lib]
+                proc_macro = true
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    foo.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `proc_macro` is deprecated in favor of `proc-macro` and will not work in the 2024 edition
+(in the `foo` library target)
+",
+        )
+        .run();
+}
+
+#[cargo_test(nightly, reason = "edition2024 is not stable")]
+fn proc_macro2_2024() {
+    let foo = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                cargo-features = ["edition2024"]
+
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2024"
+                [lib]
+                proc_macro = true
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    foo.cargo("check")
+        .masquerade_as_nightly_cargo(&["edition2024"])
+        .with_status(101)
+        .with_stderr(
+            "\
+[ERROR] failed to parse manifest at `[CWD]/Cargo.toml`
+
+Caused by:
+  `proc_macro` is unsupported as of the 2024 edition; instead use `proc-macro`
+  (in the `foo` library target)
+",
+        )
+        .run();
+}
+
+#[cargo_test]
+fn proc_macro2_conflict() {
+    let foo = project()
+        .file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2015"
+                [lib]
+                proc-macro = false
+                proc_macro = true
+            "#,
+        )
+        .file("src/lib.rs", "")
+        .build();
+
+    foo.cargo("check")
+        .with_stderr_contains(
+            "\
+[WARNING] `proc_macro` is redundant with `proc-macro`, preferring `proc-macro` in the `foo` library target
 ",
         )
         .run();

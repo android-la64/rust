@@ -8,41 +8,29 @@ features! {
     /// Checks if `loongarch` feature is enabled.
     /// Supported arguments are:
     ///
-    /// * `"lam"`
-    /// * `"ual"`
-    /// * `"fpu"`
+    /// * `"f"`
+    /// * `"d"`
+    /// * `"frecipe"`
     /// * `"lsx"`
     /// * `"lasx"`
-    /// * `"crc32"`
-    /// * `"complex"`
-    /// * `"crypto"`
+    /// * `"lbt"`
     /// * `"lvz"`
-    /// * `"lbtx86"`
-    /// * `"lbtarm"`
-    /// * `"lbtmips"`
+    /// * `"ual"`
     #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")]
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lam: "lam";
-    /// LAM
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] ual: "ual";
-    /// UAL
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] fpu: "fpu";
-    /// FPU
+    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] f: "f";
+    /// F
+    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] d: "d";
+    /// D
+    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] frecipe: "frecipe";
+    /// Frecipe
     @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lsx: "lsx";
     /// LSX
     @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lasx: "lasx";
     /// LASX
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] crc32: "crc32";
-    /// FPU
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] complex: "complex";
-    /// Complex
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] crypto: "crypto";
-    /// Crypto
+    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lbt: "lbt";
+    /// LBT
     @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lvz: "lvz";
     /// LVZ
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lbtx86: "lbtx86";
-    /// LBT.X86
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lbtarm: "lbtarm";
-    /// LBT.ARM
-    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] lbtmips: "lbtmips";
-    /// LBT.MIPS
+    @FEATURE: #[unstable(feature = "stdarch_loongarch_feature_detection", issue = "117425")] ual: "ual";
+    /// UAL
 }

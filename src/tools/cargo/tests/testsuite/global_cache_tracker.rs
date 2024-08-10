@@ -417,7 +417,7 @@ fn frequency() {
         .env("CARGO_GC_AUTO_FREQUENCY", "1 day")
         .masquerade_as_nightly_cargo(&["gc"])
         .run();
-    assert_eq!(get_index_names().len(), 0);
+    assert_eq!(get_index_names().len(), 1);
     assert_eq!(get_registry_names("src").len(), 0);
     assert_eq!(get_registry_names("cache").len(), 0);
 }
@@ -591,7 +591,7 @@ fn auto_gc_various_commands() {
             .acquire_package_cache_lock(CacheLockMode::MutateExclusive)
             .unwrap();
         let indexes = tracker.registry_index_all().unwrap();
-        assert_eq!(indexes.len(), 0);
+        assert_eq!(indexes.len(), 1);
         let crates = tracker.registry_crate_all().unwrap();
         assert_eq!(crates.len(), 0);
         let srcs = tracker.registry_src_all().unwrap();
@@ -1481,6 +1481,7 @@ fn clean_max_git_age() {
         .with_stderr(
             "\
 [UPDATING] git repository [..]
+[LOCKING] 1 package to latest compatible version
 [UPDATING] git_a v1.0.0 [..]
 ",
         )
@@ -1562,6 +1563,7 @@ fn clean_max_src_crate_age() {
         .with_stderr(
             "\
 [UPDATING] `dummy-registry` index
+[LOCKING] 1 package to latest compatible version
 [UPDATING] bar v1.0.0 -> v1.0.1
 ",
         )

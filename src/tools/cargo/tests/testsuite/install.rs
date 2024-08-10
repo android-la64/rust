@@ -1981,7 +1981,7 @@ fn install_ignores_unstable_table_in_local_cargo_config() {
 fn install_global_cargo_config() {
     pkg("bar", "0.0.1");
 
-    let config = cargo_home().join("config");
+    let config = cargo_home().join("config.toml");
     let mut toml = fs::read_to_string(&config).unwrap_or_default();
 
     toml.push_str(
@@ -1994,6 +1994,7 @@ fn install_global_cargo_config() {
 
     cargo_process("install bar")
         .with_status(101)
+        .with_stderr_contains("[INSTALLING] bar v0.0.1")
         .with_stderr_contains("[..]--target nonexistent[..]")
         .run();
 }
@@ -2410,6 +2411,8 @@ fn self_referential() {
 [DOWNLOADING] crates ...
 [DOWNLOADED] foo v0.0.2 (registry [..])
 [INSTALLING] foo v0.0.2
+[LOCKING] 2 packages to latest compatible versions
+[ADDING] foo v0.0.1 (latest: v0.0.2)
 [DOWNLOADING] crates ...
 [DOWNLOADED] foo v0.0.1 (registry [..])
 [COMPILING] foo v0.0.1
@@ -2455,6 +2458,7 @@ fn ambiguous_registry_vs_local_package() {
             "\
 [INSTALLING] foo v0.1.0 ([..])
 [UPDATING] `[..]` index
+[LOCKING] 2 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] foo v0.0.1 (registry [..])
 [COMPILING] foo v0.0.1

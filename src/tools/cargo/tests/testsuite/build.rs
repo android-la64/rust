@@ -6,14 +6,14 @@ use cargo::{
     ops::CompileOptions,
     GlobalContext,
 };
-use cargo_test_support::compare;
 use cargo_test_support::paths::{root, CargoPathExt};
 use cargo_test_support::registry::Package;
-use cargo_test_support::tools;
 use cargo_test_support::{
     basic_bin_manifest, basic_lib_manifest, basic_manifest, cargo_exe, git, is_nightly, main_file,
     paths, process, project, rustc_host, sleep_ms, symlink_supported, t, Execs, ProjectBuilder,
 };
+use cargo_test_support::{cargo_process, compare};
+use cargo_test_support::{git_process, tools};
 use cargo_util::paths::dylib_path_envvar;
 use std::env;
 use std::fs;
@@ -31,6 +31,58 @@ fn cargo_compile_simple() {
     assert!(p.bin("foo").is_file());
 
     p.process(&p.bin("foo")).with_stdout("i am foo\n").run();
+}
+
+#[cargo_test]
+fn build_with_symlink_to_path_dependency_with_build_script_in_git() {
+    if !symlink_supported() {
+        return;
+    }
+
+    let root = paths::root();
+    git::repo(&root)
+        .nocommit_file(
+            "Cargo.toml",
+            r#"
+                [package]
+                name = "foo"
+                version = "0.1.0"
+                edition = "2021"
+
+               [dependencies]
+               # the path leads through a symlink, 'symlink-to-original' is a worktree root,
+               # and symlink-to-dir/ is a symlink to a sub-directory to be stepped through.
+               lib = { version = "0.1.0", path = "symlink-to-original/symlink-to-dir/lib" }
+            "#,
+        )
+        .nocommit_file("src/main.rs", "fn main() { }")
+        .nocommit_file("original/dir/lib/build.rs", "fn main() {}")
+        .nocommit_file(
+            "original/dir/lib/Cargo.toml",
+            r#"
+                [package]
+                name = "lib"
+                version = "0.1.0"
+                edition = "2021"
+              "#,
+        )
+        .nocommit_file("original/dir/lib/src/lib.rs", "")
+        .nocommit_symlink_dir("original", "symlink-to-original")
+        .nocommit_symlink_dir("original/dir", "original/symlink-to-dir")
+        .build();
+
+    // It is necessary to have a sub-repository and to add files so there is an index.
+    git_process("init")
+        .cwd(root.join("original"))
+        .build_command()
+        .status()
+        .unwrap();
+    git_process("add .")
+        .cwd(root.join("original"))
+        .build_command()
+        .status()
+        .unwrap();
+    cargo_process("build").run()
 }
 
 #[cargo_test]
@@ -1444,7 +1496,7 @@ fn cargo_default_env_metadata_env_var() {
 
                 [lib]
                 name = "bar"
-                crate_type = ["dylib"]
+                crate-type = ["dylib"]
             "#,
         )
         .file("bar/src/lib.rs", "// hello")
@@ -1454,6 +1506,7 @@ fn cargo_default_env_metadata_env_var() {
     p.cargo("build -v")
         .with_stderr(&format!(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.0.1 ([CWD]/bar)
 [RUNNING] `rustc --crate-name bar --edition=2015 bar/src/lib.rs [..]--crate-type dylib \
         --emit=[..]link \
@@ -2036,7 +2089,7 @@ fn many_crate_types_old_style_lib_location() {
                 [lib]
 
                 name = "foo"
-                crate_type = ["rlib", "dylib"]
+                crate-type = ["rlib", "dylib"]
             "#,
         )
         .file("src/foo.rs", "pub fn foo() {}")
@@ -2070,7 +2123,7 @@ fn many_crate_types_correct() {
                 [lib]
 
                 name = "foo"
-                crate_type = ["rlib", "dylib"]
+                crate-type = ["rlib", "dylib"]
             "#,
         )
         .file("src/lib.rs", "pub fn foo() {}")
@@ -2098,7 +2151,7 @@ fn set_both_dylib_and_cdylib_crate_types() {
                 [lib]
 
                 name = "foo"
-                crate_type = ["cdylib", "dylib"]
+                crate-type = ["cdylib", "dylib"]
             "#,
         )
         .file("src/lib.rs", "pub fn foo() {}")
@@ -2112,157 +2165,6 @@ error: failed to parse manifest at `[..]`
 Caused by:
   library `foo` cannot set the crate type of both `dylib` and `cdylib`
 ",
-        )
-        .run();
-}
-
-#[cargo_test]
-fn dev_dependencies_conflicting_warning() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                name = "foo"
-                version = "0.1.0"
-                edition = "2018"
-
-                [dev-dependencies]
-                a = {path = "a"}
-                [dev_dependencies]
-                a = {path = "a"}
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .file(
-            "a/Cargo.toml",
-            r#"
-                [package]
-                name = "a"
-                version = "0.0.1"
-                edition = "2015"
-            "#,
-        )
-        .file("a/src/lib.rs", "")
-        .build();
-    p.cargo("build")
-        .with_stderr_contains(
-"[WARNING] conflicting between `dev-dependencies` and `dev_dependencies` in the `foo` package.\n
-        `dev_dependencies` is ignored and not recommended for use in the future"
-        )
-        .run();
-}
-
-#[cargo_test]
-fn build_dependencies_conflicting_warning() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                name = "foo"
-                version = "0.1.0"
-                edition = "2018"
-
-                [build-dependencies]
-                a = {path = "a"}
-                [build_dependencies]
-                a = {path = "a"}
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .file(
-            "a/Cargo.toml",
-            r#"
-                [package]
-                name = "a"
-                version = "0.0.1"
-                edition = "2015"
-            "#,
-        )
-        .file("a/src/lib.rs", "")
-        .build();
-    p.cargo("build")
-        .with_stderr_contains(
-"[WARNING] conflicting between `build-dependencies` and `build_dependencies` in the `foo` package.\n
-        `build_dependencies` is ignored and not recommended for use in the future"
-        )
-        .run();
-}
-
-#[cargo_test]
-fn lib_crate_types_conflicting_warning() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                name = "foo"
-                version = "0.5.0"
-                edition = "2015"
-                authors = ["wycats@example.com"]
-
-                [lib]
-                name = "foo"
-                crate-type = ["rlib", "dylib"]
-                crate_type = ["staticlib", "dylib"]
-            "#,
-        )
-        .file("src/lib.rs", "pub fn foo() {}")
-        .build();
-    p.cargo("build")
-        .with_stderr_contains(
-"[WARNING] conflicting between `crate-type` and `crate_type` in the `foo` library target.\n
-        `crate_type` is ignored and not recommended for use in the future",
-        )
-        .run();
-}
-
-#[cargo_test]
-fn examples_crate_types_conflicting_warning() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-                [package]
-                name = "foo"
-                version = "0.5.0"
-                edition = "2015"
-                authors = ["wycats@example.com"]
-
-                [[example]]
-                name = "ex"
-                path = "examples/ex.rs"
-                crate-type = ["rlib", "dylib"]
-                crate_type = ["proc_macro"]
-                [[example]]
-                name = "goodbye"
-                path = "examples/ex-goodbye.rs"
-                crate-type = ["rlib", "dylib"]
-                crate_type = ["rlib", "staticlib"]
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .file(
-            "examples/ex.rs",
-            r#"
-                fn main() { println!("ex"); }
-            "#,
-        )
-        .file(
-            "examples/ex-goodbye.rs",
-            r#"
-                fn main() { println!("goodbye"); }
-            "#,
-        )
-        .build();
-    p.cargo("build")
-        .with_stderr_contains(
-            "\
-[WARNING] conflicting between `crate-type` and `crate_type` in the `ex` example target.\n
-        `crate_type` is ignored and not recommended for use in the future
-[WARNING] conflicting between `crate-type` and `crate_type` in the `goodbye` example target.\n
-        `crate_type` is ignored and not recommended for use in the future",
         )
         .run();
 }
@@ -2468,7 +2370,7 @@ fn verbose_release_build_deps() {
 
                 [lib]
                 name = "foo"
-                crate_type = ["dylib", "rlib"]
+                crate-type = ["dylib", "rlib"]
             "#,
         )
         .file("foo/src/lib.rs", "")
@@ -2476,6 +2378,7 @@ fn verbose_release_build_deps() {
     p.cargo("build -v --release")
         .with_stderr(&format!(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] foo v0.0.0 ([CWD]/foo)
 [RUNNING] `rustc --crate-name foo --edition=2015 foo/src/lib.rs [..]\
         --crate-type dylib --crate-type rlib \
@@ -3453,90 +3356,6 @@ fn cargo_platform_specific_dependency() {
 }
 
 #[cargo_test]
-fn cargo_platform_specific_dependency_build_dependencies_conflicting_warning() {
-    let host = rustc_host();
-    let p = project()
-        .file(
-            "Cargo.toml",
-            &format!(
-                r#"
-                    [package]
-                    name = "foo"
-                    version = "0.5.0"
-                    edition = "2015"
-                    authors = ["wycats@example.com"]
-                    build = "build.rs"
-
-                    [target.{host}.build-dependencies]
-                    build = {{ path = "build" }}
-                    [target.{host}.build_dependencies]
-                    build = {{ path = "build" }}
-                "#,
-                host = host
-            ),
-        )
-        .file("src/main.rs", "fn main() { }")
-        .file(
-            "build.rs",
-            "extern crate build; fn main() { build::build(); }",
-        )
-        .file("build/Cargo.toml", &basic_manifest("build", "0.5.0"))
-        .file("build/src/lib.rs", "pub fn build() {}")
-        .build();
-
-    p.cargo("build")
-        .with_stderr_contains(
-        format!("[WARNING] conflicting between `build-dependencies` and `build_dependencies` in the `{}` platform target.\n
-        `build_dependencies` is ignored and not recommended for use in the future", host)
-        )
-        .run();
-
-    assert!(p.bin("foo").is_file());
-}
-
-#[cargo_test]
-fn cargo_platform_specific_dependency_dev_dependencies_conflicting_warning() {
-    let host = rustc_host();
-    let p = project()
-        .file(
-            "Cargo.toml",
-            &format!(
-                r#"
-                    [package]
-                    name = "foo"
-                    version = "0.5.0"
-                    edition = "2015"
-                    authors = ["wycats@example.com"]
-
-                    [target.{host}.dev-dependencies]
-                    dev = {{ path = "dev" }}
-                    [target.{host}.dev_dependencies]
-                    dev = {{ path = "dev" }}
-                "#,
-                host = host
-            ),
-        )
-        .file("src/main.rs", "fn main() { }")
-        .file(
-            "tests/foo.rs",
-            "extern crate dev; #[test] fn foo() { dev::dev() }",
-        )
-        .file("dev/Cargo.toml", &basic_manifest("dev", "0.5.0"))
-        .file("dev/src/lib.rs", "pub fn dev() {}")
-        .build();
-
-    p.cargo("build")
-        .with_stderr_contains(
-        format!("[WARNING] conflicting between `dev-dependencies` and `dev_dependencies` in the `{}` platform target.\n
-        `dev_dependencies` is ignored and not recommended for use in the future", host)
-        )
-        .run();
-
-    assert!(p.bin("foo").is_file());
-    p.cargo("test").run();
-}
-
-#[cargo_test]
 fn bad_platform_specific_dependency() {
     let p = project()
         .file(
@@ -4167,7 +3986,11 @@ fn invalid_spec() {
 
     p.cargo("build -p notAValidDep")
         .with_status(101)
-        .with_stderr("[ERROR] package ID specification `notAValidDep` did not match any packages")
+        .with_stderr(
+            "\
+[LOCKING] 2 packages to latest compatible versions
+[ERROR] package ID specification `notAValidDep` did not match any packages",
+        )
         .run();
 
     p.cargo("build -p d1 -p notAValidDep")
@@ -4599,6 +4422,7 @@ fn build_all_workspace() {
     p.cargo("build --workspace")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.1.0 ([..])
 [COMPILING] foo v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4633,6 +4457,7 @@ fn build_all_exclude() {
         .with_stderr_does_not_contain("[COMPILING] baz v0.1.0 [..]")
         .with_stderr_unordered(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4703,6 +4528,7 @@ fn build_all_exclude_not_found() {
         .with_stderr_does_not_contain("[COMPILING] baz v0.1.0 [..]")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [WARNING] excluded package(s) `baz` not found in workspace [..]
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
@@ -4738,6 +4564,7 @@ fn build_all_exclude_glob() {
         .with_stderr_does_not_contain("[COMPILING] baz v0.1.0 [..]")
         .with_stderr_unordered(
             "\
+[LOCKING] 3 packages to latest compatible versions
 [COMPILING] foo v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4771,6 +4598,7 @@ fn build_all_exclude_glob_not_found() {
         .with_stderr(
             "\
 [WARNING] excluded package pattern(s) `*z` not found in workspace [..]
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] [..] v0.1.0 ([..])
 [COMPILING] [..] v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4821,7 +4649,8 @@ fn build_all_workspace_implicit_examples() {
 
     p.cargo("build --workspace --examples")
         .with_stderr(
-            "[..] Compiling bar v0.1.0 ([..])\n\
+            "[LOCKING] 2 packages to latest compatible versions\n\
+             [..] Compiling bar v0.1.0 ([..])\n\
              [..] Compiling foo v0.1.0 ([..])\n\
              [..] Finished `dev` profile [unoptimized + debuginfo] target(s) in [..]\n",
         )
@@ -4856,6 +4685,7 @@ fn build_all_virtual_manifest() {
     p.cargo("build --workspace")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4884,6 +4714,7 @@ fn build_virtual_manifest_all_implied() {
     p.cargo("build")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -4912,6 +4743,7 @@ fn build_virtual_manifest_one_project() {
         .with_stderr_does_not_contain("[..]baz[..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
@@ -4939,6 +4771,7 @@ fn build_virtual_manifest_glob() {
         .with_stderr_does_not_contain("[..]bar[..]")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] baz v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
 ",
@@ -5014,6 +4847,7 @@ fn build_all_virtual_manifest_implicit_examples() {
     p.cargo("build --workspace --examples")
         .with_stderr_unordered(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] baz v0.1.0 ([..])
 [COMPILING] bar v0.1.0 ([..])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]
@@ -5060,6 +4894,7 @@ fn build_all_member_dependency_same_name() {
     p.cargo("build --workspace")
         .with_stderr(
             "[UPDATING] `[..]` index\n\
+             [LOCKING] 2 packages to latest compatible versions\n\
              [DOWNLOADING] crates ...\n\
              [DOWNLOADED] a v0.1.0 ([..])\n\
              [COMPILING] a v0.1.0\n\
@@ -5189,6 +5024,51 @@ fn rustc_wrapper() {
     p.cargo("build -v")
         .env("RUSTC_WORKSPACE_WRAPPER", &wrapper)
         .with_stderr_contains(&running)
+        .run();
+}
+
+/// Checks what happens when both rust-wrapper and rustc-workspace-wrapper are set.
+#[cargo_test]
+fn rustc_wrapper_precendence() {
+    let p = project().file("src/lib.rs", "").build();
+    let rustc_wrapper = tools::echo_wrapper();
+    let ws_wrapper = rustc_wrapper.with_file_name("rustc-ws-wrapper");
+    assert_ne!(rustc_wrapper, ws_wrapper);
+    std::fs::hard_link(&rustc_wrapper, &ws_wrapper).unwrap();
+
+    let running = format!(
+        "[RUNNING] `{} {} rustc --crate-name foo [..]",
+        rustc_wrapper.display(),
+        ws_wrapper.display(),
+    );
+    p.cargo("build -v")
+        .env("RUSTC_WRAPPER", &rustc_wrapper)
+        .env("RUSTC_WORKSPACE_WRAPPER", &ws_wrapper)
+        .with_stderr_contains(running)
+        .run();
+}
+
+#[cargo_test]
+fn rustc_wrapper_queries() {
+    // Check that the invocations querying rustc for information are done with the wrapper.
+    let p = project().file("src/lib.rs", "").build();
+    let wrapper = tools::echo_wrapper();
+    p.cargo("build")
+        .env("CARGO_LOG", "cargo::util::rustc=debug")
+        .env("RUSTC_WRAPPER", &wrapper)
+        .with_stderr_contains("[..]running [..]rustc-echo-wrapper[EXE] rustc -vV[..]")
+        .with_stderr_contains(
+            "[..]running [..]rustc-echo-wrapper[EXE] rustc - --crate-name ___ --print[..]",
+        )
+        .run();
+    p.build_dir().rm_rf();
+    p.cargo("build")
+        .env("CARGO_LOG", "cargo::util::rustc=debug")
+        .env("RUSTC_WORKSPACE_WRAPPER", &wrapper)
+        .with_stderr_contains("[..]running [..]rustc-echo-wrapper[EXE] rustc -vV[..]")
+        .with_stderr_contains(
+            "[..]running [..]rustc-echo-wrapper[EXE] rustc - --crate-name ___ --print[..]",
+        )
         .run();
 }
 
@@ -6092,6 +5972,7 @@ fn target_filters_workspace() {
         .with_status(101)
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [ERROR] no example target named `ex`
 
 <tab>Did you mean `ex1`?",
@@ -6137,7 +6018,11 @@ fn target_filters_workspace_not_found() {
 
     ws.cargo("build -v --lib")
         .with_status(101)
-        .with_stderr("[ERROR] no library targets found in packages: a, b")
+        .with_stderr(
+            "\
+[LOCKING] 2 packages to latest compatible versions
+[ERROR] no library targets found in packages: a, b",
+        )
         .run();
 }
 
@@ -6195,6 +6080,7 @@ fn signal_display() {
     foo.cargo("build")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] pm [..]
 [COMPILING] foo [..]
 [ERROR] could not compile `foo` [..]
@@ -6253,6 +6139,7 @@ fn pipelining_works() {
         .with_stdout("")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] [..]
 [COMPILING] [..]
 [FINISHED] [..]
@@ -6369,6 +6256,7 @@ fn forward_rustc_output() {
         .with_stdout("a\nb\n{}")
         .with_stderr(
             "\
+[LOCKING] 2 packages to latest compatible versions
 [COMPILING] [..]
 [COMPILING] [..]
 c

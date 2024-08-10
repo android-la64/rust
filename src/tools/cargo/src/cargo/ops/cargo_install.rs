@@ -624,7 +624,7 @@ pub fn install(
     let dst = root.join("bin").into_path_unlocked();
     let map = SourceConfigMap::new(gctx)?;
 
-    let current_rust_version = if opts.honor_rust_version {
+    let current_rust_version = if opts.honor_rust_version.unwrap_or(true) {
         let rustc = gctx.load_global_rustc(None)?;
         Some(rustc.version.clone().into())
     } else {
@@ -819,7 +819,9 @@ fn make_ws_rustc_target<'gctx>(
     let mut ws = if source_id.is_git() || source_id.is_path() {
         Workspace::new(pkg.manifest_path(), gctx)?
     } else {
-        Workspace::ephemeral(pkg, gctx, None, false)?
+        let mut ws = Workspace::ephemeral(pkg, gctx, None, false)?;
+        ws.set_resolve_honors_rust_version(Some(false));
+        ws
     };
     ws.set_ignore_lock(gctx.lock_update_allowed());
     ws.set_require_optional_deps(false);

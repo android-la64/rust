@@ -24,6 +24,7 @@
     avx512_target_feature,
     mips_target_feature,
     powerpc_target_feature,
+    loongarch_target_feature,
     wasm_target_feature,
     abi_unadjusted,
     rtm_target_feature,
@@ -32,7 +33,8 @@
     asm_const,
     target_feature_11,
     inline_const,
-    generic_arg_infer
+    generic_arg_infer,
+    asm_experimental_arch
 )]
 #![cfg_attr(test, feature(test, abi_vectorcall, stdarch_internal))]
 #![deny(clippy::missing_inline_in_public_items)]

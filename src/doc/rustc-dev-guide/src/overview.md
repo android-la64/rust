@@ -79,11 +79,11 @@ Macro-expansion, `AST`-validation, name-resolution, and early linting also take
 place during the lexing and parsing stage.
 
 The [`rustc_ast::ast`]::{[`Crate`], [`Expr`], [`Pat`], ...} `AST` nodes are
-returned from the parser while the standard [`DiagnosticBuilder`] API is used
+returned from the parser while the standard [`Diag`] API is used
 for error handling. Generally Rust's compiler will try to recover from errors
 by parsing a superset of Rust's grammar, while also emitting an error type.
 
-### `HIR` lowering
+### `AST` lowering
 
 Next the `AST` is converted into [High-Level Intermediate Representation
 (`HIR`)][hir], a more compiler-friendly representation of the `AST`. This process
@@ -137,7 +137,7 @@ the final binary.
 [`bump`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/parser/struct.Parser.html#method.bump
 [`check`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/parser/struct.Parser.html#method.check
 [`Crate`]: https://doc.rust-lang.org/beta/nightly-rustc/rustc_ast/ast/struct.Crate.html
-[`DiagnosticBuilder`]: https://doc.rust-lang.org/beta/nightly-rustc/rustc_errors/struct.DiagnosticBuilder.html
+[`diag`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_errors/struct.Diag.html
 [`eat`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/parser/struct.Parser.html#method.eat
 [`expect`]: https://doc.rust-lang.org/nightly/nightly-rustc/rustc_parse/parser/struct.Parser.html#method.expect
 [`Expr`]: https://doc.rust-lang.org/beta/nightly-rustc/rustc_ast/ast/struct.Expr.html
@@ -370,7 +370,7 @@ For more details on bootstrapping, see
 [the bootstrapping section of the guide][rustc-bootstrap].
 
 [_bootstrapping_]: https://en.wikipedia.org/wiki/Bootstrapping_(compilers)
-[rustc-bootstrap]: building/bootstrapping.md
+[rustc-bootstrap]: building/bootstrapping/intro.md
 
 <!--
 # Unresolved Questions
@@ -410,7 +410,7 @@ For more details on bootstrapping, see
   - Guide: [The HIR](hir.md)
   - Guide: [Identifiers in the HIR](hir.md#identifiers-in-the-hir)
   - Guide: [The `HIR` Map](hir.md#the-hir-map)
-  - Guide: [Lowering `AST` to HIR](lowering.md)
+  - Guide: [Lowering `AST` to `HIR`](ast-lowering.md)
   - How to view `HIR` representation for your code `cargo rustc -- -Z unpretty=hir-tree`
   - Rustc `HIR` definition: [`rustc_hir`](https://doc.rust-lang.org/nightly/nightly-rustc/rustc_hir/index.html)
   - Main entry point: **TODO**

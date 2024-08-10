@@ -134,11 +134,11 @@ jobs:
           rust: nightly
           other: i686-unknown-linux-gnu
         - name: macOS x86_64 stable
-          os: macos-latest
+          os: macos-13
           rust: stable
           other: x86_64-apple-ios
         - name: macOS x86_64 nightly
-          os: macos-latest
+          os: macos-13
           rust: nightly
           other: x86_64-apple-ios
         - name: macOS aarch64 stable
@@ -256,11 +256,11 @@ jobs:
         curl -Lf https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
         echo `pwd`/mdbook >> $GITHUB_PATH
     - run: cd src/doc && mdbook build --dest-dir ../../target/doc
-    - name: Run linkchecker.sh
-      run: |
-        cd target
-        curl -sSLO https://raw.githubusercontent.com/rust-lang/rust/master/src/tools/linkchecker/linkcheck.sh
-        sh linkcheck.sh --all --path ../src/doc cargo
+#    - name: Run linkchecker.sh
+#      run: |
+#        cd target
+#        curl -sSLO https://raw.githubusercontent.com/rust-lang/rust/master/src/tools/linkchecker/linkcheck.sh
+#        sh linkcheck.sh --all --path ../src/doc cargo
 
   msrv:
     runs-on: ubuntu-latest

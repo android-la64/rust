@@ -10,13 +10,13 @@ use crate::core::compiler::{BuildConfig, CompileMode, DefaultExecutor, Executor}
 use crate::core::manifest::Target;
 use crate::core::resolver::CliFeatures;
 use crate::core::{registry::PackageRegistry, resolver::HasDevUnits};
-use crate::core::{Feature, Shell, Verbosity, Workspace};
+use crate::core::{Feature, PackageIdSpecQuery, Shell, Verbosity, Workspace};
 use crate::core::{Package, PackageId, PackageSet, Resolve, SourceId};
 use crate::sources::PathSource;
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::context::JobsConfig;
 use crate::util::errors::CargoResult;
-use crate::util::toml::{prepare_for_publish, to_real_manifest};
+use crate::util::toml::prepare_for_publish;
 use crate::util::{self, human_readable_bytes, restricted_names, FileLock, GlobalContext};
 use crate::{drop_println, ops};
 use anyhow::Context as _;
@@ -176,10 +176,15 @@ pub fn package_one(
 }
 
 pub fn package(ws: &Workspace<'_>, opts: &PackageOpts<'_>) -> CargoResult<Option<Vec<FileLock>>> {
-    let pkgs = ws.members_with_features(
-        &opts.to_package.to_package_id_specs(ws)?,
-        &opts.cli_features,
-    )?;
+    let specs = &opts.to_package.to_package_id_specs(ws)?;
+    // If -p is used, we should check spec is matched with the members (See #13719)
+    if let ops::Packages::Packages(_) = opts.to_package {
+        for spec in specs.iter() {
+            let member_ids = ws.members().map(|p| p.package_id());
+            spec.query(member_ids)?;
+        }
+    }
+    let pkgs = ws.members_with_features(specs, &opts.cli_features)?;
 
     let mut dsts = Vec::with_capacity(pkgs.len());
 
@@ -448,28 +453,11 @@ fn error_custom_build_file_not_in_package(
 }
 
 /// Construct `Cargo.lock` for the package to be published.
-fn build_lock(ws: &Workspace<'_>, orig_pkg: &Package) -> CargoResult<String> {
+fn build_lock(ws: &Workspace<'_>, publish_pkg: &Package) -> CargoResult<String> {
     let gctx = ws.gctx();
     let orig_resolve = ops::load_pkg_lockfile(ws)?;
 
-    // Convert Package -> TomlManifest -> Manifest -> Package
-    let contents = orig_pkg.manifest().contents();
-    let document = orig_pkg.manifest().document();
-    let toml_manifest =
-        prepare_for_publish(orig_pkg.manifest().resolved_toml(), ws, orig_pkg.root())?;
-    let source_id = orig_pkg.package_id().source_id();
-    let manifest = to_real_manifest(
-        contents.to_owned(),
-        document.clone(),
-        toml_manifest,
-        source_id,
-        orig_pkg.manifest_path(),
-        gctx,
-    )?;
-    let new_pkg = Package::new(manifest, orig_pkg.manifest_path());
-
-    // Regenerate Cargo.lock using the old one as a guide.
-    let tmp_ws = Workspace::ephemeral(new_pkg, ws.gctx(), None, true)?;
+    let tmp_ws = Workspace::ephemeral(publish_pkg.clone(), ws.gctx(), None, true)?;
     let mut tmp_reg = PackageRegistry::new(ws.gctx())?;
     let mut new_resolve = ops::resolve_with_previous(
         &mut tmp_reg,
@@ -550,8 +538,9 @@ fn check_repo_state(
         if let Some(workdir) = repo.workdir() {
             debug!("found a git repo at {:?}", workdir);
             let path = p.manifest_path();
-            let path = path.strip_prefix(workdir).unwrap_or(path);
-            if let Ok(status) = repo.status_file(path) {
+            let path =
+                paths::strip_prefix_canonical(path, workdir).unwrap_or_else(|_| path.to_path_buf());
+            if let Ok(status) = repo.status_file(&path) {
                 if (status & git2::Status::IGNORED).is_empty() {
                     debug!(
                         "found (git) Cargo.toml at {:?} in workdir {:?}",
@@ -700,6 +689,7 @@ fn tar(
 
     let base_name = format!("{}-{}", pkg.name(), pkg.version());
     let base_path = Path::new(&base_name);
+    let publish_pkg = prepare_for_publish(pkg, ws)?;
 
     let mut uncompressed_size = 0;
     for ar_file in ar_files {
@@ -730,8 +720,8 @@ fn tar(
             }
             FileContents::Generated(generated_kind) => {
                 let contents = match generated_kind {
-                    GeneratedFile::Manifest => pkg.to_registry_toml(ws)?,
-                    GeneratedFile::Lockfile => build_lock(ws, pkg)?,
+                    GeneratedFile::Manifest => publish_pkg.manifest().to_resolved_contents()?,
+                    GeneratedFile::Lockfile => build_lock(ws, &publish_pkg)?,
                     GeneratedFile::VcsInfo(ref s) => serde_json::to_string_pretty(s)?,
                 };
                 header.set_entry_type(EntryType::file());
@@ -948,7 +938,7 @@ fn run_verify(
             target_rustc_args: rustc_args,
             target_rustc_crate_types: None,
             rustdoc_document_private_items: false,
-            honor_rust_version: true,
+            honor_rust_version: None,
         },
         &exec,
     )?;

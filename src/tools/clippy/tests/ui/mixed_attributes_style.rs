@@ -2,6 +2,7 @@
 //@compile-flags: --test --cfg dummy_cfg
 #![feature(custom_inner_attributes)]
 #![warn(clippy::mixed_attributes_style)]
+#![allow(clippy::duplicated_attributes)]
 
 #[macro_use]
 extern crate proc_macro_attr;

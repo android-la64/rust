@@ -197,6 +197,8 @@ fn collision_doc_multiple_versions() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 4 packages to latest compatible versions
+[ADDING] bar v1.0.0 (latest: v2.0.0)
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v2.0.0 [..]
 [DOWNLOADED] bar v1.0.0 [..]
@@ -370,6 +372,7 @@ fn collision_doc_profile_split() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] common v1.0.0 [..]
 [COMPILING] common v1.0.0
@@ -426,6 +429,7 @@ fn collision_doc_sources() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] bar v1.0.0 [..]
 [WARNING] output filename collision.
@@ -481,6 +485,8 @@ fn collision_doc_target() {
         .with_stderr_unordered(
             "\
 [UPDATING] [..]
+[LOCKING] 4 packages to latest compatible versions
+[ADDING] bar v1.0.0 (latest: v2.0.0)
 [DOWNLOADING] crates ...
 [DOWNLOADED] orphaned v1.0.0 [..]
 [DOWNLOADED] bar v2.0.0 [..]
@@ -547,10 +553,11 @@ fn collision_with_root() {
     p.cargo("doc -j=1")
         .with_stderr_unordered("\
 [UPDATING] [..]
+[LOCKING] 3 packages to latest compatible versions
 [DOWNLOADING] crates ...
 [DOWNLOADED] foo-macro v1.0.0 [..]
 warning: output filename collision.
-The lib target `foo-macro` in package `foo-macro v1.0.0` has the same output filename as the lib target `foo-macro` in package `foo-macro v1.0.0 [..]`.
+The lib target `foo_macro` in package `foo-macro v1.0.0` has the same output filename as the lib target `foo_macro` in package `foo-macro v1.0.0 [..]`.
 Colliding filename is: [CWD]/target/doc/foo_macro/index.html
 The targets should have unique names.
 This is a known bug where multiple crates with the same name use

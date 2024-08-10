@@ -9,6 +9,7 @@
     any(
         target_arch = "arm",
         target_arch = "aarch64",
+        target_arch = "arm64ec",
         target_arch = "x86",
         target_arch = "x86_64",
         target_arch = "powerpc",
@@ -101,7 +102,10 @@ fn aarch64_linux() {
 }
 
 #[test]
-#[cfg(all(target_arch = "aarch64", target_os = "windows"))]
+#[cfg(all(
+    any(target_arch = "aarch64", target_arch = "arm64ec"),
+    target_os = "windows"
+))]
 fn aarch64_windows() {
     println!("asimd: {:?}", is_aarch64_feature_detected!("asimd"));
     println!("fp: {:?}", is_aarch64_feature_detected!("fp"));
@@ -233,6 +237,7 @@ fn x86_all() {
         "avx512vp2intersect {:?}",
         is_x86_feature_detected!("avx512vp2intersect")
     );
+    println!("avx512fp16 {:?}", is_x86_feature_detected!("avx512fp16"));
     println!("f16c: {:?}", is_x86_feature_detected!("f16c"));
     println!("fma: {:?}", is_x86_feature_detected!("fma"));
     println!("bmi1: {:?}", is_x86_feature_detected!("bmi1"));

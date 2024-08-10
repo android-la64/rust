@@ -53,11 +53,13 @@ use tracing::{debug, trace, warn};
 use crate::core::compiler::RustcTargetData;
 use crate::core::resolver::features::{DiffMap, FeatureOpts, FeatureResolver, FeaturesFor};
 use crate::core::resolver::{HasDevUnits, Resolve, ResolveBehavior};
-use crate::core::{Edition, MaybePackage, PackageId, Workspace};
+use crate::core::{Edition, MaybePackage, Package, PackageId, Workspace};
+use crate::core::{FeatureValue, PackageIdSpecQuery as _};
 use crate::ops::resolve::WorkspaceResolve;
 use crate::ops::{self, CompileOptions};
 use crate::util::diagnostic_server::{Message, RustfixDiagnosticServer};
 use crate::util::errors::CargoResult;
+use crate::util::interning::InternedString;
 use crate::util::GlobalContext;
 use crate::util::{existing_vcs_repo, LockServer, LockServerClient};
 use crate::{drop_eprint, drop_eprintln};
@@ -87,11 +89,26 @@ pub struct FixOptions {
     pub broken_code: bool,
 }
 
-pub fn fix(ws: &Workspace<'_>, opts: &mut FixOptions) -> CargoResult<()> {
-    check_version_control(ws.gctx(), opts)?;
+pub fn fix(
+    gctx: &GlobalContext,
+    original_ws: &Workspace<'_>,
+    root_manifest: &Path,
+    opts: &mut FixOptions,
+) -> CargoResult<()> {
+    check_version_control(gctx, opts)?;
+
     if opts.edition {
-        check_resolver_change(ws, opts)?;
+        let specs = opts.compile_opts.spec.to_package_id_specs(&original_ws)?;
+        let members: Vec<&Package> = original_ws
+            .members()
+            .filter(|m| specs.iter().any(|spec| spec.matches(m.package_id())))
+            .collect();
+        migrate_manifests(original_ws, &members)?;
+
+        check_resolver_change(&original_ws, opts)?;
     }
+    let mut ws = Workspace::new(&root_manifest, gctx)?;
+    ws.set_resolve_honors_rust_version(Some(original_ws.resolve_honors_rust_version()));
 
     // Spin up our lock server, which our subprocesses will use to synchronize fixes.
     let lock_server = LockServer::new()?;
@@ -128,7 +145,7 @@ pub fn fix(ws: &Workspace<'_>, opts: &mut FixOptions) -> CargoResult<()> {
         server.configure(&mut wrapper);
     }
 
-    let rustc = ws.gctx().load_global_rustc(Some(ws))?;
+    let rustc = ws.gctx().load_global_rustc(Some(&ws))?;
     wrapper.arg(&rustc.path);
     // This is calling rustc in cargo fix-proxy-mode, so it also need to retry.
     // The argfile handling are located at `FixArgs::from_args`.
@@ -138,7 +155,7 @@ pub fn fix(ws: &Workspace<'_>, opts: &mut FixOptions) -> CargoResult<()> {
     // repeating build until there are no more changes to be applied
     opts.compile_opts.build_config.primary_unit_rustc = Some(wrapper);
 
-    ops::compile(ws, &opts.compile_opts)?;
+    ops::compile(&ws, &opts.compile_opts)?;
     Ok(())
 }
 
@@ -213,6 +230,169 @@ fn check_version_control(gctx: &GlobalContext, opts: &FixOptions) -> CargoResult
          ",
         files_list
     );
+}
+
+fn migrate_manifests(ws: &Workspace<'_>, pkgs: &[&Package]) -> CargoResult<()> {
+    for pkg in pkgs {
+        let existing_edition = pkg.manifest().edition();
+        let prepare_for_edition = existing_edition.saturating_next();
+        if existing_edition == prepare_for_edition
+            || (!prepare_for_edition.is_stable() && !ws.gctx().nightly_features_allowed)
+        {
+            continue;
+        }
+        let file = pkg.manifest_path();
+        let file = file.strip_prefix(ws.root()).unwrap_or(file);
+        let file = file.display();
+        ws.gctx().shell().status(
+            "Migrating",
+            format!("{file} from {existing_edition} edition to {prepare_for_edition}"),
+        )?;
+
+        if Edition::Edition2024 <= prepare_for_edition {
+            let mut document = pkg.manifest().document().clone().into_mut();
+            let mut fixes = 0;
+
+            let root = document.as_table_mut();
+
+            if let Some(workspace) = root
+                .get_mut("workspace")
+                .and_then(|t| t.as_table_like_mut())
+            {
+                // strictly speaking, the edition doesn't apply to this table but it should be safe
+                // enough
+                fixes += rename_dep_fields_2024(workspace, "dependencies");
+            }
+
+            fixes += add_feature_for_unused_deps(pkg, root);
+            fixes += rename_table(root, "project", "package");
+            if let Some(target) = root.get_mut("lib").and_then(|t| t.as_table_like_mut()) {
+                fixes += rename_target_fields_2024(target);
+            }
+            fixes += rename_array_of_target_fields_2024(root, "bin");
+            fixes += rename_array_of_target_fields_2024(root, "example");
+            fixes += rename_array_of_target_fields_2024(root, "test");
+            fixes += rename_array_of_target_fields_2024(root, "bench");
+            fixes += rename_dep_fields_2024(root, "dependencies");
+            fixes += rename_table(root, "dev_dependencies", "dev-dependencies");
+            fixes += rename_dep_fields_2024(root, "dev-dependencies");
+            fixes += rename_table(root, "build_dependencies", "build-dependencies");
+            fixes += rename_dep_fields_2024(root, "build-dependencies");
+            for target in root
+                .get_mut("target")
+                .and_then(|t| t.as_table_like_mut())
+                .iter_mut()
+                .flat_map(|t| t.iter_mut())
+                .filter_map(|(_k, t)| t.as_table_like_mut())
+            {
+                fixes += rename_dep_fields_2024(target, "dependencies");
+                fixes += rename_table(target, "dev_dependencies", "dev-dependencies");
+                fixes += rename_dep_fields_2024(target, "dev-dependencies");
+                fixes += rename_table(target, "build_dependencies", "build-dependencies");
+                fixes += rename_dep_fields_2024(target, "build-dependencies");
+            }
+
+            if 0 < fixes {
+                let verb = if fixes == 1 { "fix" } else { "fixes" };
+                let msg = format!("{file} ({fixes} {verb})");
+                ws.gctx().shell().status("Fixed", msg)?;
+
+                let s = document.to_string();
+                let new_contents_bytes = s.as_bytes();
+                cargo_util::paths::write_atomic(pkg.manifest_path(), new_contents_bytes)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn rename_dep_fields_2024(parent: &mut dyn toml_edit::TableLike, dep_kind: &str) -> usize {
+    let mut fixes = 0;
+    for target in parent
+        .get_mut(dep_kind)
+        .and_then(|t| t.as_table_like_mut())
+        .iter_mut()
+        .flat_map(|t| t.iter_mut())
+        .filter_map(|(_k, t)| t.as_table_like_mut())
+    {
+        fixes += rename_table(target, "default_features", "default-features");
+    }
+    fixes
+}
+
+fn rename_array_of_target_fields_2024(root: &mut dyn toml_edit::TableLike, kind: &str) -> usize {
+    let mut fixes = 0;
+    for target in root
+        .get_mut(kind)
+        .and_then(|t| t.as_array_of_tables_mut())
+        .iter_mut()
+        .flat_map(|t| t.iter_mut())
+    {
+        fixes += rename_target_fields_2024(target);
+    }
+    fixes
+}
+
+fn rename_target_fields_2024(target: &mut dyn toml_edit::TableLike) -> usize {
+    let mut fixes = 0;
+    fixes += rename_table(target, "crate_type", "crate-type");
+    fixes += rename_table(target, "proc_macro", "proc-macro");
+    fixes
+}
+
+fn rename_table(parent: &mut dyn toml_edit::TableLike, old: &str, new: &str) -> usize {
+    let Some(old_key) = parent.key(old).cloned() else {
+        return 0;
+    };
+
+    let project = parent.remove(old).expect("returned early");
+    if !parent.contains_key(new) {
+        parent.insert(new, project);
+        let mut new_key = parent.key_mut(new).expect("just inserted");
+        *new_key.dotted_decor_mut() = old_key.dotted_decor().clone();
+        *new_key.leaf_decor_mut() = old_key.leaf_decor().clone();
+    }
+    1
+}
+
+fn add_feature_for_unused_deps(pkg: &Package, parent: &mut dyn toml_edit::TableLike) -> usize {
+    let manifest = pkg.manifest();
+
+    let activated_opt_deps = manifest
+        .resolved_toml()
+        .features()
+        .map(|map| {
+            map.values()
+                .flatten()
+                .filter_map(|f| match FeatureValue::new(InternedString::new(f)) {
+                    FeatureValue::Dep { dep_name } => Some(dep_name.as_str()),
+                    _ => None,
+                })
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+
+    let mut fixes = 0;
+    for dep in manifest.dependencies() {
+        let dep_name_in_toml = dep.name_in_toml();
+        if dep.is_optional() && !activated_opt_deps.contains(dep_name_in_toml.as_str()) {
+            fixes += 1;
+            if let Some(features) = parent
+                .entry("features")
+                .or_insert(toml_edit::table())
+                .as_table_like_mut()
+            {
+                features.insert(
+                    dep_name_in_toml.as_str(),
+                    toml_edit::Item::Value(toml_edit::Value::Array(toml_edit::Array::from_iter(
+                        &[format!("dep:{}", dep_name_in_toml)],
+                    ))),
+                );
+            }
+        }
+    }
+    fixes
 }
 
 fn check_resolver_change(ws: &Workspace<'_>, opts: &FixOptions) -> CargoResult<()> {
@@ -735,12 +915,23 @@ fn rustfix_and_fix(
         });
         let mut fixed = CodeFix::new(&code);
 
-        // As mentioned above in `rustfix_crate`, we don't immediately warn
-        // about suggestions that fail to apply here, and instead we save them
-        // off for later processing.
+        let mut already_applied = HashSet::new();
         for suggestion in suggestions.iter().rev() {
+            // This assumes that if any of the machine applicable fixes in
+            // a diagnostic suggestion is a duplicate, we should see the
+            // entire suggestion as a duplicate.
+            if suggestion
+                .solutions
+                .iter()
+                .any(|sol| !already_applied.insert(sol))
+            {
+                continue;
+            }
             match fixed.apply(suggestion) {
                 Ok(()) => fixed_file.fixes_applied += 1,
+                // As mentioned above in `rustfix_crate`, we don't immediately
+                // warn about suggestions that fail to apply here, and instead
+                // we save them off for later processing.
                 Err(e) => fixed_file.errors_applying_fixes.push(e.to_string()),
             }
         }

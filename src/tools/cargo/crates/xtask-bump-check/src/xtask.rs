@@ -53,8 +53,8 @@ pub fn cli() -> clap::Command {
         )
         .arg(opt("base-rev", "Git revision to lookup for a baseline"))
         .arg(opt("head-rev", "Git revision with changes"))
-        .arg(flag("frozen", "Require Cargo.lock and cache are up to date").global(true))
-        .arg(flag("locked", "Require Cargo.lock is up to date").global(true))
+        .arg(flag("frozen", "Require Cargo.lock and cache to be up-to-date").global(true))
+        .arg(flag("locked", "Require Cargo.lock to be up-to-date").global(true))
         .arg(flag("offline", "Run without accessing the network").global(true))
         .arg(multi_opt("config", "KEY=VALUE", "Override a configuration value").global(true))
         .arg(
@@ -168,6 +168,8 @@ fn bump_check(args: &clap::ArgMatches, gctx: &cargo::util::GlobalContext) -> Car
     let mut cmd = ProcessBuilder::new("cargo");
     cmd.arg("semver-checks")
         .arg("check-release")
+        .args(&["--exclude", "cargo-test-macro"]) // FIXME: Remove once 1.79 is stable.
+        .args(&["--exclude", "cargo-test-support"]) // FIXME: Remove once 1.79 is stable.
         .arg("--workspace");
     gctx.shell().status("Running", &cmd)?;
     cmd.exec()?;
@@ -176,6 +178,8 @@ fn bump_check(args: &clap::ArgMatches, gctx: &cargo::util::GlobalContext) -> Car
         let mut cmd = ProcessBuilder::new("cargo");
         cmd.arg("semver-checks")
             .arg("--workspace")
+            .args(&["--exclude", "cargo-test-macro"]) // FIXME: Remove once 1.79 is stable.
+            .args(&["--exclude", "cargo-test-support"]) // FIXME: Remove once 1.79 is stable.
             .arg("--baseline-rev")
             .arg(referenced_commit.id().to_string());
         for krate in crates_not_check_against_channels {
