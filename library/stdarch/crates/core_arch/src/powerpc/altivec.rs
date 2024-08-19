@@ -408,6 +408,66 @@ impl_neg! { f32x4 : 0f32 }
 mod sealed {
     use super::*;
 
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    pub trait VectorInsert {
+        type S;
+        unsafe fn vec_insert<const IDX: u32>(self, s: Self::S) -> Self;
+    }
+
+    const fn idx_in_vec<T, const IDX: u32>() -> u32 {
+        IDX & (16 / crate::mem::size_of::<T>() as u32)
+    }
+
+    macro_rules! impl_vec_insert {
+        ($ty:ident) => {
+            #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+            impl VectorInsert for t_t_l!($ty) {
+                type S = $ty;
+                #[inline]
+                #[target_feature(enable = "altivec")]
+                unsafe fn vec_insert<const IDX: u32>(self, s: Self::S) -> Self {
+                    simd_insert(self, const { idx_in_vec::<Self::S, IDX>() }, s)
+                }
+            }
+        };
+    }
+
+    impl_vec_insert! { i8 }
+    impl_vec_insert! { u8 }
+    impl_vec_insert! { i16 }
+    impl_vec_insert! { u16 }
+    impl_vec_insert! { i32 }
+    impl_vec_insert! { u32 }
+    impl_vec_insert! { f32 }
+
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    pub trait VectorExtract {
+        type S;
+        unsafe fn vec_extract<const IDX: u32>(self) -> Self::S;
+    }
+
+    macro_rules! impl_vec_extract {
+        ($ty:ident) => {
+            #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+            impl VectorExtract for t_t_l!($ty) {
+                type S = $ty;
+                #[inline]
+                #[target_feature(enable = "altivec")]
+                unsafe fn vec_extract<const IDX: u32>(self) -> Self::S {
+                    simd_extract(self, const { idx_in_vec::<Self::S, IDX>() })
+                }
+            }
+        };
+    }
+
+    impl_vec_extract! { i8 }
+    impl_vec_extract! { u8 }
+    impl_vec_extract! { i16 }
+    impl_vec_extract! { u16 }
+    impl_vec_extract! { i32 }
+    impl_vec_extract! { u32 }
+    impl_vec_extract! { f32 }
+
     macro_rules! impl_vec_cmp {
         ([$Trait:ident $m:ident] ($b:ident, $h:ident, $w:ident)) => {
             impl_vec_cmp! { [$Trait $m] ($b, $b, $h, $h, $w, $w) }
@@ -1293,31 +1353,25 @@ mod sealed {
         unsafe fn vec_andc(self, b: Other) -> Self::Result;
     }
 
-    macro_rules! impl_vec_andc {
-        (($a:ty, $b:ty) -> $r:ty) => {
-            #[unstable(feature = "stdarch_powerpc", issue = "111145")]
-            impl VectorAndc<$b> for $a {
-                type Result = $r;
-                #[inline]
-                #[target_feature(enable = "altivec")]
-                unsafe fn vec_andc(self, b: $b) -> Self::Result {
-                    transmute(andc(transmute(self), transmute(b)))
-                }
-            }
-        };
-        (($a:ty, ~$b:ty) -> $r:ty) => {
-            impl_vec_andc! { ($a, $a) -> $r }
-            impl_vec_andc! { ($a, $b) -> $r }
-            impl_vec_andc! { ($b, $a) -> $r }
-        };
+    impl_vec_trait! { [VectorAndc vec_andc]+ 2b (andc) }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(all(test, not(target_feature = "vsx")), assert_instr(vorc))]
+    #[cfg_attr(all(test, target_feature = "vsx"), assert_instr(xxlorc))]
+    unsafe fn orc(a: vector_signed_char, b: vector_signed_char) -> vector_signed_char {
+        let a = transmute(a);
+        let b = transmute(b);
+        transmute(simd_or(simd_xor(u8x16::splat(0xff), b), a))
     }
 
-    impl_vec_andc! { (vector_unsigned_char, ~vector_bool_char) -> vector_unsigned_char }
-    impl_vec_andc! { (vector_signed_char, ~vector_bool_char) -> vector_signed_char }
-    impl_vec_andc! { (vector_unsigned_short, ~vector_bool_short) -> vector_unsigned_short }
-    impl_vec_andc! { (vector_signed_short, ~vector_bool_short) -> vector_signed_short }
-    impl_vec_andc! { (vector_unsigned_int, ~vector_bool_int) -> vector_unsigned_int }
-    impl_vec_andc! { (vector_signed_int, ~vector_bool_int) -> vector_signed_int }
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    pub trait VectorOrc<Other> {
+        type Result;
+        unsafe fn vec_orc(self, b: Other) -> Self::Result;
+    }
+
+    impl_vec_trait! { [VectorOrc vec_orc]+ 2b (orc) }
 
     test_impl! { vec_vand(a: vector_signed_char, b: vector_signed_char) -> vector_signed_char [ simd_and, vand / xxland ] }
 
@@ -1639,6 +1693,52 @@ mod sealed {
     #[cfg_attr(test, assert_instr(vmulesh))]
     unsafe fn vec_vmulesh(a: vector_signed_short, b: vector_signed_short) -> vector_signed_int {
         vmulesh(a, b)
+    }
+
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    pub trait VectorMul {
+        unsafe fn vec_mul(self, b: Self) -> Self;
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(vmuluwm))]
+    unsafe fn vec_vmuluwm(a: vector_signed_int, b: vector_signed_int) -> vector_signed_int {
+        transmute(simd_mul::<i32x4>(transmute(a), transmute(b)))
+    }
+
+    #[inline]
+    #[target_feature(enable = "altivec")]
+    #[cfg_attr(test, assert_instr(xvmulsp))]
+    unsafe fn vec_xvmulsp(a: vector_float, b: vector_float) -> vector_float {
+        transmute(simd_mul::<f32x4>(transmute(a), transmute(b)))
+    }
+
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    impl VectorMul for vector_signed_int {
+        #[inline]
+        #[target_feature(enable = "altivec")]
+        unsafe fn vec_mul(self, b: Self) -> Self {
+            vec_vmuluwm(self, b)
+        }
+    }
+
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    impl VectorMul for vector_unsigned_int {
+        #[inline]
+        #[target_feature(enable = "altivec")]
+        unsafe fn vec_mul(self, b: Self) -> Self {
+            transmute(simd_mul::<u32x4>(transmute(self), transmute(b)))
+        }
+    }
+
+    #[unstable(feature = "stdarch_powerpc", issue = "111145")]
+    impl VectorMul for vector_float {
+        #[inline]
+        #[target_feature(enable = "altivec")]
+        unsafe fn vec_mul(self, b: Self) -> Self {
+            vec_xvmulsp(self, b)
+        }
     }
 
     #[unstable(feature = "stdarch_powerpc", issue = "111145")]
@@ -3179,6 +3279,44 @@ mod sealed {
     }
 }
 
+/// Vector Insert
+///
+/// ## Purpose
+/// Returns a copy of vector b with element c replaced by the value of a.
+///
+/// ## Result value
+/// r contains a copy of vector b with element c replaced by the value of a.
+/// This function uses modular arithmetic on c to determine the element number.
+/// For example, if c is out of range, the compiler uses c modulo the number of
+/// elements in the vector to determine the element position.
+#[inline]
+#[target_feature(enable = "altivec")]
+#[unstable(feature = "stdarch_powerpc", issue = "111145")]
+pub unsafe fn vec_insert<T, const IDX: u32>(a: T, b: <T as sealed::VectorInsert>::S) -> T
+where
+    T: sealed::VectorInsert,
+{
+    a.vec_insert::<IDX>(b)
+}
+
+/// Vector Extract
+///
+/// ## Purpose
+/// Returns the value of the bth element of vector a.
+///
+/// ## Result value
+/// The value of each element of r is the element of a at position b modulo the number of
+/// elements of a.
+#[inline]
+#[target_feature(enable = "altivec")]
+#[unstable(feature = "stdarch_powerpc", issue = "111145")]
+pub unsafe fn vec_extract<T, const IDX: u32>(a: T) -> <T as sealed::VectorExtract>::S
+where
+    T: sealed::VectorExtract,
+{
+    a.vec_extract::<IDX>()
+}
+
 /// Vector Merge Low
 #[inline]
 #[target_feature(enable = "altivec")]
@@ -3681,6 +3819,23 @@ where
     a.vec_andc(b)
 }
 
+/// Vector OR with Complement
+///
+/// ## Purpose
+/// Performs a bitwise OR of the first vector with the bitwise-complemented second vector.
+///
+/// ## Result value
+/// r is the bitwise OR of a and the bitwise complement of b.
+#[inline]
+#[target_feature(enable = "altivec")]
+#[unstable(feature = "stdarch_powerpc", issue = "111145")]
+pub unsafe fn vec_orc<T, U>(a: T, b: U) -> <T as sealed::VectorOrc<U>>::Result
+where
+    T: sealed::VectorOrc<U>,
+{
+    a.vec_orc(b)
+}
+
 /// Vector and.
 #[inline]
 #[target_feature(enable = "altivec")]
@@ -4045,6 +4200,23 @@ mod endian {
     {
         a.vec_mule(b)
     }
+}
+
+/// Vector Multiply
+///
+/// ## Purpose
+/// Compute the products of corresponding elements of two vectors.
+///
+/// ## Result value
+/// Each element of r receives the product of the corresponding elements of a and b.
+#[inline]
+#[target_feature(enable = "altivec")]
+#[unstable(feature = "stdarch_powerpc", issue = "111145")]
+pub unsafe fn vec_mul<T>(a: T, b: T) -> T
+where
+    T: sealed::VectorMul,
+{
+    a.vec_mul(b)
 }
 
 /// Vector Multiply Add Saturated

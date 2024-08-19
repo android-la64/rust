@@ -51,7 +51,7 @@ pub struct TomlManifest {
     pub replace: Option<BTreeMap<String, TomlDependency>>,
     pub patch: Option<BTreeMap<String, BTreeMap<PackageName, TomlDependency>>>,
     pub workspace: Option<TomlWorkspace>,
-    pub badges: Option<InheritableBtreeMap>,
+    pub badges: Option<BTreeMap<String, BTreeMap<String, String>>>,
     pub lints: Option<InheritableLints>,
 
     /// Report unused keys (see also nested `_unused_keys`)
@@ -104,12 +104,6 @@ impl TomlManifest {
 
     pub fn features(&self) -> Option<&BTreeMap<FeatureName, Vec<String>>> {
         self.features.as_ref()
-    }
-
-    pub fn resolved_badges(
-        &self,
-    ) -> Result<Option<&BTreeMap<String, BTreeMap<String, String>>>, UnresolvedError> {
-        self.badges.as_ref().map(|l| l.resolved()).transpose()
     }
 
     pub fn resolved_lints(&self) -> Result<Option<&TomlLints>, UnresolvedError> {
@@ -221,6 +215,15 @@ impl TomlPackage {
         self.authors.as_ref().map(|v| v.resolved()).transpose()
     }
 
+    pub fn resolved_build(&self) -> Result<Option<&String>, UnresolvedError> {
+        let readme = self.build.as_ref().ok_or(UnresolvedError)?;
+        match readme {
+            StringOrBool::Bool(false) => Ok(None),
+            StringOrBool::Bool(true) => Err(UnresolvedError),
+            StringOrBool::String(value) => Ok(Some(value)),
+        }
+    }
+
     pub fn resolved_exclude(&self) -> Result<Option<&Vec<String>>, UnresolvedError> {
         self.exclude.as_ref().map(|v| v.resolved()).transpose()
     }
@@ -249,15 +252,12 @@ impl TomlPackage {
     }
 
     pub fn resolved_readme(&self) -> Result<Option<&String>, UnresolvedError> {
-        self.readme
-            .as_ref()
-            .map(|v| {
-                v.resolved().and_then(|sb| match sb {
-                    StringOrBool::Bool(_) => Err(UnresolvedError),
-                    StringOrBool::String(value) => Ok(value),
-                })
-            })
-            .transpose()
+        let readme = self.readme.as_ref().ok_or(UnresolvedError)?;
+        readme.resolved().and_then(|sb| match sb {
+            StringOrBool::Bool(false) => Ok(None),
+            StringOrBool::Bool(true) => Err(UnresolvedError),
+            StringOrBool::String(value) => Ok(Some(value)),
+        })
     }
 
     pub fn resolved_keywords(&self) -> Result<Option<&Vec<String>>, UnresolvedError> {
@@ -680,6 +680,13 @@ impl TomlDependency {
         match self {
             TomlDependency::Detailed(d) => d.public.unwrap_or(false),
             TomlDependency::Simple(..) => false,
+        }
+    }
+
+    pub fn default_features(&self) -> Option<bool> {
+        match self {
+            TomlDependency::Detailed(d) => d.default_features(),
+            TomlDependency::Simple(..) => None,
         }
     }
 
@@ -1496,6 +1503,13 @@ impl TomlLint {
             Self::Config(config) => config.priority,
         }
     }
+
+    pub fn config(&self) -> Option<&toml::Table> {
+        match self {
+            Self::Level(_) => None,
+            Self::Config(config) => Some(&config.config),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1504,6 +1518,8 @@ pub struct TomlLintConfig {
     pub level: TomlLintLevel,
     #[serde(default)]
     pub priority: i8,
+    #[serde(flatten)]
+    pub config: toml::Table,
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]

@@ -40,8 +40,8 @@ macro_rules! t {
 }
 
 pub use snapbox::file;
-pub use snapbox::path::current_dir;
 pub use snapbox::str;
+pub use snapbox::utils::current_dir;
 
 #[track_caller]
 pub fn panic_error(what: &str, err: impl Into<anyhow::Error>) -> ! {
@@ -76,6 +76,7 @@ pub mod prelude {
     pub use crate::CargoCommand;
     pub use crate::ChannelChanger;
     pub use crate::TestEnv;
+    pub use snapbox::IntoData;
 }
 
 /*
@@ -315,7 +316,7 @@ impl Project {
     pub fn from_template(template_path: impl AsRef<std::path::Path>) -> Self {
         let root = paths::root();
         let project_root = root.join("case");
-        snapbox::path::copy_template(template_path.as_ref(), &project_root).unwrap();
+        snapbox::dir::copy_template(template_path.as_ref(), &project_root).unwrap();
         Self { root: project_root }
     }
 
@@ -1286,10 +1287,6 @@ pub trait TestEnv: Sized {
             .env_remove("USER") // not set on some rust-lang docker images
             .env_remove("XDG_CONFIG_HOME") // see #2345
             .env_remove("OUT_DIR"); // see #13204
-        if cfg!(target_os = "macos") {
-            // Work-around a bug in macOS 10.15, see `link_or_copy` for details.
-            self = self.env("__CARGO_COPY_DONT_LINK_DO_NOT_USE_THIS", "1");
-        }
         if cfg!(windows) {
             self = self.env("USERPROFILE", paths::home());
         }

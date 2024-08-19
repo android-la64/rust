@@ -49,7 +49,7 @@ guide :)
 
 Not all `t-compiler` members are experts on all parts of `rustc`; it's a
 pretty large project. To find out who could have some expertise on
-different parts of the compiler, [consult traigebot assign groups][map].
+different parts of the compiler, [consult triagebot assign groups][map].
 The sections that start with `[assign*` in `triagebot.toml` file. 
 But also, feel free to ask questions even if you can't figure out who to ping.
 
@@ -121,6 +121,20 @@ Many diagnostic issues are self-contained and don't need detailed background kno
 compiler. You can see a list of diagnostic issues [here][diagnostic-issues].
 
 [diagnostic-issues]: https://github.com/rust-lang/rust/issues?q=is%3Aissue+is%3Aopen+label%3AA-diagnostics+no%3Aassignee
+
+### Picking up abandoned pull requests
+
+Sometimes, contributors send a pull request, but later find out that they don't have enough
+time to work on it, or they simply are not interested in it anymore. Such PRs are often
+eventually closed and they receive the `S-inactive` label. You could try to examine some of
+these PRs and pick up the work. You can find the list of such PRs [here][abandoned-prs].
+
+If the PR has been implemented in some other way in the meantime, the `S-inactive` label
+should be removed from it. If not, and it seems that there is still interest in the change,
+you can try to rebase the pull request on top of the latest `master` branch and send a new
+pull request, continuing the work on the feature.
+
+[abandoned-prs]: https://github.com/rust-lang/rust/pulls?q=is%3Apr+label%3AS-inactive+is%3Aclosed
 
 ### Contributing to std (standard library)
 

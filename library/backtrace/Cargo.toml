@@ -1,6 +1,6 @@
 [package]
 name = "backtrace"
-version = "0.3.71"
+version = "0.3.73"
 authors = ["The Rust Project Developers"]
 build = "build.rs"
 license = "MIT OR Apache-2.0"
@@ -28,10 +28,10 @@ exclude = [
 
 [dependencies]
 cfg-if = "1.0"
-rustc-demangle = "0.1.4"
+rustc-demangle = "0.1.24"
 
 # Optionally enable the ability to serialize a `Backtrace`, controlled through
-# the `serialize-*` features below.
+# the `serialize-serde` feature below.
 serde = { version = "1.0", optional = true, features = ['derive'] }
 
 # Optionally demangle C++ frames' symbols in backtraces.
@@ -41,11 +41,11 @@ cpp_demangle = { default-features = false, version = "0.4.0", optional = true, f
 
 [target.'cfg(not(all(windows, target_env = "msvc", not(target_vendor = "uwp"))))'.dependencies]
 miniz_oxide = { version = "0.7.0", default-features = false }
-addr2line = { version = "0.21.0", default-features = false }
+addr2line = { version = "0.22.0", default-features = false }
 libc = { version = "0.2.146", default-features = false }
 
 [target.'cfg(not(all(windows, target_env = "msvc", not(target_vendor = "uwp"))))'.dependencies.object]
-version = "0.32.0"
+version = "0.36.0"
 default-features = false
 features = ['read_core', 'elf', 'macho', 'pe', 'xcoff', 'unaligned', 'archive']
 
@@ -55,7 +55,7 @@ winapi = { version = "0.3.9", optional = true }
 [build-dependencies]
 # Only needed for Android, but cannot be target dependent
 # https://github.com/rust-lang/cargo/issues/4932
-cc = "1.0.90"
+cc = "1.0.97"
 
 [dev-dependencies]
 dylib-dep = { path = "crates/dylib-dep" }
@@ -68,10 +68,6 @@ default = ["std"]
 # Include std support. This enables types like `Backtrace`.
 std = []
 
-#=======================================
-# Methods of serialization
-#
-# Various features used for enabling rustc-serialize or syntex codegen.
 serialize-serde = ["serde"]
 
 #=======================================
@@ -81,10 +77,9 @@ serialize-serde = ["serde"]
 # purposes. New code should use none of these features.
 coresymbolication = []
 dbghelp = []
+dl_iterate_phdr = []
 dladdr = []
-gimli-symbolize = []
 kernel32 = []
-libbacktrace = []
 libunwind = []
 unix-backtrace = []
 verify-winapi = [
@@ -98,6 +93,8 @@ verify-winapi = [
   'winapi/tlhelp32',
   'winapi/winbase',
   'winapi/winnt',
+  'winapi/winnls',
+  'winapi/stringapiset',
 ]
 
 [[example]]
@@ -135,3 +132,7 @@ harness = false
 name = "current-exe-mismatch"
 required-features = ["std"]
 harness = false
+
+[lints.rust]
+# This crate uses them pervasively
+unexpected_cfgs = "allow"

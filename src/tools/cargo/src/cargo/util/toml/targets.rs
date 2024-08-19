@@ -34,37 +34,23 @@ const DEFAULT_EXAMPLE_DIR_NAME: &'static str = "examples";
 #[tracing::instrument(skip_all)]
 pub(super) fn to_targets(
     features: &Features,
+    original_toml: &TomlManifest,
     resolved_toml: &TomlManifest,
-    package_name: &str,
     package_root: &Path,
     edition: Edition,
-    custom_build: &Option<StringOrBool>,
     metabuild: &Option<StringOrVec>,
     warnings: &mut Vec<String>,
-    errors: &mut Vec<String>,
 ) -> CargoResult<Vec<Target>> {
     let mut targets = Vec::new();
 
-    let has_lib;
-
-    let lib = resolve_lib(
-        resolved_toml.lib.as_ref(),
-        package_root,
-        package_name,
-        edition,
-        warnings,
-    )?;
     if let Some(target) = to_lib_target(
+        original_toml.lib.as_ref(),
         resolved_toml.lib.as_ref(),
-        lib.as_ref(),
         package_root,
         edition,
         warnings,
     )? {
         targets.push(target);
-        has_lib = true;
-    } else {
-        has_lib = false;
     }
 
     let package = resolved_toml
@@ -72,58 +58,37 @@ pub(super) fn to_targets(
         .as_ref()
         .ok_or_else(|| anyhow::format_err!("manifest has no `package` (or `project`)"))?;
 
-    let bins = resolve_bins(
-        resolved_toml.bin.as_ref(),
-        package_root,
-        package_name,
-        edition,
-        package.autobins,
-        warnings,
-        has_lib,
-    )?;
     targets.extend(to_bin_targets(
         features,
-        &bins,
+        resolved_toml.bin.as_deref().unwrap_or_default(),
         package_root,
         edition,
-        errors,
     )?);
 
-    let toml_examples = resolve_examples(
-        resolved_toml.example.as_ref(),
+    targets.extend(to_example_targets(
+        resolved_toml.example.as_deref().unwrap_or_default(),
         package_root,
         edition,
-        package.autoexamples,
-        warnings,
-        errors,
-    )?;
-    targets.extend(to_example_targets(&toml_examples, package_root, edition)?);
+    )?);
 
-    let toml_tests = resolve_tests(
-        resolved_toml.test.as_ref(),
+    targets.extend(to_test_targets(
+        resolved_toml.test.as_deref().unwrap_or_default(),
         package_root,
         edition,
-        package.autotests,
-        warnings,
-        errors,
-    )?;
-    targets.extend(to_test_targets(&toml_tests, package_root, edition)?);
+    )?);
 
-    let toml_benches = resolve_benches(
-        resolved_toml.bench.as_ref(),
+    targets.extend(to_bench_targets(
+        resolved_toml.bench.as_deref().unwrap_or_default(),
         package_root,
         edition,
-        package.autobenches,
-        warnings,
-        errors,
-    )?;
-    targets.extend(to_bench_targets(&toml_benches, package_root, edition)?);
+    )?);
 
     // processing the custom build script
-    if let Some(custom_build) = maybe_custom_build(custom_build, package_root) {
+    if let Some(custom_build) = package.resolved_build().expect("should be resolved") {
         if metabuild.is_some() {
             anyhow::bail!("cannot specify both `metabuild` and `build`");
         }
+        let custom_build = Path::new(custom_build);
         let name = format!(
             "build-script-{}",
             custom_build
@@ -158,7 +123,8 @@ pub(super) fn to_targets(
     Ok(targets)
 }
 
-fn resolve_lib(
+#[tracing::instrument(skip_all)]
+pub fn resolve_lib(
     original_lib: Option<&TomlLibTarget>,
     package_root: &Path,
     package_name: &str,
@@ -175,10 +141,10 @@ fn resolve_lib(
     let Some(mut lib) = lib else { return Ok(None) };
     lib.name
         .get_or_insert_with(|| package_name.replace("-", "_"));
+
     // Check early to improve error messages
     validate_lib_name(&lib, warnings)?;
 
-    // Checking the original lib
     validate_proc_macro(&lib, "library", edition, warnings)?;
     validate_crate_types(&lib, "library", edition, warnings)?;
 
@@ -207,6 +173,7 @@ fn resolve_lib(
     Ok(Some(lib))
 }
 
+#[tracing::instrument(skip_all)]
 fn to_lib_target(
     original_lib: Option<&TomlLibTarget>,
     resolved_lib: Option<&TomlLibTarget>,
@@ -283,61 +250,79 @@ fn to_lib_target(
     Ok(Some(target))
 }
 
-fn resolve_bins(
+#[tracing::instrument(skip_all)]
+pub fn resolve_bins(
     toml_bins: Option<&Vec<TomlBinTarget>>,
     package_root: &Path,
     package_name: &str,
     edition: Edition,
     autodiscover: Option<bool>,
     warnings: &mut Vec<String>,
+    errors: &mut Vec<String>,
     has_lib: bool,
 ) -> CargoResult<Vec<TomlBinTarget>> {
-    let inferred = inferred_bins(package_root, package_name);
+    if is_resolved(toml_bins, autodiscover) {
+        let toml_bins = toml_bins.cloned().unwrap_or_default();
+        for bin in &toml_bins {
+            validate_bin_name(bin, warnings)?;
+            validate_bin_crate_types(bin, edition, warnings, errors)?;
+            validate_bin_proc_macro(bin, edition, warnings, errors)?;
+        }
+        Ok(toml_bins)
+    } else {
+        let inferred = inferred_bins(package_root, package_name);
 
-    let mut bins = toml_targets_and_inferred(
-        toml_bins,
-        &inferred,
-        package_root,
-        autodiscover,
-        edition,
-        warnings,
-        "binary",
-        "bin",
-        "autobins",
-    );
+        let mut bins = toml_targets_and_inferred(
+            toml_bins,
+            &inferred,
+            package_root,
+            autodiscover,
+            edition,
+            warnings,
+            "binary",
+            "bin",
+            "autobins",
+        );
 
-    for bin in &mut bins {
-        validate_bin_name(bin, warnings)?;
+        for bin in &mut bins {
+            // Check early to improve error messages
+            validate_bin_name(bin, warnings)?;
 
-        let path = target_path(bin, &inferred, "bin", package_root, edition, &mut |_| {
-            if let Some(legacy_path) = legacy_bin_path(package_root, name_or_panic(bin), has_lib) {
-                warnings.push(format!(
-                    "path `{}` was erroneously implicitly accepted for binary `{}`,\n\
+            validate_bin_crate_types(bin, edition, warnings, errors)?;
+            validate_bin_proc_macro(bin, edition, warnings, errors)?;
+
+            let path = target_path(bin, &inferred, "bin", package_root, edition, &mut |_| {
+                if let Some(legacy_path) =
+                    legacy_bin_path(package_root, name_or_panic(bin), has_lib)
+                {
+                    warnings.push(format!(
+                        "path `{}` was erroneously implicitly accepted for binary `{}`,\n\
                      please set bin.path in Cargo.toml",
-                    legacy_path.display(),
-                    name_or_panic(bin)
-                ));
-                Some(legacy_path)
-            } else {
-                None
-            }
-        });
-        let path = match path {
-            Ok(path) => path,
-            Err(e) => anyhow::bail!("{}", e),
-        };
-        bin.path = Some(PathValue(path));
-    }
+                        legacy_path.display(),
+                        name_or_panic(bin)
+                    ));
+                    Some(legacy_path)
+                } else {
+                    None
+                }
+            });
+            let path = match path {
+                Ok(path) => path,
+                Err(e) => anyhow::bail!("{}", e),
+            };
+            bin.path = Some(PathValue(path));
+        }
 
-    Ok(bins)
+        Ok(bins)
+    }
 }
 
+#[tracing::instrument(skip_all)]
 fn to_bin_targets(
     features: &Features,
     bins: &[TomlBinTarget],
     package_root: &Path,
     edition: Edition,
-    errors: &mut Vec<String>,
 ) -> CargoResult<Vec<Target>> {
     // This loop performs basic checks on each of the TomlTarget in `bins`.
     for bin in bins {
@@ -345,27 +330,6 @@ fn to_bin_targets(
         // check if the corresponding cargo feature has been activated.
         if bin.filename.is_some() {
             features.require(Feature::different_binary_name())?;
-        }
-
-        if let Some(crate_types) = bin.crate_types() {
-            if !crate_types.is_empty() {
-                let name = name_or_panic(bin);
-                errors.push(format!(
-                    "the target `{}` is a binary and can't have any \
-                     crate-types set (currently \"{}\")",
-                    name,
-                    crate_types.join(", ")
-                ));
-            }
-        }
-
-        if bin.proc_macro() == Some(true) {
-            let name = name_or_panic(bin);
-            errors.push(format!(
-                "the target `{}` is a binary and can't have `proc-macro` \
-                 set `true`",
-                name
-            ));
         }
     }
 
@@ -409,7 +373,8 @@ fn legacy_bin_path(package_root: &Path, name: &str, has_lib: bool) -> Option<Pat
     None
 }
 
-fn resolve_examples(
+#[tracing::instrument(skip_all)]
+pub fn resolve_examples(
     toml_examples: Option<&Vec<TomlExampleTarget>>,
     package_root: &Path,
     edition: Edition,
@@ -417,13 +382,13 @@ fn resolve_examples(
     warnings: &mut Vec<String>,
     errors: &mut Vec<String>,
 ) -> CargoResult<Vec<TomlExampleTarget>> {
-    let inferred = infer_from_directory(&package_root, Path::new(DEFAULT_EXAMPLE_DIR_NAME));
+    let mut inferred = || infer_from_directory(&package_root, Path::new(DEFAULT_EXAMPLE_DIR_NAME));
 
     let targets = resolve_targets(
         "example",
         "example",
         toml_examples,
-        &inferred,
+        &mut inferred,
         package_root,
         edition,
         autodiscover,
@@ -435,6 +400,7 @@ fn resolve_examples(
     Ok(targets)
 }
 
+#[tracing::instrument(skip_all)]
 fn to_example_targets(
     targets: &[TomlExampleTarget],
     package_root: &Path,
@@ -464,7 +430,8 @@ fn to_example_targets(
     Ok(result)
 }
 
-fn resolve_tests(
+#[tracing::instrument(skip_all)]
+pub fn resolve_tests(
     toml_tests: Option<&Vec<TomlTestTarget>>,
     package_root: &Path,
     edition: Edition,
@@ -472,13 +439,13 @@ fn resolve_tests(
     warnings: &mut Vec<String>,
     errors: &mut Vec<String>,
 ) -> CargoResult<Vec<TomlTestTarget>> {
-    let inferred = infer_from_directory(&package_root, Path::new(DEFAULT_TEST_DIR_NAME));
+    let mut inferred = || infer_from_directory(&package_root, Path::new(DEFAULT_TEST_DIR_NAME));
 
     let targets = resolve_targets(
         "test",
         "test",
         toml_tests,
-        &inferred,
+        &mut inferred,
         package_root,
         edition,
         autodiscover,
@@ -490,6 +457,7 @@ fn resolve_tests(
     Ok(targets)
 }
 
+#[tracing::instrument(skip_all)]
 fn to_test_targets(
     targets: &[TomlTestTarget],
     package_root: &Path,
@@ -512,7 +480,8 @@ fn to_test_targets(
     Ok(result)
 }
 
-fn resolve_benches(
+#[tracing::instrument(skip_all)]
+pub fn resolve_benches(
     toml_benches: Option<&Vec<TomlBenchTarget>>,
     package_root: &Path,
     edition: Edition,
@@ -535,13 +504,13 @@ fn resolve_benches(
         Some(legacy_path)
     };
 
-    let inferred = infer_from_directory(&package_root, Path::new(DEFAULT_BENCH_DIR_NAME));
+    let mut inferred = || infer_from_directory(&package_root, Path::new(DEFAULT_BENCH_DIR_NAME));
 
     let targets = resolve_targets_with_legacy_path(
         "benchmark",
         "bench",
         toml_benches,
-        &inferred,
+        &mut inferred,
         package_root,
         edition,
         autodiscover,
@@ -555,6 +524,7 @@ fn resolve_benches(
     Ok(targets)
 }
 
+#[tracing::instrument(skip_all)]
 fn to_bench_targets(
     targets: &[TomlBenchTarget],
     package_root: &Path,
@@ -578,11 +548,24 @@ fn to_bench_targets(
     Ok(result)
 }
 
+fn is_resolved(toml_targets: Option<&Vec<TomlTarget>>, autodiscover: Option<bool>) -> bool {
+    if autodiscover != Some(false) {
+        return false;
+    }
+
+    let Some(toml_targets) = toml_targets else {
+        return true;
+    };
+    toml_targets
+        .iter()
+        .all(|t| t.name.is_some() && t.path.is_some())
+}
+
 fn resolve_targets(
     target_kind_human: &str,
     target_kind: &str,
     toml_targets: Option<&Vec<TomlTarget>>,
-    inferred: &[(String, PathBuf)],
+    inferred: &mut dyn FnMut() -> Vec<(String, PathBuf)>,
     package_root: &Path,
     edition: Edition,
     autodiscover: Option<bool>,
@@ -609,7 +592,7 @@ fn resolve_targets_with_legacy_path(
     target_kind_human: &str,
     target_kind: &str,
     toml_targets: Option<&Vec<TomlTarget>>,
-    inferred: &[(String, PathBuf)],
+    inferred: &mut dyn FnMut() -> Vec<(String, PathBuf)>,
     package_root: &Path,
     edition: Edition,
     autodiscover: Option<bool>,
@@ -618,45 +601,60 @@ fn resolve_targets_with_legacy_path(
     legacy_path: &mut dyn FnMut(&TomlTarget) -> Option<PathBuf>,
     autodiscover_flag_name: &str,
 ) -> CargoResult<Vec<TomlTarget>> {
-    let toml_targets = toml_targets_and_inferred(
-        toml_targets,
-        inferred,
-        package_root,
-        autodiscover,
-        edition,
-        warnings,
-        target_kind_human,
-        target_kind,
-        autodiscover_flag_name,
-    );
+    if is_resolved(toml_targets, autodiscover) {
+        let toml_targets = toml_targets.cloned().unwrap_or_default();
+        for target in &toml_targets {
+            // Check early to improve error messages
+            validate_target_name(target, target_kind_human, target_kind, warnings)?;
 
-    for target in &toml_targets {
-        validate_target_name(target, target_kind_human, target_kind, warnings)?;
-        validate_proc_macro(target, target_kind_human, edition, warnings)?;
-        validate_crate_types(target, target_kind_human, edition, warnings)?;
-    }
-
-    let mut result = Vec::new();
-    for mut target in toml_targets {
-        let path = target_path(
-            &target,
-            inferred,
-            target_kind,
+            validate_proc_macro(target, target_kind_human, edition, warnings)?;
+            validate_crate_types(target, target_kind_human, edition, warnings)?;
+        }
+        Ok(toml_targets)
+    } else {
+        let inferred = inferred();
+        let toml_targets = toml_targets_and_inferred(
+            toml_targets,
+            &inferred,
             package_root,
+            autodiscover,
             edition,
-            legacy_path,
+            warnings,
+            target_kind_human,
+            target_kind,
+            autodiscover_flag_name,
         );
-        let path = match path {
-            Ok(path) => path,
-            Err(e) => {
-                errors.push(e);
-                continue;
-            }
-        };
-        target.path = Some(PathValue(path));
-        result.push(target);
+
+        for target in &toml_targets {
+            // Check early to improve error messages
+            validate_target_name(target, target_kind_human, target_kind, warnings)?;
+
+            validate_proc_macro(target, target_kind_human, edition, warnings)?;
+            validate_crate_types(target, target_kind_human, edition, warnings)?;
+        }
+
+        let mut result = Vec::new();
+        for mut target in toml_targets {
+            let path = target_path(
+                &target,
+                &inferred,
+                target_kind,
+                package_root,
+                edition,
+                legacy_path,
+            );
+            let path = match path {
+                Ok(path) => path,
+                Err(e) => {
+                    errors.push(e);
+                    continue;
+                }
+            };
+            target.path = Some(PathValue(path));
+            result.push(target);
+        }
+        Ok(result)
     }
-    Ok(result)
 }
 
 fn inferred_lib(package_root: &Path) -> Option<PathBuf> {
@@ -746,7 +744,7 @@ fn toml_targets_and_inferred(
     autodiscover_flag_name: &str,
 ) -> Vec<TomlTarget> {
     let inferred_targets = inferred_to_toml_targets(inferred);
-    match toml_targets {
+    let mut toml_targets = match toml_targets {
         None => {
             if let Some(false) = autodiscover {
                 vec![]
@@ -821,7 +819,13 @@ https://github.com/rust-lang/cargo/issues/5330",
 
             targets
         }
-    }
+    };
+    // Ensure target order is deterministic, particularly for `cargo vendor` where re-vendoring
+    // should not cause changes.
+    //
+    // `unstable` should be deterministic because we enforce that `t.name` is unique
+    toml_targets.sort_unstable_by_key(|t| t.name.clone());
+    toml_targets
 }
 
 fn inferred_to_toml_targets(inferred: &[(String, PathBuf)]) -> Vec<TomlTarget> {
@@ -833,58 +837,6 @@ fn inferred_to_toml_targets(inferred: &[(String, PathBuf)]) -> Vec<TomlTarget> {
             ..TomlTarget::new()
         })
         .collect()
-}
-
-fn validate_lib_name(target: &TomlTarget, warnings: &mut Vec<String>) -> CargoResult<()> {
-    validate_target_name(target, "library", "lib", warnings)?;
-    let name = name_or_panic(target);
-    if name.contains('-') {
-        anyhow::bail!("library target names cannot contain hyphens: {}", name)
-    }
-
-    Ok(())
-}
-
-fn validate_bin_name(bin: &TomlTarget, warnings: &mut Vec<String>) -> CargoResult<()> {
-    validate_target_name(bin, "binary", "bin", warnings)?;
-    let name = name_or_panic(bin).to_owned();
-    if restricted_names::is_conflicting_artifact_name(&name) {
-        anyhow::bail!(
-            "the binary target name `{name}` is forbidden, \
-                 it conflicts with cargo's build directory names",
-        )
-    }
-
-    Ok(())
-}
-
-fn validate_target_name(
-    target: &TomlTarget,
-    target_kind_human: &str,
-    target_kind: &str,
-    warnings: &mut Vec<String>,
-) -> CargoResult<()> {
-    match target.name {
-        Some(ref name) => {
-            if name.trim().is_empty() {
-                anyhow::bail!("{} target names cannot be empty", target_kind_human)
-            }
-            if cfg!(windows) && restricted_names::is_windows_reserved(name) {
-                warnings.push(format!(
-                    "{} target `{}` is a reserved Windows filename, \
-                        this target will not work on Windows platforms",
-                    target_kind_human, name
-                ));
-            }
-        }
-        None => anyhow::bail!(
-            "{} target {}.name is required",
-            target_kind_human,
-            target_kind
-        ),
-    }
-
-    Ok(())
 }
 
 /// Will check a list of toml targets, and make sure the target names are unique within a vector.
@@ -1072,22 +1024,23 @@ Cargo doesn't know which to use because multiple target files found at `{}` and 
 }
 
 /// Returns the path to the build script if one exists for this crate.
-fn maybe_custom_build(build: &Option<StringOrBool>, package_root: &Path) -> Option<PathBuf> {
-    let build_rs = package_root.join("build.rs");
-    match *build {
-        // Explicitly no build script.
-        Some(StringOrBool::Bool(false)) => None,
-        Some(StringOrBool::Bool(true)) => Some(build_rs),
-        Some(StringOrBool::String(ref s)) => Some(PathBuf::from(s)),
+#[tracing::instrument(skip_all)]
+pub fn resolve_build(build: Option<&StringOrBool>, package_root: &Path) -> Option<StringOrBool> {
+    const BUILD_RS: &str = "build.rs";
+    match build {
         None => {
             // If there is a `build.rs` file next to the `Cargo.toml`, assume it is
             // a build script.
+            let build_rs = package_root.join(BUILD_RS);
             if build_rs.is_file() {
-                Some(build_rs)
+                Some(StringOrBool::String(BUILD_RS.to_owned()))
             } else {
-                None
+                Some(StringOrBool::Bool(false))
             }
         }
+        // Explicitly no build script.
+        Some(StringOrBool::Bool(false)) | Some(StringOrBool::String(_)) => build.cloned(),
+        Some(StringOrBool::Bool(true)) => Some(StringOrBool::String(BUILD_RS.to_owned())),
     }
 }
 
@@ -1096,6 +1049,77 @@ fn name_or_panic(target: &TomlTarget) -> &str {
         .name
         .as_deref()
         .unwrap_or_else(|| panic!("target name is required"))
+}
+
+fn validate_lib_name(target: &TomlTarget, warnings: &mut Vec<String>) -> CargoResult<()> {
+    validate_target_name(target, "library", "lib", warnings)?;
+    let name = name_or_panic(target);
+    if name.contains('-') {
+        anyhow::bail!("library target names cannot contain hyphens: {}", name)
+    }
+
+    Ok(())
+}
+
+fn validate_bin_name(bin: &TomlTarget, warnings: &mut Vec<String>) -> CargoResult<()> {
+    validate_target_name(bin, "binary", "bin", warnings)?;
+    let name = name_or_panic(bin).to_owned();
+    if restricted_names::is_conflicting_artifact_name(&name) {
+        anyhow::bail!(
+            "the binary target name `{name}` is forbidden, \
+                 it conflicts with cargo's build directory names",
+        )
+    }
+
+    Ok(())
+}
+
+fn validate_target_name(
+    target: &TomlTarget,
+    target_kind_human: &str,
+    target_kind: &str,
+    warnings: &mut Vec<String>,
+) -> CargoResult<()> {
+    match target.name {
+        Some(ref name) => {
+            if name.trim().is_empty() {
+                anyhow::bail!("{} target names cannot be empty", target_kind_human)
+            }
+            if cfg!(windows) && restricted_names::is_windows_reserved(name) {
+                warnings.push(format!(
+                    "{} target `{}` is a reserved Windows filename, \
+                        this target will not work on Windows platforms",
+                    target_kind_human, name
+                ));
+            }
+        }
+        None => anyhow::bail!(
+            "{} target {}.name is required",
+            target_kind_human,
+            target_kind
+        ),
+    }
+
+    Ok(())
+}
+
+fn validate_bin_proc_macro(
+    target: &TomlTarget,
+    edition: Edition,
+    warnings: &mut Vec<String>,
+    errors: &mut Vec<String>,
+) -> CargoResult<()> {
+    if target.proc_macro() == Some(true) {
+        let name = name_or_panic(target);
+        errors.push(format!(
+            "the target `{}` is a binary and can't have `proc-macro` \
+                 set `true`",
+            name
+        ));
+    } else {
+        validate_proc_macro(target, "binary", edition, warnings)?;
+    }
+    Ok(())
 }
 
 fn validate_proc_macro(
@@ -1113,6 +1137,28 @@ fn validate_proc_macro(
         edition,
         warnings,
     )
+}
+
+fn validate_bin_crate_types(
+    target: &TomlTarget,
+    edition: Edition,
+    warnings: &mut Vec<String>,
+    errors: &mut Vec<String>,
+) -> CargoResult<()> {
+    if let Some(crate_types) = target.crate_types() {
+        if !crate_types.is_empty() {
+            let name = name_or_panic(target);
+            errors.push(format!(
+                "the target `{}` is a binary and can't have any \
+                     crate-types set (currently \"{}\")",
+                name,
+                crate_types.join(", ")
+            ));
+        } else {
+            validate_crate_types(target, "binary", edition, warnings)?;
+        }
+    }
+    Ok(())
 }
 
 fn validate_crate_types(

@@ -41,6 +41,7 @@ use rustc_const_eval::interpret::{ImmTy, Immediate, InterpCx, OpTy, Projectable}
 use rustc_data_structures::fx::FxHashSet;
 use rustc_index::bit_set::BitSet;
 use rustc_index::IndexVec;
+use rustc_middle::bug;
 use rustc_middle::mir::interpret::Scalar;
 use rustc_middle::mir::visit::Visitor;
 use rustc_middle::mir::*;
@@ -154,7 +155,7 @@ struct ThreadingOpportunity {
 struct TOFinder<'tcx, 'a> {
     tcx: TyCtxt<'tcx>,
     param_env: ty::ParamEnv<'tcx>,
-    ecx: InterpCx<'tcx, 'tcx, DummyMachine>,
+    ecx: InterpCx<'tcx, DummyMachine>,
     body: &'a Body<'tcx>,
     map: &'a Map,
     loop_headers: &'a BitSet<BasicBlock>,
@@ -493,6 +494,13 @@ impl<'tcx, 'a> TOFinder<'tcx, 'a> {
                     BinOp::Ne => ScalarInt::FALSE,
                     _ => return None,
                 };
+                if value.const_.ty().is_floating_point() {
+                    // Floating point equality does not follow bit-patterns.
+                    // -0.0 and NaN both have special rules for equality,
+                    // and therefore we cannot use integer comparisons for them.
+                    // Avoid handling them, though this could be extended in the future.
+                    return None;
+                }
                 let value = value.const_.normalize(self.tcx, self.param_env).try_to_scalar_int()?;
                 let conds = conditions.map(self.arena, |c| Condition {
                     value,

@@ -819,15 +819,10 @@ impl<'gctx> Source for RegistrySource<'gctx> {
                         callback(s);
                     } else if req.is_precise() {
                         precise_yanked_in_use = true;
-                        if self.gctx.cli_unstable().unstable_options {
-                            callback(s);
-                        }
+                        callback(s);
                     }
                 }))?;
             if precise_yanked_in_use {
-                self.gctx
-                    .cli_unstable()
-                    .fail_if_stable_opt("--precise <yanked-version>", 4225)?;
                 let name = dep.package_name();
                 let version = req
                     .precise_version()
@@ -967,7 +962,7 @@ impl RegistryConfig {
     const NAME: &'static str = "config.json";
 }
 
-/// Get the maximum upack size that Cargo permits
+/// Get the maximum unpack size that Cargo permits
 /// based on a given `size` of your compressed file.
 ///
 /// Returns the larger one between `size * max compression ratio`

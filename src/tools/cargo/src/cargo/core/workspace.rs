@@ -24,7 +24,9 @@ use crate::sources::{PathSource, CRATES_IO_INDEX, CRATES_IO_REGISTRY};
 use crate::util::edit_distance;
 use crate::util::errors::{CargoResult, ManifestError};
 use crate::util::interning::InternedString;
-use crate::util::lints::{check_im_a_teapot, check_implicit_features, unused_dependencies};
+use crate::util::lints::{
+    analyze_cargo_lints_table, check_im_a_teapot, check_implicit_features, unused_dependencies,
+};
 use crate::util::toml::{read_manifest, InheritableFields};
 use crate::util::{
     context::CargoResolverConfig, context::CargoResolverPrecedence, context::ConfigRelativePath,
@@ -1140,8 +1142,7 @@ impl<'gctx> Workspace<'gctx> {
                 MaybePackage::Package(ref p) => p.clone(),
                 MaybePackage::Virtual(_) => continue,
             };
-            let mut src = PathSource::new(pkg.root(), pkg.package_id().source_id(), self.gctx);
-            src.preload_with(pkg);
+            let src = PathSource::preload_with(pkg, self.gctx);
             registry.add_preloaded(Box::new(src));
         }
     }
@@ -1192,14 +1193,29 @@ impl<'gctx> Workspace<'gctx> {
             .get("cargo")
             .cloned()
             .unwrap_or(manifest::TomlToolLints::default());
-        let normalized_lints = cargo_lints
-            .into_iter()
-            .map(|(name, lint)| (name.replace('-', "_"), lint))
-            .collect();
 
-        check_im_a_teapot(pkg, &path, &normalized_lints, &mut error_count, self.gctx)?;
-        check_implicit_features(pkg, &path, &normalized_lints, &mut error_count, self.gctx)?;
-        unused_dependencies(pkg, &path, &normalized_lints, &mut error_count, self.gctx)?;
+        let ws_contents = match self.root_maybe() {
+            MaybePackage::Package(pkg) => pkg.manifest().contents(),
+            MaybePackage::Virtual(v) => v.contents(),
+        };
+
+        let ws_document = match self.root_maybe() {
+            MaybePackage::Package(pkg) => pkg.manifest().document(),
+            MaybePackage::Virtual(v) => v.document(),
+        };
+
+        analyze_cargo_lints_table(
+            pkg,
+            &path,
+            &cargo_lints,
+            ws_contents,
+            ws_document,
+            self.root_manifest(),
+            self.gctx,
+        )?;
+        check_im_a_teapot(pkg, &path, &cargo_lints, &mut error_count, self.gctx)?;
+        check_implicit_features(pkg, &path, &cargo_lints, &mut error_count, self.gctx)?;
+        unused_dependencies(pkg, &path, &cargo_lints, &mut error_count, self.gctx)?;
         if error_count > 0 {
             Err(crate::util::errors::AlreadyPrintedError::new(anyhow!(
                 "encountered {error_count} errors(s) while running lints"

@@ -1,0 +1,39 @@
+pipelines:
+  default:
+    - step:
+        name: MSRV
+        image: rust:1.37.0
+        caches:
+          - cargo
+          - rust-target
+        script:
+          # 1.37.0 is too old to use the current Cargo.lock format
+          - rm Cargo.lock
+          - cargo build
+          - cargo test
+    - step:
+        name: Stable
+        image: rust:latest
+        caches:
+          - cargo
+          - rust-target
+        script:
+          - rustup component add rustfmt
+          - cargo fmt --check
+          - cargo build
+          - cargo test
+    - step:
+        name: Nightly
+        image: rustlang/rust:nightly
+        caches:
+          - cargo
+          - rust-target
+        script:
+          # ensure that benchmarks build
+          - cargo build --all-targets
+          - cargo test
+
+definitions:
+  caches:
+    cargo: /usr/local/cargo # CARGO_HOME
+    rust-target: target

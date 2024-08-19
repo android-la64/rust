@@ -1,9 +1,9 @@
 //@ check-pass
 //@ edition:2021
 
-#![warn(non_local_definitions)]
-
 // https://github.com/rust-lang/rust/issues/123573#issue-2229428739
+
+#![warn(non_local_definitions)]
 
 pub trait Test {}
 

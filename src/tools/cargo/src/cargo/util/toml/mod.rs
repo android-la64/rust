@@ -1,4 +1,4 @@
-use annotate_snippets::{Level, Renderer, Snippet};
+use annotate_snippets::{Level, Snippet};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -256,6 +256,7 @@ fn to_workspace_root_config(
     ws_root_config
 }
 
+/// See [`Manifest::resolved_toml`] for more details
 #[tracing::instrument(skip_all)]
 fn resolve_toml(
     original_toml: &manifest::TomlManifest,
@@ -264,7 +265,7 @@ fn resolve_toml(
     manifest_file: &Path,
     gctx: &GlobalContext,
     warnings: &mut Vec<String>,
-    _errors: &mut Vec<String>,
+    errors: &mut Vec<String>,
 ) -> CargoResult<manifest::TomlManifest> {
     if let Some(workspace) = &original_toml.workspace {
         if workspace.resolver.as_deref() == Some("3") {
@@ -277,11 +278,11 @@ fn resolve_toml(
         package: None,
         project: None,
         profile: original_toml.profile.clone(),
-        lib: original_toml.lib.clone(),
-        bin: original_toml.bin.clone(),
-        example: original_toml.example.clone(),
-        test: original_toml.test.clone(),
-        bench: original_toml.bench.clone(),
+        lib: None,
+        bin: None,
+        example: None,
+        test: None,
+        bench: None,
         dependencies: None,
         dev_dependencies: None,
         dev_dependencies2: None,
@@ -317,6 +318,48 @@ fn resolve_toml(
                 Edition::from_str(&e).unwrap_or_default()
             });
         resolved_toml.package = Some(resolved_package);
+
+        resolved_toml.lib = targets::resolve_lib(
+            original_toml.lib.as_ref(),
+            package_root,
+            &original_package.name,
+            edition,
+            warnings,
+        )?;
+        resolved_toml.bin = Some(targets::resolve_bins(
+            original_toml.bin.as_ref(),
+            package_root,
+            &original_package.name,
+            edition,
+            original_package.autobins,
+            warnings,
+            errors,
+            resolved_toml.lib.is_some(),
+        )?);
+        resolved_toml.example = Some(targets::resolve_examples(
+            original_toml.example.as_ref(),
+            package_root,
+            edition,
+            original_package.autoexamples,
+            warnings,
+            errors,
+        )?);
+        resolved_toml.test = Some(targets::resolve_tests(
+            original_toml.test.as_ref(),
+            package_root,
+            edition,
+            original_package.autotests,
+            warnings,
+            errors,
+        )?);
+        resolved_toml.bench = Some(targets::resolve_benches(
+            original_toml.bench.as_ref(),
+            package_root,
+            edition,
+            original_package.autobenches,
+            warnings,
+            errors,
+        )?);
 
         let activated_opt_deps = resolved_toml
             .features
@@ -459,12 +502,7 @@ fn resolve_toml(
             lints,
         });
 
-        let resolved_badges = original_toml
-            .badges
-            .clone()
-            .map(|mw| field_inherit_with(mw, "badges", || inherit()?.badges()))
-            .transpose()?;
-        resolved_toml.badges = resolved_badges.map(manifest::InheritableField::Value);
+        resolved_toml.badges = original_toml.badges.clone();
     } else {
         for field in original_toml.requires_package() {
             bail!("this virtual manifest specifies a `{field}` section, which is not allowed");
@@ -507,7 +545,7 @@ fn resolve_package_toml<'a>(
             .map(|value| field_inherit_with(value, "authors", || inherit()?.authors()))
             .transpose()?
             .map(manifest::InheritableField::Value),
-        build: original_package.build.clone(),
+        build: targets::resolve_build(original_package.build.as_ref(), package_root),
         metabuild: original_package.metabuild.clone(),
         default_target: original_package.default_target.clone(),
         forced_target: original_package.forced_target.clone(),
@@ -532,10 +570,10 @@ fn resolve_package_toml<'a>(
             .map(manifest::InheritableField::Value),
         workspace: original_package.workspace.clone(),
         im_a_teapot: original_package.im_a_teapot.clone(),
-        autobins: original_package.autobins.clone(),
-        autoexamples: original_package.autoexamples.clone(),
-        autotests: original_package.autotests.clone(),
-        autobenches: original_package.autobenches.clone(),
+        autobins: Some(false),
+        autoexamples: Some(false),
+        autotests: Some(false),
+        autobenches: Some(false),
         default_run: original_package.default_run.clone(),
         description: original_package
             .description
@@ -566,7 +604,10 @@ fn resolve_package_toml<'a>(
                 .transpose()?
                 .as_ref(),
         )
-        .map(|s| manifest::InheritableField::Value(StringOrBool::String(s))),
+        .map(|s| manifest::InheritableField::Value(StringOrBool::String(s)))
+        .or(Some(manifest::InheritableField::Value(StringOrBool::Bool(
+            false,
+        )))),
         keywords: original_package
             .keywords
             .clone()
@@ -660,8 +701,14 @@ fn resolve_dependencies<'a>(
 
     let mut deps = BTreeMap::new();
     for (name_in_toml, v) in dependencies.iter() {
-        let mut resolved =
-            dependency_inherit_with(v.clone(), name_in_toml, inherit, package_root, warnings)?;
+        let mut resolved = dependency_inherit_with(
+            v.clone(),
+            name_in_toml,
+            inherit,
+            package_root,
+            edition,
+            warnings,
+        )?;
         if let manifest::TomlDependency::Detailed(ref mut d) = resolved {
             deprecated_underscore(
                 &d.default_features2,
@@ -807,7 +854,6 @@ impl InheritableFields {
     package_field_getter! {
         // Please keep this list lexicographically ordered.
         ("authors",       authors       -> Vec<String>),
-        ("badges",        badges        -> BTreeMap<String, BTreeMap<String, String>>),
         ("categories",    categories    -> Vec<String>),
         ("description",   description   -> String),
         ("documentation", documentation -> String),
@@ -918,12 +964,13 @@ fn dependency_inherit_with<'a>(
     name: &str,
     inherit: &dyn Fn() -> CargoResult<&'a InheritableFields>,
     package_root: &Path,
+    edition: Edition,
     warnings: &mut Vec<String>,
 ) -> CargoResult<manifest::TomlDependency> {
     match dependency {
         manifest::InheritableDependency::Value(value) => Ok(value),
         manifest::InheritableDependency::Inherit(w) => {
-            inner_dependency_inherit_with(w, name, inherit, package_root, warnings).with_context(|| {
+            inner_dependency_inherit_with(w, name, inherit, package_root, edition, warnings).with_context(|| {
                 format!(
                     "error inheriting `{name}` from workspace root manifest's `workspace.dependencies.{name}`",
                 )
@@ -933,83 +980,91 @@ fn dependency_inherit_with<'a>(
 }
 
 fn inner_dependency_inherit_with<'a>(
-    dependency: manifest::TomlInheritedDependency,
+    pkg_dep: manifest::TomlInheritedDependency,
     name: &str,
     inherit: &dyn Fn() -> CargoResult<&'a InheritableFields>,
     package_root: &Path,
+    edition: Edition,
     warnings: &mut Vec<String>,
 ) -> CargoResult<manifest::TomlDependency> {
-    fn default_features_msg(label: &str, ws_def_feat: Option<bool>, warnings: &mut Vec<String>) {
-        let ws_def_feat = match ws_def_feat {
-            Some(true) => "true",
-            Some(false) => "false",
-            None => "not specified",
-        };
+    let ws_dep = inherit()?.get_dependency(name, package_root)?;
+    let mut merged_dep = match ws_dep {
+        manifest::TomlDependency::Simple(ws_version) => manifest::TomlDetailedDependency {
+            version: Some(ws_version),
+            ..Default::default()
+        },
+        manifest::TomlDependency::Detailed(ws_dep) => ws_dep.clone(),
+    };
+    let manifest::TomlInheritedDependency {
+        workspace: _,
+
+        features,
+        optional,
+        default_features,
+        default_features2,
+        public,
+
+        _unused_keys: _,
+    } = &pkg_dep;
+    let default_features = default_features.or(*default_features2);
+
+    match (default_features, merged_dep.default_features()) {
+        // member: default-features = true and
+        // workspace: default-features = false should turn on
+        // default-features
+        (Some(true), Some(false)) => {
+            merged_dep.default_features = Some(true);
+        }
+        // member: default-features = false and
+        // workspace: default-features = true should ignore member
+        // default-features
+        (Some(false), Some(true)) => {
+            deprecated_ws_default_features(name, Some(true), edition, warnings)?;
+        }
+        // member: default-features = false and
+        // workspace: dep = "1.0" should ignore member default-features
+        (Some(false), None) => {
+            deprecated_ws_default_features(name, None, edition, warnings)?;
+        }
+        _ => {}
+    }
+    merged_dep.features = match (merged_dep.features.clone(), features.clone()) {
+        (Some(dep_feat), Some(inherit_feat)) => Some(
+            dep_feat
+                .into_iter()
+                .chain(inherit_feat)
+                .collect::<Vec<String>>(),
+        ),
+        (Some(dep_fet), None) => Some(dep_fet),
+        (None, Some(inherit_feat)) => Some(inherit_feat),
+        (None, None) => None,
+    };
+    merged_dep.optional = *optional;
+    merged_dep.public = *public;
+    Ok(manifest::TomlDependency::Detailed(merged_dep))
+}
+
+fn deprecated_ws_default_features(
+    label: &str,
+    ws_def_feat: Option<bool>,
+    edition: Edition,
+    warnings: &mut Vec<String>,
+) -> CargoResult<()> {
+    let ws_def_feat = match ws_def_feat {
+        Some(true) => "true",
+        Some(false) => "false",
+        None => "not specified",
+    };
+    if Edition::Edition2024 <= edition {
+        anyhow::bail!("`default-features = false` cannot override workspace's `default-features`");
+    } else {
         warnings.push(format!(
             "`default-features` is ignored for {label}, since `default-features` was \
                 {ws_def_feat} for `workspace.dependencies.{label}`, \
                 this could become a hard error in the future"
-        ))
+        ));
     }
-    inherit()?.get_dependency(name, package_root).map(|d| {
-        match d {
-            manifest::TomlDependency::Simple(s) => {
-                if let Some(false) = dependency.default_features() {
-                    default_features_msg(name, None, warnings);
-                }
-                if dependency.optional.is_some()
-                    || dependency.features.is_some()
-                    || dependency.public.is_some()
-                {
-                    manifest::TomlDependency::Detailed(manifest::TomlDetailedDependency {
-                        version: Some(s),
-                        optional: dependency.optional,
-                        features: dependency.features.clone(),
-                        public: dependency.public,
-                        ..Default::default()
-                    })
-                } else {
-                    manifest::TomlDependency::Simple(s)
-                }
-            }
-            manifest::TomlDependency::Detailed(d) => {
-                let mut d = d.clone();
-                match (dependency.default_features(), d.default_features()) {
-                    // member: default-features = true and
-                    // workspace: default-features = false should turn on
-                    // default-features
-                    (Some(true), Some(false)) => {
-                        d.default_features = Some(true);
-                    }
-                    // member: default-features = false and
-                    // workspace: default-features = true should ignore member
-                    // default-features
-                    (Some(false), Some(true)) => {
-                        default_features_msg(name, Some(true), warnings);
-                    }
-                    // member: default-features = false and
-                    // workspace: dep = "1.0" should ignore member default-features
-                    (Some(false), None) => {
-                        default_features_msg(name, None, warnings);
-                    }
-                    _ => {}
-                }
-                d.features = match (d.features.clone(), dependency.features.clone()) {
-                    (Some(dep_feat), Some(inherit_feat)) => Some(
-                        dep_feat
-                            .into_iter()
-                            .chain(inherit_feat)
-                            .collect::<Vec<String>>(),
-                    ),
-                    (Some(dep_fet), None) => Some(dep_fet),
-                    (None, Some(inherit_feat)) => Some(inherit_feat),
-                    (None, None) => None,
-                };
-                d.optional = dependency.optional;
-                manifest::TomlDependency::Detailed(d)
-            }
-        }
-    })
+    Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -1024,7 +1079,7 @@ fn to_real_manifest(
     manifest_file: &Path,
     gctx: &GlobalContext,
     warnings: &mut Vec<String>,
-    errors: &mut Vec<String>,
+    _errors: &mut Vec<String>,
 ) -> CargoResult<Manifest> {
     let embedded = is_embedded(manifest_file);
     let package_root = manifest_file.parent().unwrap();
@@ -1160,14 +1215,12 @@ fn to_real_manifest(
     // If we have a lib with no path, use the inferred lib or else the package name.
     let targets = to_targets(
         &features,
+        &original_toml,
         &resolved_toml,
-        package_name,
         package_root,
         edition,
-        &resolved_package.build,
         &resolved_package.metabuild,
         warnings,
-        errors,
     )?;
 
     if targets.iter().all(|t| t.is_custom_build()) {
@@ -1348,11 +1401,7 @@ fn to_real_manifest(
             .expect("previously resolved")
             .cloned()
             .unwrap_or_default(),
-        badges: resolved_toml
-            .resolved_badges()
-            .expect("previously resolved")
-            .cloned()
-            .unwrap_or_default(),
+        badges: resolved_toml.badges.clone().unwrap_or_default(),
         links: resolved_package.links.clone(),
         rust_version: rust_version.clone(),
     };
@@ -2205,13 +2254,18 @@ fn verify_lints(
     for (tool, lints) in lints {
         let supported = ["cargo", "clippy", "rust", "rustdoc"];
         if !supported.contains(&tool.as_str()) {
-            let supported = supported.join(", ");
-            anyhow::bail!("unsupported `{tool}` in `[lints]`, must be one of {supported}")
+            let message = format!(
+                "unrecognized lint tool `lints.{tool}`, specifying unrecognized tools may break in the future.
+supported tools: {}",
+                supported.join(", "),
+            );
+            warnings.push(message);
+            continue;
         }
         if tool == "cargo" && !gctx.cli_unstable().cargo_lints {
             warn_for_cargo_lint_feature(gctx, warnings);
         }
-        for name in lints.keys() {
+        for (name, config) in lints {
             if let Some((prefix, suffix)) = name.split_once("::") {
                 if tool == prefix {
                     anyhow::bail!(
@@ -2223,6 +2277,19 @@ fn verify_lints(
                     )
                 } else {
                     anyhow::bail!("`lints.{tool}.{name}` is not a valid lint name")
+                }
+            } else if let Some(config) = config.config() {
+                for config_name in config.keys() {
+                    // manually report unused manifest key warning since we collect all the "extra"
+                    // keys and values inside the config table
+                    //
+                    // except for `rust.unexpected_cfgs.check-cfg` which is used by rustc/rustdoc
+                    if !(tool == "rust" && name == "unexpected_cfgs" && config_name == "check-cfg")
+                    {
+                        let message =
+                            format!("unused manifest key: `lints.{tool}.{name}.{config_name}`");
+                        warnings.push(message);
+                    }
                 }
             }
         }
@@ -2317,13 +2384,7 @@ fn emit_diagnostic(
             .fold(true)
             .annotation(Level::Error.span(span)),
     );
-    let renderer = Renderer::styled().term_width(
-        gctx.shell()
-            .err_width()
-            .diagnostic_terminal_width()
-            .unwrap_or(annotate_snippets::renderer::DEFAULT_TERM_WIDTH),
-    );
-    if let Err(err) = writeln!(gctx.shell().err(), "{}", renderer.render(message)) {
+    if let Err(err) = gctx.shell().print_message(message) {
         return err.into();
     }
     return AlreadyPrintedError::new(e.into()).into();
@@ -2356,11 +2417,6 @@ fn deprecated_underscore<T>(
 
 fn warn_on_unused(unused: &BTreeSet<String>, warnings: &mut Vec<String>) {
     for key in unused {
-        if key == "lints.rust.unexpected_cfgs.check-cfg" {
-            // This key is recognized in the following version and wanting to reduce warning noise
-            // for those users
-            continue;
-        }
         warnings.push(format!("unused manifest key: {}", key));
         if key == "profiles.debug" {
             warnings.push("use `[profile.dev]` to configure debug builds".to_string());
@@ -2380,10 +2436,15 @@ fn unused_dep_keys(
     }
 }
 
-pub fn prepare_for_publish(me: &Package, ws: &Workspace<'_>) -> CargoResult<Package> {
+pub fn prepare_for_publish(
+    me: &Package,
+    ws: &Workspace<'_>,
+    included: &[PathBuf],
+) -> CargoResult<Package> {
     let contents = me.manifest().contents();
     let document = me.manifest().document();
-    let original_toml = prepare_toml_for_publish(me.manifest().resolved_toml(), ws, me.root())?;
+    let original_toml =
+        prepare_toml_for_publish(me.manifest().resolved_toml(), ws, me.root(), included)?;
     let resolved_toml = original_toml.clone();
     let features = me.manifest().unstable_features().clone();
     let workspace_config = me.manifest().workspace_config().clone();
@@ -2415,6 +2476,7 @@ fn prepare_toml_for_publish(
     me: &manifest::TomlManifest,
     ws: &Workspace<'_>,
     package_root: &Path,
+    included: &[PathBuf],
 ) -> CargoResult<manifest::TomlManifest> {
     let gctx = ws.gctx();
 
@@ -2431,11 +2493,21 @@ fn prepare_toml_for_publish(
     package.workspace = None;
     if let Some(StringOrBool::String(path)) = &package.build {
         let path = paths::normalize_path(Path::new(path));
-        let path = path
-            .into_os_string()
-            .into_string()
-            .map_err(|_err| anyhow::format_err!("non-UTF8 `package.build`"))?;
-        package.build = Some(StringOrBool::String(normalize_path_string_sep(path)));
+        let build = if included.contains(&path) {
+            let path = path
+                .into_os_string()
+                .into_string()
+                .map_err(|_err| anyhow::format_err!("non-UTF8 `package.build`"))?;
+            let path = normalize_path_string_sep(path);
+            StringOrBool::String(path)
+        } else {
+            ws.gctx().shell().warn(format!(
+                "ignoring `package.build` as `{}` is not included in the published package",
+                path.display()
+            ))?;
+            StringOrBool::Bool(false)
+        };
+        package.build = Some(build);
     }
     let current_resolver = package
         .resolver
@@ -2525,14 +2597,14 @@ fn prepare_toml_for_publish(
     }
 
     let lib = if let Some(target) = &me.lib {
-        Some(prepare_target_for_publish(target, "library")?)
+        prepare_target_for_publish(target, included, "library", ws.gctx())?
     } else {
         None
     };
-    let bin = prepare_targets_for_publish(me.bin.as_ref(), "binary")?;
-    let example = prepare_targets_for_publish(me.example.as_ref(), "example")?;
-    let test = prepare_targets_for_publish(me.test.as_ref(), "test")?;
-    let bench = prepare_targets_for_publish(me.bench.as_ref(), "benchmark")?;
+    let bin = prepare_targets_for_publish(me.bin.as_ref(), included, "binary", ws.gctx())?;
+    let example = prepare_targets_for_publish(me.example.as_ref(), included, "example", ws.gctx())?;
+    let test = prepare_targets_for_publish(me.test.as_ref(), included, "test", ws.gctx())?;
+    let bench = prepare_targets_for_publish(me.bench.as_ref(), included, "benchmark", ws.gctx())?;
 
     let all = |_d: &manifest::TomlDependency| true;
     let mut manifest = manifest::TomlManifest {
@@ -2690,7 +2762,9 @@ fn prepare_toml_for_publish(
 
 fn prepare_targets_for_publish(
     targets: Option<&Vec<manifest::TomlTarget>>,
+    included: &[PathBuf],
     context: &str,
+    gctx: &GlobalContext,
 ) -> CargoResult<Option<Vec<manifest::TomlTarget>>> {
     let Some(targets) = targets else {
         return Ok(None);
@@ -2698,23 +2772,41 @@ fn prepare_targets_for_publish(
 
     let mut prepared = Vec::with_capacity(targets.len());
     for target in targets {
-        let target = prepare_target_for_publish(target, context)?;
+        let Some(target) = prepare_target_for_publish(target, included, context, gctx)? else {
+            continue;
+        };
         prepared.push(target);
     }
 
-    Ok(Some(prepared))
+    if prepared.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(prepared))
+    }
 }
 
 fn prepare_target_for_publish(
     target: &manifest::TomlTarget,
+    included: &[PathBuf],
     context: &str,
-) -> CargoResult<manifest::TomlTarget> {
-    let mut target = target.clone();
-    if let Some(path) = target.path {
-        let path = normalize_path(&path.0);
-        target.path = Some(manifest::PathValue(normalize_path_sep(path, context)?));
+    gctx: &GlobalContext,
+) -> CargoResult<Option<manifest::TomlTarget>> {
+    let path = target.path.as_ref().expect("previously resolved");
+    let path = normalize_path(&path.0);
+    if !included.contains(&path) {
+        let name = target.name.as_ref().expect("previously resolved");
+        gctx.shell().warn(format!(
+            "ignoring {context} `{name}` as `{}` is not included in the published package",
+            path.display()
+        ))?;
+        return Ok(None);
     }
-    Ok(target)
+
+    let mut target = target.clone();
+    let path = normalize_path_sep(path, context)?;
+    target.path = Some(manifest::PathValue(path.into()));
+
+    Ok(Some(target))
 }
 
 fn normalize_path_sep(path: PathBuf, context: &str) -> CargoResult<PathBuf> {

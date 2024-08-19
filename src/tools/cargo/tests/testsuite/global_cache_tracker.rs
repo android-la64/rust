@@ -18,10 +18,12 @@ use cargo_test_support::{
     thread_wait_timeout, Execs, Project,
 };
 use itertools::Itertools;
+use std::env;
 use std::fmt::Write;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::OnceLock;
 use std::time::{Duration, SystemTime};
 
 /// Helper to create a simple `foo` project which depends on a registry
@@ -72,7 +74,18 @@ fn get_git_checkout_names(db_name: &str) -> Vec<String> {
 }
 
 fn days_ago(n: u64) -> SystemTime {
-    SystemTime::now() - Duration::from_secs(60 * 60 * 24 * n)
+    now() - Duration::from_secs(60 * 60 * 24 * n)
+}
+
+fn now() -> SystemTime {
+    // This captures the time once to avoid potential time boundaries or
+    // inconsistencies affecting a test. For example, on a fast system
+    // `days_ago(1)` called twice in a row will return the same answer.
+    // However, on a slower system, or if the clock happens to flip over from
+    // one second to the next, then it would return different answers. This
+    // ensures that it always returns the same answer.
+    static START: OnceLock<SystemTime> = OnceLock::new();
+    *START.get_or_init(|| SystemTime::now())
 }
 
 /// Helper for simulating running cargo in the past. Use with the
@@ -155,12 +168,19 @@ fn populate_cache(
     (cache_dir, src_dir)
 }
 
+/// Returns an `Execs` that will run the rustup `cargo` proxy from the global
+/// system's cargo home directory.
 fn rustup_cargo() -> Execs {
-    // Get the path to the rustup cargo wrapper. This is necessary because
-    // cargo adds the "deps" directory into PATH on Windows, which points to
-    // the wrong cargo.
-    let rustup_cargo = Path::new(&std::env::var_os("CARGO_HOME").unwrap()).join("bin/cargo");
-    execs().with_process_builder(process(rustup_cargo))
+    // Modify the PATH to ensure that `cargo` and `rustc` comes from
+    // CARGO_HOME. This is necessary because cargo adds the "deps" directory
+    // into PATH on Windows, which points to the wrong cargo.
+    let real_cargo_home_bin = Path::new(&std::env::var_os("CARGO_HOME").unwrap()).join("bin");
+    let mut paths = vec![real_cargo_home_bin];
+    paths.extend(env::split_paths(&env::var_os("PATH").unwrap_or_default()));
+    let path = env::join_paths(paths).unwrap();
+    let mut e = execs().with_process_builder(process("cargo"));
+    e.env("PATH", path);
+    e
 }
 
 #[cargo_test]

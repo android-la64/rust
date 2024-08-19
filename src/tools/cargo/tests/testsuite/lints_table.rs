@@ -105,13 +105,12 @@ fn fail_on_invalid_tool() {
         .build();
 
     foo.cargo("check")
-        .with_status(101)
         .with_stderr(
             "\
-[..]
-
-Caused by:
-  unsupported `super-awesome-linter` in `[lints]`, must be one of cargo, clippy, rust, rustdoc
+[WARNING] [CWD]/Cargo.toml: unrecognized lint tool `lints.super-awesome-linter`, specifying unrecognized tools may break in the future.
+supported tools: cargo, clippy, rust, rustdoc
+[CHECKING] foo v0.0.1 ([CWD])
+[FINISHED] [..]
 ",
         )
         .run();
@@ -173,8 +172,8 @@ fn warn_on_unused_key() {
     foo.cargo("check")
         .with_stderr(
             "\
-[WARNING] [CWD]/Cargo.toml: unused manifest key: lints.rust.rust-2018-idioms.unused
-[WARNING] [CWD]/Cargo.toml: unused manifest key: workspace.lints.rust.rust-2018-idioms.unused
+[WARNING][..]unused manifest key: `lints.rust.rust-2018-idioms.unused`
+[WARNING][..]unused manifest key: `lints.rust.rust-2018-idioms.unused`
 [CHECKING] foo v0.0.1 ([CWD])
 [FINISHED] `dev` profile [unoptimized + debuginfo] target(s) in [..]s
 ",
@@ -763,7 +762,6 @@ edition = "2015"
 authors = []
 
 [lints.cargo]
-im-a-teapot = "warn"
             "#,
         )
         .file("src/lib.rs", "")
@@ -800,7 +798,6 @@ authors = []
 im-a-teapot = true
 
 [lints.cargo]
-im-a-teapot = "warn"
             "#,
         )
         .file("src/lib.rs", "")
@@ -836,53 +833,13 @@ authors = []
 im-a-teapot = true
 
 [lints.cargo]
-im-a-teapot = "warn"
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .build();
-
-    p.cargo("check -Zcargo-lints")
-        .masquerade_as_nightly_cargo(&["cargo-lints", "test-dummy-unstable"])
-        .with_stderr(
-            "\
-warning: `im_a_teapot` is specified
- --> Cargo.toml:9:1
-  |
-9 | im-a-teapot = true
-  | ------------------
-  |
-  = note: `cargo::im_a_teapot` is set to `warn` in `[lints]`
-[CHECKING] foo v0.0.1 ([CWD])
-[FINISHED] [..]
-",
-        )
-        .run();
-}
-
-#[cargo_test]
-fn cargo_lints_underscore_supported() {
-    let foo = project()
-        .file(
-            "Cargo.toml",
-            r#"
-cargo-features = ["test-dummy-unstable"]
-
-[package]
-name = "foo"
-version = "0.0.1"
-edition = "2015"
-authors = []
-im-a-teapot = true
-
-[lints.cargo]
 im_a_teapot = "warn"
             "#,
         )
         .file("src/lib.rs", "")
         .build();
 
-    foo.cargo("check -Zcargo-lints")
+    p.cargo("check -Zcargo-lints")
         .masquerade_as_nightly_cargo(&["cargo-lints", "test-dummy-unstable"])
         .with_stderr(
             "\
@@ -895,89 +852,6 @@ warning: `im_a_teapot` is specified
   = note: `cargo::im_a_teapot` is set to `warn` in `[lints]`
 [CHECKING] foo v0.0.1 ([CWD])
 [FINISHED] [..]
-",
-        )
-        .run();
-}
-
-#[cargo_test]
-fn forbid_not_overridden() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-cargo-features = ["test-dummy-unstable"]
-
-[package]
-name = "foo"
-version = "0.0.1"
-edition = "2015"
-authors = []
-im-a-teapot = true
-
-[lints.cargo]
-im-a-teapot = { level = "warn", priority = 10 }
-test-dummy-unstable = { level = "forbid", priority = -1 }
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .build();
-
-    p.cargo("check -Zcargo-lints")
-        .masquerade_as_nightly_cargo(&["cargo-lints", "test-dummy-unstable"])
-        .with_status(101)
-        .with_stderr(
-            "\
-error: `im_a_teapot` is specified
- --> Cargo.toml:9:1
-  |
-9 | im-a-teapot = true
-  | ^^^^^^^^^^^^^^^^^^
-  |
-  = note: `cargo::im_a_teapot` is set to `forbid` in `[lints]`
-",
-        )
-        .run();
-}
-
-#[cargo_test]
-fn workspace_cargo_lints() {
-    let p = project()
-        .file(
-            "Cargo.toml",
-            r#"
-cargo-features = ["test-dummy-unstable"]
-
-[workspace.lints.cargo]
-im-a-teapot = { level = "warn", priority = 10 }
-test-dummy-unstable = { level = "forbid", priority = -1 }
-
-[package]
-name = "foo"
-version = "0.0.1"
-edition = "2015"
-authors = []
-im-a-teapot = true
-
-[lints]
-workspace = true
-            "#,
-        )
-        .file("src/lib.rs", "")
-        .build();
-
-    p.cargo("check -Zcargo-lints")
-        .masquerade_as_nightly_cargo(&["cargo-lints", "test-dummy-unstable"])
-        .with_status(101)
-        .with_stderr(
-            "\
-error: `im_a_teapot` is specified
-  --> Cargo.toml:13:1
-   |
-13 | im-a-teapot = true
-   | ^^^^^^^^^^^^^^^^^^
-   |
-   = note: `cargo::im_a_teapot` is set to `forbid` in `[lints]`
 ",
         )
         .run();

@@ -323,7 +323,7 @@ assert_eq!(x, 4 * 6);
 
 By default, `asm!` assumes that any register not specified as an output will have its contents preserved by the assembly code. The [`clobber_abi`] argument to `asm!` tells the compiler to automatically insert the necessary clobber operands according to the given calling convention ABI: any register which is not fully preserved in that ABI will be treated as clobbered.  Multiple `clobber_abi` arguments may be provided and all clobbers from all specified ABIs will be inserted.
 
-[`clobber_abi`]: ../../reference/inline-assembly.html#abi-clobbers
+[`clobber_abi`]: https://doc.rust-lang.org/stable/reference/inline-assembly.html#abi-clobbers
 
 ```rust
 # #[cfg(target_arch = "x86_64")] {
@@ -446,7 +446,7 @@ This example shows a few things:
 [local labels]: https://sourceware.org/binutils/docs/as/Symbol-Names.html#Local-Labels
 [an LLVM bug]: https://bugs.llvm.org/show_bug.cgi?id=36144
 
-## Options
+## Options {#options}
 
 By default, an inline assembly block is treated the same way as an external FFI function call with a custom calling convention: it may read/write memory, have observable side effects, etc. However, in many cases it is desirable to give the compiler more information about what the assembly code is actually doing so that it can optimize better.
 

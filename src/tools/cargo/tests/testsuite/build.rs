@@ -6,14 +6,16 @@ use cargo::{
     ops::CompileOptions,
     GlobalContext,
 };
+use cargo_test_support::compare::assert_e2e;
 use cargo_test_support::paths::{root, CargoPathExt};
+use cargo_test_support::prelude::*;
 use cargo_test_support::registry::Package;
+use cargo_test_support::str;
 use cargo_test_support::{
-    basic_bin_manifest, basic_lib_manifest, basic_manifest, cargo_exe, git, is_nightly, main_file,
-    paths, process, project, rustc_host, sleep_ms, symlink_supported, t, Execs, ProjectBuilder,
+    basic_bin_manifest, basic_lib_manifest, basic_manifest, cargo_exe, cargo_process, git,
+    is_nightly, main_file, paths, process, project, rustc_host, sleep_ms, symlink_supported, t,
+    tools, Execs, ProjectBuilder,
 };
-use cargo_test_support::{cargo_process, compare};
-use cargo_test_support::{git_process, tools};
 use cargo_util::paths::dylib_path_envvar;
 use std::env;
 use std::fs;
@@ -72,16 +74,8 @@ fn build_with_symlink_to_path_dependency_with_build_script_in_git() {
         .build();
 
     // It is necessary to have a sub-repository and to add files so there is an index.
-    git_process("init")
-        .cwd(root.join("original"))
-        .build_command()
-        .status()
-        .unwrap();
-    git_process("add .")
-        .cwd(root.join("original"))
-        .build_command()
-        .status()
-        .unwrap();
+    let repo = git::init(&root.join("original"));
+    git::add(&repo);
     cargo_process("build").run()
 }
 
@@ -6457,17 +6451,17 @@ fn close_output() {
     };
 
     let stderr = spawn(false);
-    compare::match_unordered(
-        "\
-[COMPILING] foo [..]
-hello stderr!
-[ERROR] [..]
-[WARNING] build failed, waiting for other jobs to finish...
-",
+    assert_e2e().eq(
         &stderr,
-        None,
-    )
-    .unwrap();
+        str![[r#"
+[COMPILING] foo v0.1.0 ([ROOT]/foo)
+hello stderr!
+[ERROR] [BROKEN_PIPE]
+[WARNING] build failed, waiting for other jobs to finish...
+
+"#]]
+        .unordered(),
+    );
 
     // Try again with stderr.
     p.build_dir().rm_rf();

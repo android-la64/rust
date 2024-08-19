@@ -16,6 +16,7 @@ use rustc_middle::{bug, span_bug, ty::Instance};
 use rustc_span::{Pos, Span};
 use rustc_target::abi::*;
 use rustc_target::asm::*;
+use tracing::debug;
 
 use libc::{c_char, c_uint};
 use smallvec::SmallVec;
@@ -904,8 +905,8 @@ fn llvm_asm_scalar_type<'ll>(cx: &CodegenCx<'ll, '_>, scalar: Scalar) -> &'ll Ty
         Primitive::Int(Integer::I16, _) => cx.type_i16(),
         Primitive::Int(Integer::I32, _) => cx.type_i32(),
         Primitive::Int(Integer::I64, _) => cx.type_i64(),
-        Primitive::F32 => cx.type_f32(),
-        Primitive::F64 => cx.type_f64(),
+        Primitive::Float(Float::F32) => cx.type_f32(),
+        Primitive::Float(Float::F64) => cx.type_f64(),
         // FIXME(erikdesjardins): handle non-default addrspace ptr sizes
         Primitive::Pointer(_) => cx.type_from_integer(dl.ptr_sized_integer()),
         _ => unreachable!(),
@@ -950,7 +951,7 @@ fn llvm_fixup_input<'ll, 'tcx>(
             bx.shuffle_vector(value, bx.const_undef(vec_ty), bx.const_vector(&indices))
         }
         (InlineAsmRegClass::X86(X86InlineAsmRegClass::reg_abcd), Abi::Scalar(s))
-            if s.primitive() == Primitive::F64 =>
+            if s.primitive() == Primitive::Float(Float::F64) =>
         {
             bx.bitcast(value, bx.cx.type_i64())
         }
@@ -986,8 +987,8 @@ fn llvm_fixup_input<'ll, 'tcx>(
             match s.primitive() {
                 // MIPS only supports register-length arithmetics.
                 Primitive::Int(Integer::I8 | Integer::I16, _) => bx.zext(value, bx.cx.type_i32()),
-                Primitive::F32 => bx.bitcast(value, bx.cx.type_i32()),
-                Primitive::F64 => bx.bitcast(value, bx.cx.type_i64()),
+                Primitive::Float(Float::F32) => bx.bitcast(value, bx.cx.type_i32()),
+                Primitive::Float(Float::F64) => bx.bitcast(value, bx.cx.type_i64()),
                 _ => value,
             }
         }
@@ -1027,7 +1028,7 @@ fn llvm_fixup_output<'ll, 'tcx>(
             bx.shuffle_vector(value, bx.const_undef(vec_ty), bx.const_vector(&indices))
         }
         (InlineAsmRegClass::X86(X86InlineAsmRegClass::reg_abcd), Abi::Scalar(s))
-            if s.primitive() == Primitive::F64 =>
+            if s.primitive() == Primitive::Float(Float::F64) =>
         {
             bx.bitcast(value, bx.cx.type_f64())
         }
@@ -1064,8 +1065,8 @@ fn llvm_fixup_output<'ll, 'tcx>(
                 // MIPS only supports register-length arithmetics.
                 Primitive::Int(Integer::I8, _) => bx.trunc(value, bx.cx.type_i8()),
                 Primitive::Int(Integer::I16, _) => bx.trunc(value, bx.cx.type_i16()),
-                Primitive::F32 => bx.bitcast(value, bx.cx.type_f32()),
-                Primitive::F64 => bx.bitcast(value, bx.cx.type_f64()),
+                Primitive::Float(Float::F32) => bx.bitcast(value, bx.cx.type_f32()),
+                Primitive::Float(Float::F64) => bx.bitcast(value, bx.cx.type_f64()),
                 _ => value,
             }
         }
@@ -1100,7 +1101,7 @@ fn llvm_fixup_output_type<'ll, 'tcx>(
             cx.type_vector(elem_ty, count * 2)
         }
         (InlineAsmRegClass::X86(X86InlineAsmRegClass::reg_abcd), Abi::Scalar(s))
-            if s.primitive() == Primitive::F64 =>
+            if s.primitive() == Primitive::Float(Float::F64) =>
         {
             cx.type_i64()
         }
@@ -1136,8 +1137,8 @@ fn llvm_fixup_output_type<'ll, 'tcx>(
             match s.primitive() {
                 // MIPS only supports register-length arithmetics.
                 Primitive::Int(Integer::I8 | Integer::I16, _) => cx.type_i32(),
-                Primitive::F32 => cx.type_i32(),
-                Primitive::F64 => cx.type_i64(),
+                Primitive::Float(Float::F32) => cx.type_i32(),
+                Primitive::Float(Float::F64) => cx.type_i64(),
                 _ => layout.llvm_type(cx),
             }
         }
