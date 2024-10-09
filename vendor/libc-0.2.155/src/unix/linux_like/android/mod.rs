@@ -1735,6 +1735,7 @@ cfg_if! {
     if #[cfg(any(target_arch = "x86",
                  target_arch = "x86_64",
                  target_arch = "arm",
+                 target_arch = "loongarch64",
                  target_arch = "aarch64",
                  target_arch = "riscv64",
                  target_arch = "s390x"))] {

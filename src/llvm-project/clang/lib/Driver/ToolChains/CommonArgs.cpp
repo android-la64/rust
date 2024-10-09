@@ -86,6 +86,7 @@ static bool useFramePointerForTargetByDefault(const llvm::opt::ArgList &Args,
     case llvm::Triple::thumb:
     case llvm::Triple::thumbeb:
     case llvm::Triple::riscv64:
+    case llvm::Triple::loongarch64:
       return true;
     default:
       break;

@@ -1968,7 +1968,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
     return Unknown;
   return esr & ESR_ELx_WNR ? Write : Read;
 #  elif defined(__loongarch__)
-  u32 flags = ucontext->uc_mcontext.__flags;
+  u32 flags = ucontext->uc_mcontext.sc_flags;
   if (flags & SC_ADDRERR_RD)
     return SignalContext::Read;
   if (flags & SC_ADDRERR_WR)
@@ -2244,9 +2244,9 @@ static void GetPcSpBp(void *context, uptr *pc, uptr *sp, uptr *bp) {
   *sp = ucontext->uc_mcontext.r29;
 #  elif defined(__loongarch__)
   ucontext_t *ucontext = (ucontext_t *)context;
-  *pc = ucontext->uc_mcontext.__pc;
-  *bp = ucontext->uc_mcontext.__gregs[22];
-  *sp = ucontext->uc_mcontext.__gregs[3];
+  *pc = ucontext->uc_mcontext.sc_pc;
+  *bp = ucontext->uc_mcontext.sc_regs[22];
+  *sp = ucontext->uc_mcontext.sc_regs[3];
 #  else
 #    error "Unsupported arch"
 #  endif
