@@ -151,6 +151,13 @@ inline void ReleaseMemoryPagesToOSAndZeroFill(uptr beg, uptr end) {
           __asm__("mrc p15, 0, %0, c13, c0, 3" : "=r"(__v)); \
           __v;                                               \
         })
+#    elif defined(__loongarch64)
+#      define __get_tls()                   \
+        ({                                  \
+          void **__v;                       \
+          __asm__("move %0, $tp" : "=r"(__v)); \
+          __v;                              \
+        })
 #    elif defined(__mips__)
 // On mips32r1, this goes via a kernel illegal instruction trap that's
 // optimized for v1.

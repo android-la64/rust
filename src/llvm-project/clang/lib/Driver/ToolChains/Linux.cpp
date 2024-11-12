@@ -94,6 +94,9 @@ std::string Linux::getMultiarchTriple(const Driver &D,
     const char *Libc;
     const char *FPFlavor;
 
+    if (IsAndroid)
+      return "loongarch64-linux-android";
+
     if (TargetTriple.isGNUEnvironment()) {
       Libc = "gnu";
     } else if (TargetTriple.isMusl()) {
